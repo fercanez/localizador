@@ -1245,69 +1245,187 @@ function cancelPrint() {
 }
 
 function setMapTitle(mode) {
-  document.querySelector("#mapTitle-dialog").showModal();
   printOption = mode;
+  const dialog = document.querySelector("#mapTitle-dialog");
+  if (dialog && typeof dialog.showModal === "function") {
+    dialog.showModal();
+  }
+}
+window.setMapTitle = setMapTitle;
+
+function buildPrintHeader(mapTitle) {
+  const title = String(mapTitle || "").trim() || "TÍTULO DEL PLANO";
+  const escudoUrl = new URL("escudo-mexicali.png", window.location.href).href;
+
+  return {
+    enabled: true,
+    size: "26mm",
+    overTheMap: false,
+    text:
+      '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;font-family:Arial,Helvetica,sans-serif;">' +
+      '<tr>' +
+      '<td bgcolor="#6f2f3d" style="' +
+      "background-color:#6f2f3d;" +
+      "border-bottom:3px solid #d6aa2f;padding:8px 14px;" +
+      '">' +
+      '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;"><tr>' +
+      '<td style="vertical-align:middle;width:1%;white-space:nowrap;padding-right:12px;">' +
+      '<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>' +
+      '<td style="vertical-align:middle;padding-right:10px;">' +
+      '<img src="' +
+      escudoUrl +
+      '" alt="Escudo de Mexicali" width="40" height="48" style="' +
+      "display:block;height:48px;width:auto;max-width:40px;background:#ffffff;border-radius:6px;padding:3px 5px;" +
+      '">' +
+      "</td>" +
+      '<td style="vertical-align:middle;color:#ffffff;line-height:1.1;">' +
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.4px;color:#ffffff;">DIRECCIÓN DE ADMINISTRACIÓN URBANA</div>' +
+      '<div style="font-size:18px;font-weight:900;letter-spacing:.8px;margin-top:2px;color:#ffffff;">JEFATURA DE CATASTRO</div>' +
+      '<div style="font-size:11px;font-weight:700;margin-top:3px;color:#ffffff;">Mexicali, Baja California</div>' +
+      "</td></tr></table>" +
+      "</td>" +
+      '<td style="' +
+      "vertical-align:middle;text-align:right;color:#ffffff;font-size:18px;font-weight:900;" +
+      "letter-spacing:.6px;text-transform:uppercase;padding-left:16px;text-shadow:0 1px 2px rgba(0,0,0,.35);" +
+      '">' +
+      escapeHtml(title) +
+      "</td>" +
+      "</tr></table>" +
+      "</td></tr></table>",
+  };
+}
+
+function buildPrintFooter() {
+  const fecha = new Date().toLocaleString("es-MX", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  return {
+    enabled: true,
+    size: "9mm",
+    overTheMap: false,
+    text:
+      '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;font-family:Arial,Helvetica,sans-serif;">' +
+      '<tr><td bgcolor="#6f2f3d" style="' +
+      "background-color:#6f2f3d;border-top:2px solid #d6aa2f;color:#ffffff;" +
+      "font-size:10px;font-weight:600;padding:4px 12px;text-align:center;" +
+      '">' +
+      "localizacion.geomexicali.info · " +
+      escapeHtml(fecha) +
+      "</td></tr></table>",
+  };
+}
+
+function ensureMxliPrintFrameStyle() {
+  var style = document.getElementById("mxli-print-frame-css");
+  if (style) return style;
+
+  style = document.createElement("style");
+  style.id = "mxli-print-frame-css";
+  style.textContent =
+    ".grid-print-container{" +
+    "box-sizing:border-box!important;" +
+    "border:8px solid #6f2f3d!important;" +
+    "outline:2px solid #d6aa2f!important;" +
+    "outline-offset:-10px!important;" +
+    "background:#fff!important;" +
+    "overflow:hidden!important;" +
+    "}" +
+    ".grid-print-container .print-header," +
+    ".grid-print-container .print-footer{" +
+    "margin:0!important;padding:0!important;width:100%!important;" +
+    "}" +
+    ".grid-print-container .print-header>*," +
+    ".grid-print-container .print-footer>*{" +
+    "margin:0!important;" +
+    "}" +
+    ".leaflet-browser-print--portrait," +
+    ".leaflet-browser-print--landscape," +
+    ".leaflet-browser-print--auto," +
+    ".leaflet-browser-print--custom{" +
+    "box-sizing:border-box!important;" +
+    "}" +
+    "@media print{" +
+    "body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
+    ".grid-print-container{" +
+    "border:8px solid #6f2f3d!important;" +
+    "outline:2px solid #d6aa2f!important;" +
+    "outline-offset:-10px!important;" +
+    "-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;" +
+    "}" +
+    "}";
+  document.head.appendChild(style);
+  return style;
 }
 
 function printMap(mode) {
-  let mapTitle = $mapTitleInput.value;
+  const mapTitle = (($mapTitleInput && $mapTitleInput.value) || "").trim();
+  const header = buildPrintHeader(mapTitle);
+  const footer = buildPrintFooter();
+  ensureMxliPrintFrameStyle();
+
+  const commonOptions = {
+    documentTitle: mapTitle || "Mapa catastral Mexicali",
+    closePopupsOnPrint: false,
+    header: header,
+    footer: footer,
+    margin: { top: 6, right: 6, bottom: 6, left: 6 },
+  };
+
+  const browserPrint = L.browserPrint(map2d, {
+    documentTitle: commonOptions.documentTitle,
+  });
 
   switch (mode) {
     case "vertical":
-      var options = {
-        documentTitle: mapTitle,
-      };
-      var browserPrint = L.browserPrint(map2d, options);
-
       browserPrint.print(
         L.BrowserPrint.Mode.Portrait("Letter", {
-          documentTitle: mapTitle,
+          documentTitle: commonOptions.documentTitle,
+          closePopupsOnPrint: false,
+          header: header,
+          footer: footer,
+          margin: commonOptions.margin,
           scale: 1,
           pageSize: "Letter",
           orientation: "Portrait",
-          closePopupsOnPrint: false,
-          debug: true,
         })
       );
       break;
-    case "horizontal": // foo es 0, por lo tanto se cumple la condición y se ejecutara el siguiente bloque
-      var options = {
-        documentTitle: mapTitle,
-      };
-      var browserPrint = L.browserPrint(map2d, options);
-
+    case "horizontal":
       browserPrint.print(
         L.BrowserPrint.Mode.Landscape("Letter", {
-          documentTitle: mapTitle,
+          documentTitle: commonOptions.documentTitle,
+          closePopupsOnPrint: false,
+          header: header,
+          footer: footer,
+          margin: commonOptions.margin,
           scale: 1,
           pageSize: "Letter",
           orientation: "Landscape",
-          closePopupsOnPrint: false,
-          debug: true,
         })
       );
       break;
-    case "custom": // foo es 0, por lo tanto se cumple la condición y se ejecutara el siguiente bloque
-      var options = {
-        documentTitle: mapTitle,
-        pageSize: "Letter",
-        orientation: "Landscape",
-      };
-      var browserPrint = L.browserPrint(map2d, options);
-
-      browserPrint.print(L.BrowserPrint.Mode.Custom());
+    case "custom":
+      browserPrint.print(
+        L.BrowserPrint.Mode.Custom("Letter", {
+          documentTitle: commonOptions.documentTitle,
+          closePopupsOnPrint: false,
+          header: header,
+          footer: footer,
+          margin: commonOptions.margin,
+          pageSize: "Letter",
+          orientation: "Landscape",
+        })
+      );
       break;
-    case "tabloide": // foo es 0, por lo tanto se cumple la condición y se ejecutara el siguiente bloque
-      var options = {
-        documentTitle: mapTitle,
-        pageSize: "Tabloid",
-        orientation: "Landscape",
-      };
-      var browserPrint = L.browserPrint(map2d, options);
-      console.log(options);
-
+    case "tabloide":
       browserPrint.print(
         L.BrowserPrint.Mode.Landscape("Tabloid", {
+          documentTitle: commonOptions.documentTitle,
+          closePopupsOnPrint: false,
+          header: header,
+          footer: footer,
+          margin: commonOptions.margin,
           title: "Tabloide",
           pageSize: "Tabloid",
           orientation: "Landscape",
@@ -1315,10 +1433,16 @@ function printMap(mode) {
       );
       break;
     default:
-      console.log("default");
+      console.warn("Modo de impresión desconocido:", mode);
   }
-  document.querySelector("#mapTitle-dialog").close();
-  $mapTitleInput.value = "";
+
+  const titleDialog = document.querySelector("#mapTitle-dialog");
+  if (titleDialog && typeof titleDialog.close === "function") {
+    titleDialog.close();
+  }
+  if ($mapTitleInput) {
+    $mapTitleInput.value = "";
+  }
 }
 
 function activar_carta_urbana() {

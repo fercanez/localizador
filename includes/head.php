@@ -58,5 +58,5 @@
 
     <!-- Plugin para imprimir mapa -->
     <script src="./resources/leaflet-browser-print/leaflet.browser.print.js"></script>
-  <link rel="stylesheet" href="./css/index.css?v=65">
+  <link rel="stylesheet" href="./css/index.css?v=68">
 </head>

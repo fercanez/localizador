@@ -250,35 +250,34 @@
 
 #printMapBtn {
   position: relative;
-  /* display: flex;
-  flex-direction: row-reverse; */
 }
 
-.printOptions {
-  display: none;
-  flex-direction: row;
-  position: absolute;
-  left: 0;
-  top: 0;
-  transform: translateX(-101%);
-  font-size: 1rem;
-  min-height: 2.5rem;
+.print-mode-dialog {
+  max-width: min(92vw, 360px);
 }
 
-#printMapBtn:hover .printOptions {
+.print-mode-options {
   display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
 }
 
-.printOptions button {
-  background: #919187;
+.print-mode-options .boton {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
   border: none;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font: var(--baseFont);
-  color: white;
+  cursor: pointer;
 }
 
-.printOptions button:hover {
-  background: #707069;
+.print-mode-dialog .modal-controls {
+  justify-content: center;
+}
+
+.print-mode-dialog .modal-controls .boton {
+  border: none;
+  cursor: pointer;
 }

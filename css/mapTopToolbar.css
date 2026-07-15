@@ -14,6 +14,7 @@
   max-width: calc(100vw - 24px);
   flex-wrap: wrap;
   pointer-events: auto;
+  overflow: visible;
 }
 
 .map-top-toolbar.is-dragging {
@@ -59,6 +60,7 @@
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  overflow: visible;
 }
 
 .map-top-toolbar__tools {
@@ -67,6 +69,7 @@
   align-items: center;
   gap: 8px !important;
   margin: 0 !important;
+  overflow: visible;
 }
 
 .map-top-toolbar__tools .control-icon {
@@ -186,18 +189,6 @@
 
 .leaflet-bottom.leaflet-left:empty {
   display: none !important;
-}
-
-#printMapBtn {
-  position: relative;
-}
-
-#printMapBtn .printOptions {
-  top: calc(100% + 6px);
-  right: 0;
-  left: auto;
-  transform: none;
-  z-index: 100020;
 }
 
 @media (max-width: 900px) {

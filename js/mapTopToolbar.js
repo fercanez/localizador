@@ -192,6 +192,67 @@
     window.addEventListener("resize", function () {
       clampPosition(toolbar);
     });
+
+    initPrintMenu();
+  }
+
+  function initPrintMenu() {
+    const printBtn = document.getElementById("printMapBtn");
+    const modeDialog = document.getElementById("printMode-dialog");
+    const cancelBtn = document.getElementById("printModeCancel");
+
+    if (!printBtn || !modeDialog || printBtn.dataset.printMenuReady === "1") {
+      return;
+    }
+    printBtn.dataset.printMenuReady = "1";
+
+    function openModeDialog(event) {
+      if (event) stopMapInteraction(event, false);
+      if (typeof modeDialog.showModal === "function") {
+        modeDialog.showModal();
+      } else {
+        modeDialog.setAttribute("open", "");
+      }
+    }
+
+    function closeModeDialog() {
+      if (typeof modeDialog.close === "function") {
+        modeDialog.close();
+      } else {
+        modeDialog.removeAttribute("open");
+      }
+    }
+
+    printBtn.addEventListener("click", openModeDialog);
+    printBtn.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        openModeDialog(event);
+      }
+    });
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        closeModeDialog();
+      });
+    }
+
+    modeDialog.querySelectorAll("[data-print-mode]").forEach(function (button) {
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const mode = button.getAttribute("data-print-mode");
+        closeModeDialog();
+        if (typeof window.setMapTitle === "function") {
+          window.setMapTitle(mode);
+        }
+      });
+    });
+
+    modeDialog.addEventListener("cancel", function (event) {
+      event.preventDefault();
+      closeModeDialog();
+    });
   }
 
   window.initMapTopToolbar = initMapTopToolbar;

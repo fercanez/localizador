@@ -18,14 +18,13 @@
       </span>
       <span class="icon-lapizRregla control-icon" id="editToolsDisplayBtn">
       </span>
-      <span class="icon-Impresora control-icon" id="printMapBtn">
-        <div class="printOptions">
-          <button onclick="setMapTitle('tabloide')">Tabloide</button>
-          <button onclick="setMapTitle('horizontal')">Carta Horizontal</button>
-          <button onclick="setMapTitle('vertical')">Carta Vertical</button>
-          <button onclick="setMapTitle('custom')">Selección</button>
-        </div>
-      </span>
+      <span
+        class="icon-Impresora control-icon"
+        id="printMapBtn"
+        title="Imprimir mapa"
+        role="button"
+        tabindex="0"
+      ></span>
     </div>
     <div id="editToolsContainer" class="displayEditTools">
     </div>
@@ -41,6 +40,19 @@
 
 
 
+
+  <dialog class="modal-container-v2 print-mode-dialog" id="printMode-dialog">
+    <p class="subtituloModal">Elige el formato de impresión</p>
+    <div class="print-mode-options">
+      <button type="button" class="boton boton-secundario" data-print-mode="tabloide">Tabloide</button>
+      <button type="button" class="boton boton-secundario" data-print-mode="horizontal">Carta Horizontal</button>
+      <button type="button" class="boton boton-secundario" data-print-mode="vertical">Carta Vertical</button>
+      <button type="button" class="boton boton-secundario" data-print-mode="custom">Selección</button>
+    </div>
+    <div class="modal-controls">
+      <button type="button" class="boton boton-primario" id="printModeCancel">Cancelar</button>
+    </div>
+  </dialog>
 
   <dialog class="modal-container-v2" id="mapTitle-dialog">
     <p class="subtituloModal">Escribe un título para mostrar en el mapa.</p>

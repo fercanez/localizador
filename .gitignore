@@ -35,3 +35,6 @@ Thumbs.db
 _archive/
 *.bak
 *~
+
+# PDFs de muestra / export
+*.pdf

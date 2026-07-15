@@ -249,13 +249,13 @@ window.MXLI_MAP_KEYS = <?= json_encode([
 ], JSON_UNESCAPED_SLASHES) ?>;
 </script>
 
-<script src="js/listaCapas.js?v=66"></script>
-<script src="js/leaflet.js?v=66"></script>
-<script src="js/layerControls.js?v=66"></script>
-<script src="js/wmsLayerPanel.js?v=66"></script>
-<script src="js/simbologiaPanel.js?v=66"></script>
-<script src="js/buscadorPredios.js?v=66"></script>
-<script src="js/mapTopToolbar.js?v=66"></script>
+<script src="js/listaCapas.js?v=71"></script>
+<script src="js/leaflet.js?v=71"></script>
+<script src="js/layerControls.js?v=71"></script>
+<script src="js/wmsLayerPanel.js?v=71"></script>
+<script src="js/simbologiaPanel.js?v=71"></script>
+<script src="js/buscadorPredios.js?v=71"></script>
+<script src="js/mapTopToolbar.js?v=71"></script>
 
 <script>
 <?php include "js/menuBtn.js"; ?>
