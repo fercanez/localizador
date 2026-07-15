@@ -4,7 +4,20 @@ declare(strict_types=1);
 header("Content-Type: application/json; charset=UTF-8");
 header("Cache-Control: no-store, no-cache, must-revalidate");
 
-require_once dirname(__DIR__) . "/includes/config.php";
+require_once dirname(__DIR__) . "/includes/init.php";
+require_once dirname(__DIR__) . "/includes/auth.php";
+
+if (!mxli_is_logged_in()) {
+    http_response_code(401);
+    echo json_encode(["error" => "Debe iniciar sesión."]);
+    exit;
+}
+
+if (!mxli_can("map.search") || !mxli_can_layer("predios_mexicali_2025")) {
+    http_response_code(403);
+    echo json_encode(["error" => "Sin permiso para consultar predios."]);
+    exit;
+}
 
 $clave = strtoupper(preg_replace('/\s+/', '', (string)($_GET['clave'] ?? '')));
 

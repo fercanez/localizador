@@ -30,6 +30,18 @@ if ($row === null) {
     mxli_json_response(["ok" => false, "error" => "Usuario o contraseña incorrectos"], 401);
 }
 
+if (!empty($row["__expired"])) {
+    $exp = mxli_normalize_expires_at($row["expires_at"] ?? null);
+    mxli_json_response([
+        "ok" => false,
+        "error" => $exp
+            ? "Su acceso venció el {$exp}. Contacte al administrador."
+            : "Su acceso ha vencido. Contacte al administrador.",
+        "expired" => true,
+        "expires_at" => $exp,
+    ], 403);
+}
+
 mxli_set_session_user($row);
 
 mxli_json_response([

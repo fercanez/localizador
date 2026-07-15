@@ -150,6 +150,18 @@ html, body {
   background: rgba(255,255,255,0.24);
 }
 
+.header-user-role {
+  opacity: 0.9;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(214,170,47,0.45);
+  text-transform: uppercase;
+}
+
 @media (max-width: 760px) {
   .header-catastro-mxli {
     height: 72px;
@@ -167,6 +179,7 @@ html, body {
   .header-catastro-texto .dependencia,
   .header-catastro-texto .ciudad { font-size: 10px; }
   .header-user-name { display: none; }
+  .header-user-role { display: none; }
   .header-user-box a {
     padding: 0.28rem 0.5rem;
     font-size: 0.75rem;
@@ -218,7 +231,8 @@ html, body {
   </div>
   <div class="header-user-box">
     <span class="header-user-name"><?= htmlspecialchars($mxliUser["username"] ?? "", ENT_QUOTES, "UTF-8") ?></span>
-    <?php if (!empty($mxliUser["role"]) && $mxliUser["role"] === "admin"): ?>
+    <span class="header-user-role"><?= htmlspecialchars($mxliUser["role_label"] ?? mxli_role_label($mxliUser["role"] ?? "consulta"), ENT_QUOTES, "UTF-8") ?></span>
+    <?php if (mxli_can("users.manage")): ?>
       <a href="admin/usuarios.php">Usuarios</a>
     <?php endif; ?>
     <a href="logout.php">Salir</a>
@@ -247,15 +261,26 @@ window.MXLI_MAP_KEYS = <?= json_encode([
   "bing" => mxli_config("bing_maps_key"),
   "geoserver" => mxli_config("geoserver_url"),
 ], JSON_UNESCAPED_SLASHES) ?>;
+window.MXLI_USER = <?= json_encode($mxliUser, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+window.mxliCan = function (permission) {
+  var perms = (window.MXLI_USER && window.MXLI_USER.permissions) || [];
+  return perms.indexOf(permission) !== -1;
+};
+window.mxliCanLayer = function (layerKey) {
+  var layers = (window.MXLI_USER && window.MXLI_USER.allowed_layers) || ["*"];
+  if (layers.indexOf("*") !== -1) return true;
+  return layers.indexOf(layerKey) !== -1;
+};
 </script>
 
-<script src="js/listaCapas.js?v=71"></script>
-<script src="js/leaflet.js?v=71"></script>
-<script src="js/layerControls.js?v=71"></script>
-<script src="js/wmsLayerPanel.js?v=71"></script>
-<script src="js/simbologiaPanel.js?v=71"></script>
-<script src="js/buscadorPredios.js?v=71"></script>
-<script src="js/mapTopToolbar.js?v=71"></script>
+<script src="js/listaCapas.js?v=77"></script>
+<script src="js/leaflet.js?v=76"></script>
+<script src="js/layerControls.js?v=72"></script>
+<script src="js/wmsLayerPanel.js?v=72"></script>
+<script src="js/simbologiaPanel.js?v=72"></script>
+<script src="js/buscadorPredios.js?v=73"></script>
+<script src="js/mapTopToolbar.js?v=72"></script>
+<script src="js/permissions.js?v=73"></script>
 
 <script>
 <?php include "js/menuBtn.js"; ?>

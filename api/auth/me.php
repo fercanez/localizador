@@ -13,4 +13,7 @@ mxli_json_response([
     "ok" => true,
     "authenticated" => true,
     "user" => $user,
+    "permissions" => mxli_user_permissions($user),
+    "allowed_layers" => mxli_allowed_layers($user),
+    "roles" => mxli_role_labels(),
 ]);

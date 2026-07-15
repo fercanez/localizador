@@ -13,6 +13,7 @@ $next = (string)($_GET["next"] ?? "index.php");
 if ($next === "" || str_contains($next, "://") || str_starts_with($next, "//")) {
     $next = "index.php";
 }
+$expiredNotice = isset($_GET["expired"]);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -36,6 +37,9 @@ if ($next === "" || str_contains($next, "://") || str_starts_with($next, "//")) 
     <form id="auth-login-form" class="auth-form" autocomplete="on">
       <h2>Iniciar sesión</h2>
       <p class="auth-hint">Ingrese con su usuario asignado por el administrador.</p>
+      <?php if ($expiredNotice): ?>
+        <p class="auth-error" style="display:block">Su acceso ha vencido. Contacte al administrador.</p>
+      <?php endif; ?>
 
       <label>
         Usuario

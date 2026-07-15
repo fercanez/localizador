@@ -15,6 +15,12 @@
   let predioMedidasLayer = null;
 
   function init() {
+    if (typeof window.mxliCan === "function" && !window.mxliCan("map.search")) {
+      return;
+    }
+    if (typeof window.mxliCanLayer === "function" && !window.mxliCanLayer("predios_mexicali_2025")) {
+      return;
+    }
     if (typeof L === "undefined" || typeof map2d === "undefined") {
       setTimeout(init, 500);
       return;
@@ -175,6 +181,14 @@
   }
 
   async function buscarPredioPorClave(claveOriginal) {
+    if (typeof window.mxliCan === "function" && !window.mxliCan("map.search")) {
+      window.alert("Su rol no tiene permiso para buscar predios.");
+      return;
+    }
+    if (typeof window.mxliCanLayer === "function" && !window.mxliCanLayer("predios_mexicali_2025")) {
+      window.alert("Su rol no tiene permiso para consultar la capa de Predios.");
+      return;
+    }
     const clave = limpiarClave(claveOriginal);
 
     if (!clave) {
@@ -248,6 +262,9 @@
   }
 
   function encenderCapaPredios() {
+    if (typeof window.mxliCanLayer === "function" && !window.mxliCanLayer("predios_mexicali_2025")) {
+      return;
+    }
     if (typeof predios !== "undefined" && !map2d.hasLayer(predios)) {
       if (typeof group !== "undefined" && group.addLayer) group.addLayer(predios);
       else predios.addTo(map2d);

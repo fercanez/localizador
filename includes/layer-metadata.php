@@ -67,4 +67,8 @@ return [
         "title" => "Esquema Vial Propuesto 2040",
         "abstract" => "Estructura vial propuesta para el municipio de Mexicali.",
     ],
+    "zonas_homogeneas_2017_2026_prop" => [
+        "title" => "Zonas Homogéneas 2017-2026",
+        "abstract" => "Zonas homogéneas catastrales propuestas con valores unitarios 2017-2026.",
+    ],
 ];

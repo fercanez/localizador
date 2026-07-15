@@ -41,11 +41,50 @@
   opacity: 0.92;
 }
 
+.admin-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem 0;
+  background: #f4efe9;
+}
+
+.admin-tab {
+  border: 1px solid #d7ccd1;
+  background: #fff;
+  color: #5a2f3d;
+  border-radius: 8px 8px 0 0;
+  padding: 0.55rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-tab.is-active {
+  background: #6f2f3d;
+  border-color: #6f2f3d;
+  color: #fff;
+}
+
+.admin-tab-panel[hidden] {
+  display: none !important;
+}
+
+.admin-tab-panel.is-active {
+  display: block;
+}
+
 .admin-main {
+  display: block;
+  padding: 1rem;
+}
+
+#tab-users.admin-tab-panel.is-active {
   display: grid;
   grid-template-columns: minmax(280px, 340px) 1fr;
   gap: 1rem;
-  padding: 1rem;
+}
+
+#tab-roles.admin-tab-panel.is-active {
+  display: block;
 }
 
 .admin-panel {
@@ -82,6 +121,16 @@
   gap: 0.3rem;
   font-size: 0.88rem;
   font-weight: 600;
+}
+
+.admin-form label small {
+  font-weight: 400;
+  opacity: 0.75;
+  font-size: 0.78rem;
+}
+
+.admin-table tr.is-expired td {
+  opacity: 0.72;
 }
 
 .admin-form input,
@@ -198,12 +247,46 @@
 }
 
 .badge-admin { background: #f3dfc4; color: #6f2f3d; }
+.badge-consulta { background: #e7eef7; color: #2f4f7a; }
+.badge-campo { background: #e8f5e9; color: #2e7d32; }
+.badge-custom { background: #f0e8f5; color: #5a3d6e; }
 .badge-user { background: #e7eef7; color: #2f4f7a; }
 .badge-on { background: #e3f5e8; color: #2f7d4b; }
 .badge-off { background: #f6e4e8; color: #9b2f55; }
 
+.admin-dialog--wide {
+  width: min(640px, 94vw);
+}
+
+.admin-fieldset {
+  border: 1px solid #e4d8dd;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem 0.9rem;
+  margin: 0.25rem 0 0;
+}
+
+.admin-fieldset legend {
+  padding: 0 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #5a2f3d;
+}
+
+.admin-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.45rem;
+}
+
+.admin-table code {
+  font-size: 0.78rem;
+  color: #6a5560;
+}
+
 @media (max-width: 900px) {
-  .admin-main {
+  .admin-main,
+  #tab-users.admin-tab-panel.is-active {
     grid-template-columns: 1fr;
   }
 }

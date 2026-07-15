@@ -207,6 +207,11 @@
     printBtn.dataset.printMenuReady = "1";
 
     function openModeDialog(event) {
+      if (typeof window.mxliCan === "function" && !window.mxliCan("map.print")) {
+        if (event) stopMapInteraction(event, false);
+        window.alert("Su rol no tiene permiso para imprimir.");
+        return;
+      }
       if (event) stopMapInteraction(event, false);
       if (typeof modeDialog.showModal === "function") {
         modeDialog.showModal();

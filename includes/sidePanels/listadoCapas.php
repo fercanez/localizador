@@ -74,6 +74,15 @@ $wmsCapasGeoservidor = [
         "title" => "Esquema Vial Propuesto 2040",
         "color" => "#16a085",
     ],
+    [
+        "id" => "zonas_homogeneas_chkbox",
+        "var" => "zonas_homogeneas",
+        "layer" => "zonas_homogeneas_2017_2026_prop",
+        "workspace" => "geonode",
+        "datastore" => "geonode",
+        "title" => "Zonas Homogéneas 2017-2026",
+        "color" => "#a05a2c",
+    ],
 ];
 
 foreach ($wmsCapasGeoservidor as &$capa) {
@@ -82,6 +91,17 @@ foreach ($wmsCapasGeoservidor as &$capa) {
     $capa["legend_height"] = (int)($meta["legend_height"] ?? 700);
 }
 unset($capa);
+
+if (!function_exists("mxli_can_layer")) {
+    require_once dirname(__DIR__) . "/auth.php";
+}
+
+$wmsCapasGeoservidor = array_values(array_filter(
+    $wmsCapasGeoservidor,
+    static function (array $capa): bool {
+        return mxli_can_layer((string)($capa["layer"] ?? ""));
+    }
+));
 ?>
 
 <ul class="cd-accordion cd-accordion--animated margin-top-lg margin-bottom-lg">

@@ -455,6 +455,10 @@ safeOn($file_input, "change", function fileValidation(event) {
 let $visibleUploadBtn = document.getElementById("visible-uploadBtn");
 
 safeOn($visibleUploadBtn, "click", () => {
+  if (typeof window.mxliCan === "function" && !window.mxliCan("map.upload")) {
+    window.alert("Su rol no tiene permiso para subir archivos.");
+    return;
+  }
   const input = document.getElementById("shp-upload");
   if (input) input.click();
 });
@@ -467,14 +471,28 @@ const CAPAS_CONSULTABLES_WMS = [
   "geonode:predios_con_uso",
   "geonode:colonias",
   "geonode:usos_prop_au40",
+  "geonode:zonas_homogeneas_2017_2026_prop",
 ];
 
 function esCapaConsultable(capa) {
-  return !!(
-    capa &&
-    capa.wmsParams &&
-    CAPAS_CONSULTABLES_WMS.includes(capa.wmsParams.layers)
-  );
+  if (
+    !(
+      capa &&
+      capa.wmsParams &&
+      CAPAS_CONSULTABLES_WMS.includes(capa.wmsParams.layers)
+    )
+  ) {
+    return false;
+  }
+  if (typeof window.mxliCan === "function" && !window.mxliCan("map.info")) {
+    return false;
+  }
+  if (typeof window.mxliCanLayer === "function") {
+    var full = String(capa.wmsParams.layers || "");
+    var key = full.indexOf(":") >= 0 ? full.split(":").pop() : full;
+    if (!window.mxliCanLayer(key)) return false;
+  }
+  return true;
 }
 
 function getCapasConsultablesActivas() {
@@ -777,6 +795,8 @@ const FEATURE_LABELS = {
   descripcio: "Descripción",
   uso_generi: "Uso genérico",
   superficie: "Superficie",
+  zona: "Zona",
+  secsub: "Secsub",
 };
 
 const FEATURE_SKIP_KEYS = new Set([
@@ -787,9 +807,128 @@ const FEATURE_SKIP_KEYS = new Set([
   "boundedBy",
 ]);
 
+const ZONA_HOMOGENEA_VALUE_FIELDS = [
+  "valor2017",
+  "valor2018",
+  "valor2019",
+  "valor2020",
+  "valor2021",
+  "valor2022",
+  "valor2023",
+  "valor2024",
+  "valor2025",
+  "valor2026",
+];
+
+// En GeoServer el valor 2026 viene como prop_2026 (no valor2026)
+const ZONA_HOMOGENEA_FIELD_ALIASES = {
+  valor2026: ["prop_2026", "valor_2026", "prop2026"],
+  valor2022: ["valor_2022"],
+};
+
+function isZonaHomogeneaFeatureInfo(info) {
+  if (!info) return false;
+  const source = String(info.sourceLayer || "");
+  if (source.indexOf("zonas_homogeneas_2017_2026_prop") !== -1) {
+    return true;
+  }
+  const props = info.properties || info;
+  return !!(
+    props &&
+    Object.prototype.hasOwnProperty.call(props, "zona") &&
+    (Object.prototype.hasOwnProperty.call(props, "valor2025") ||
+      Object.prototype.hasOwnProperty.call(props, "prop_2026") ||
+      Object.prototype.hasOwnProperty.call(props, "valor2026"))
+  );
+}
+
+function formatValorM2(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  const num = Number(String(value).replace(/[^0-9.-]/g, ""));
+  if (!isFinite(num)) {
+    return "$" + escapeHtml(value) + "/m2";
+  }
+  return (
+    "$" +
+    num.toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) +
+    "/m2"
+  );
+}
+
+function pickZonaHomogeneaProp(props, field) {
+  if (!props) return null;
+  if (props[field] !== null && props[field] !== undefined && props[field] !== "") {
+    return props[field];
+  }
+  const aliases = ZONA_HOMOGENEA_FIELD_ALIASES[field] || [];
+  for (var i = 0; i < aliases.length; i++) {
+    var key = aliases[i];
+    if (props[key] !== null && props[key] !== undefined && props[key] !== "") {
+      return props[key];
+    }
+  }
+  return props[field];
+}
+
+function normalizeZonaLabel(zona) {
+  var text = String(zona == null ? "" : zona).trim();
+  // En la capa a veces llega "MXHAFPA = $ 4050" (el 2026 pegado); dejamos solo el código
+  var m = text.match(/^(.+?)\s*=\s*\$\s*/);
+  return m ? m[1].trim() : text;
+}
+
+function createZonaHomogeneaPopup(info) {
+  const props = info.properties || {};
+  const zona = normalizeZonaLabel(props.zona);
+  const secsub = props.secsub != null ? props.secsub : "";
+  const valor2026 = pickZonaHomogeneaProp(props, "valor2026");
+  const valor2026Fmt = formatValorM2(valor2026);
+
+  let zonaLine = "<div><b>Zona:</b> " + escapeHtml(zona);
+  if (valor2026 !== null && valor2026 !== undefined && valor2026 !== "") {
+    zonaLine +=
+      '<span style="color:#1a5fd0;font-weight:700">=' +
+      valor2026Fmt +
+      "</span>";
+  }
+  zonaLine += "</div>";
+
+  let body =
+    zonaLine +
+    "<div><b>Secsub:</b> " +
+    escapeHtml(secsub) +
+    "</div>";
+
+  ZONA_HOMOGENEA_VALUE_FIELDS.forEach(function (field) {
+    const year = field.replace("valor", "");
+    body +=
+      "<div><b>Valor " +
+      year +
+      ":</b> " +
+      formatValorM2(pickZonaHomogeneaProp(props, field)) +
+      "</div>";
+  });
+
+  const div = document.createElement("div");
+  div.className = "mxli-feature-popup";
+  div.innerHTML =
+    '<div class="mxli-feature-popup__head">Zona homogénea</div>' +
+    '<div class="mxli-feature-popup__body">' +
+    body +
+    "</div>";
+  return div;
+}
+
 function createFeaturePopup(data) {
   if (isUsoPredioFeatureInfo(data)) {
     return createUsoPredioPopup(data);
+  }
+
+  if (isZonaHomogeneaFeatureInfo(data)) {
+    return createZonaHomogeneaPopup(data);
   }
 
   const props = data.properties || data;
@@ -1245,6 +1384,10 @@ function cancelPrint() {
 }
 
 function setMapTitle(mode) {
+  if (typeof window.mxliCan === "function" && !window.mxliCan("map.print")) {
+    window.alert("Su rol no tiene permiso para imprimir.");
+    return;
+  }
   printOption = mode;
   const dialog = document.querySelector("#mapTitle-dialog");
   if (dialog && typeof dialog.showModal === "function") {
