@@ -1,0 +1,127 @@
+.recursos-container {
+  padding-block-start: 12rem;
+  overflow-y: scroll;
+  height: calc(100vh - 8.5rem);
+}
+
+.recursos-container h1 {
+  font-family: var(--baseFontFamily);
+  font-weight: bold;
+  font-size: 3.75rem;
+  line-height: 4.55rem;
+  color: var(--secundario3);
+  text-transform: uppercase;
+}
+
+.recursos-container p {
+  font-family: var(--baseFontFamily);
+  font-weight: bold;
+  text-transform: uppercase;
+  color: var(--secundario1);
+  font-size: 1.875rem;
+  line-height: 2.5rem;
+  margin-block-end: 1.25rem;
+  text-align: center;
+}
+
+.tramites-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto;
+  gap: 9rem;
+  margin-block-end: 5.25rem;
+}
+
+.tramites-buscador p {
+  font: var(--baseFontFamily);
+  font-weight: bold;
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+}
+
+.searchInput {
+  display: flex;
+  max-inline-size: 30rem;
+  margin: 0 auto;
+  margin-block-end: 5rem;
+}
+
+.searchInput input {
+  border: none;
+  border-top: 1px solid var(--gris60);
+  border-left: 1px solid var(--gris60);
+  border-bottom: 1px solid var(--gris60);
+  border-radius: 0.25rem 0 0 0.25rem;
+  width: 100%;
+  padding-inline: 1.5rem;
+  outline: none;
+}
+
+.searchInput input:active {
+  border: none;
+}
+
+.searhInput-icon {
+  background: var(--secundario1);
+  color: var(--white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-around;
+  block-size: 3rem;
+  inline-size: 3.5rem;
+  box-sizing: border-box;
+  font-size: 1.25rem;
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.recursos-grupos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 9rem;
+  row-gap: 4.62rem;
+}
+
+.recursos-grupo {
+  box-shadow: inset 5px 0 var(--secundario3);
+  padding-inline-start: 2.75rem;
+}
+
+.recursos-grupo h3 {
+  font-family: var(--baseFontFamily);
+  font-weight: bold;
+  text-transform: uppercase;
+  color: var(--secundario1);
+  font-size: 1.875rem;
+  line-height: 2.5rem;
+  margin-block-end: 1.25rem;
+}
+
+.recursos-grupos ul {
+  margin-block-end: 1rem;
+}
+
+.recursos-grupos ul li a {
+  color: var(--black10);
+  font-family: var(--secondaryFontFamily);
+  font-size: 1.125rem;
+  line-height: 1.3rem;
+  text-decoration: underline;
+}
+
+.recursos-grupos ul li a::before {
+  content: ">";
+  margin-right: 4px;
+  text-decoration: none;
+}
+
+.recursos-mostrarTodo {
+  font-family: var(--baseFontFamily);
+  font-size: 1.8rem;
+  line-height: 1.85rem;
+  font-weight: 500;
+  color: var(--black10);
+}
+
+.recursos-mostrarTodo:hover {
+  color: var(--black10);
+}

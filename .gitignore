@@ -1,0 +1,37 @@
+# Secretos / entorno local
+includes/config.local.php
+.env
+.env.*
+!.env.example
+
+# Clone accidental dentro del proyecto
+/localizador/
+
+# Dependencias y herramientas locales
+node_modules/
+mobile/node_modules/
+mobile/.tools/
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/capacitor-cordova-android-plugins/build/
+mobile/android/local.properties
+mobile/android/.idea/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Sistema / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+*.tmp
+*.swp
+
+# Caché / backups
+_archive/
+*.bak
+*~

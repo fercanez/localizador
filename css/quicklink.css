@@ -1,0 +1,9 @@
+@import "quicklinkItem.css";
+
+.quicklink {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(100px, 1fr));
+  grid-template-rows: minmax(100px, 200px);
+  column-gap: 1.5rem;
+  overflow: hidden;
+}

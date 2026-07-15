@@ -1,0 +1,23 @@
+.ayuda-modal {
+  background: var(--white);
+}
+
+.subtitulo-ayuda {
+  margin-bottom: 1.25rem;
+}
+
+.temas-ayuda {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  margin-top: 3rem;
+  row-gap: 2.25rem;
+  column-gap: 2.5rem;
+}
+
+.temas-ayuda-grupo {
+}
+
+.temas-ayuda-grupo h3 {
+  font: var(--button);
+}

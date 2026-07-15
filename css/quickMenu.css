@@ -1,0 +1,102 @@
+.quickMenu {
+  background: #484848;
+  height: calc(100vh - 8.5rem);
+  width: 5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: fixed;
+  right: 0;
+  top: 5rem;
+  transition: width 0.5s;
+  vertical-align: middle;
+  z-index: 500;
+}
+
+.quickMenu-link {
+  color: #afafaf;
+  block-size: 5rem;
+  inline-size: 5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  background: #252525;
+}
+
+/* .active {
+  background: purple;
+} */
+
+/* #quickMenuBtn:checked + .quickMenu {
+  width: 0;
+}
+
+#quickMenuBtn:checked + .quickMenu {
+  width: 0;
+}
+
+#quickMenuBtn:checked ~ .quickMenu-section {
+  width: 0;
+  right: 0;
+} */
+
+.navigation {
+  background: var(--secundari2);
+}
+
+#quickMenuBtn {
+  display: none;
+  position: fixed;
+  right: -20px;
+  top: -20px;
+  line-height: 0;
+  font-size: 0;
+  margin: 0;
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.quickMenu-section {
+  width: 450px;
+  height: calc(100vh - 5rem);
+  background: var(--gray30);
+  z-index: 50;
+  position: fixed;
+  top: 80px;
+  right: 80px;
+  transition: width 0.5s;
+}
+
+.mostrar {
+  width: 0;
+}
+
+.sideElement {
+  width: 0px;
+  opacity: 0;
+  height: calc(100vh - 120px);
+  position: fixed;
+  right: 0;
+  z-index: -10;
+  transition: 0.5s width, 1s opacity;
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.open {
+  width: 400px;
+  opacity: 1;
+  padding: 1rem;
+  margin-right: 5rem;
+  height: calc(100% - 5rem);
+}
+/* 
+.show {
+  width: 200px !important;
+} */
+
+.notVisible {
+  width: 0;
+}

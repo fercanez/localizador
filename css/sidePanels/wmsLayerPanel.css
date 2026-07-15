@@ -1,0 +1,123 @@
+.wms-layer-panel-item {
+  list-style: none;
+}
+
+.wms-layer-panel {
+  padding: 0.75rem 0.5rem 1rem;
+  background: #f3f3f3;
+}
+
+.wms-layer-panel__heading {
+  margin: 0 0 0.75rem;
+  padding: 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #5a2f3d;
+}
+
+.wms-layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.wms-layer-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.7rem 0.75rem 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.wms-layer-card.is-active {
+  border-color: #9b2f55;
+  box-shadow: 0 2px 8px rgba(155, 47, 85, 0.12);
+}
+
+.wms-layer-card.is-selected {
+  background: rgba(194, 196, 197, 0.2);
+}
+
+.wms-layer-card__header {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.55rem;
+}
+
+.wms-layer-card__check {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+.wms-layer-card__check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #9b2f55;
+  cursor: pointer;
+}
+
+.wms-layer-card__color {
+  width: 5px;
+  height: 28px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.wms-layer-card__title {
+  color: #333;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.wms-layer-card__title:hover {
+  color: #9b2f55;
+}
+
+.wms-layer-card__opacity-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #666;
+  min-width: 38px;
+  text-align: right;
+}
+
+.wms-layer-card__slider {
+  width: 100%;
+  height: 6px;
+  margin: 0 0 0.65rem;
+  accent-color: #7d3445;
+  cursor: pointer;
+}
+
+.wms-layer-card__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.wms-layer-card__btn {
+  border: 1px solid #cfcfcf;
+  background: #fafafa;
+  color: #444;
+  border-radius: 6px;
+  padding: 0.35rem 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wms-layer-card__btn:hover {
+  background: #f0e8eb;
+  border-color: #9b2f55;
+  color: #7d3445;
+}
+
+.lista-capas .layerControl {
+  display: none;
+}

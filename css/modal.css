@@ -1,0 +1,43 @@
+.contenedorModal {
+  background: rgba(0, 0, 0, 0.3);
+  position: fixed;
+  top: 5rem;
+  width: 0%;
+  height: calc(100vh - 5rem);
+  overflow: hidden;
+  z-index: 5000;
+}
+
+.contenidoModal {
+  margin: 0 auto;
+  margin-top: 10.75rem;
+  max-width: 33rem;
+  background: white;
+  position: relative;
+}
+
+.tituloModal {
+  font: var(--headline4);
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+}
+
+.subtituloModal {
+  height: 40px;
+  box-sizing: border-box;
+  box-shadow: inset 4px 0 var(--gray80);
+  display: flex;
+  align-items: center;
+  padding-left: 0.85rem;
+}
+
+.cerrarModal {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  cursor: pointer;
+}
+
+.toggleModal {
+  width: 100%;
+}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catastro Mexicali</title>
+  <link rel="icon" href="icon.png">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: Arial, sans-serif;
+      background: #6f2f3d;
+      color: #fff;
+      text-align: center;
+      padding: 1.5rem;
+    }
+    img {
+      width: 96px;
+      height: 96px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 18px;
+      padding: 8px;
+      margin-bottom: 0.8rem;
+    }
+    a { color: #f3dfc4; }
+  </style>
+</head>
+<body>
+  <div>
+    <img src="icon.png" alt="Escudo de Mexicali">
+    <h1>Catastro Mexicali</h1>
+    <p>Cargando visor...</p>
+    <p>Si no redirige, abra<br>
+      <a href="https://localizacion.geomexicali.info/login.php">localizacion.geomexicali.info</a>
+    </p>
+  </div>
+  <script>
+    window.location.replace("https://localizacion.geomexicali.info/login.php");
+  </script>
+</body>
+</html>

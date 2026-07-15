@@ -1,0 +1,162 @@
+@import "capasActivas.css";
+@import "wmsLayerPanel.css";
+
+/* Style the buttons that are used to open and close the accordion panel */
+.accordion-capas {
+  background-color: #a8a7a8;
+  color: var(--black10);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  border: none;
+  outline: none;
+  transition: 0.4s;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  font: var(--button);
+  min-height: 3.5rem;
+  position: relative;
+}
+
+.cd-accordion > * {
+  user-select: none;
+}
+
+.subgrupo1 {
+  background: #f1f1f1;
+}
+
+.lista-capas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  /* padding: 0.5rem 0; */
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.active-capas,
+.accordion:hover {
+  background-color: #ccc;
+}
+
+/* Style the accordion panel. Note: hidden by default */
+.panel-capas {
+  margin: 6px 0;
+  /* padding: 0px 18px; */
+  background-color: white;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+
+.accordion-capas.subgrupo1:after {
+  content: "˅";
+  font-size: 24px;
+  color: #777;
+  float: right;
+  transition: transform 0.2s;
+}
+
+.active-capas:after {
+  transform: rotate(180deg); /* Unicode character for "minus" sign (-) */
+}
+
+/* NUEVO NUEVO NUEV  */
+
+.cd-article-link {
+  color: #75787b;
+}
+
+.cd-accordion__sub {
+  /* padding-left: 1rem; */
+}
+.cd-accordion {
+  background: hsl(218, 7%, 32%);
+  background: var(--cd-color-1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-shadow: var(--shadow-lg);
+  max-width: 100%;
+}
+
+.cd-accordion__sub {
+  display: none;
+  overflow: hidden;
+  margin: 0;
+}
+.cd-accordion__sub--is-visible {
+  display: block;
+}
+.cd-accordion__item {
+  user-select: none;
+  margin-block-end: 0.5rem;
+}
+
+.cd-accordion__item {
+}
+.cd-accordion__input {
+  position: absolute;
+  opacity: 0;
+}
+.cd-accordion__label {
+  position: relative;
+  display: flex;
+  background: white;
+  overflow: hidden;
+
+  color: var(--gris20);
+}
+
+.cd-accordion__label--level1 {
+  border-bottom: solid 2px var(--gris30);
+  background: var(--white);
+  color: var(--gris20);
+  font: var(--mapLvl1);
+  padding: 0 1rem;
+}
+
+.cd-accordion__label--level1:nth-of-type(1) {
+  border-radius: 4px 4px 0px 0;
+}
+
+.cd-accordion__label--icon-folder {
+  box-shadow: inset 0 -2px var(--gris50);
+  padding-inline-end: 1rem;
+  font: var(--mapLvl3);
+}
+
+.cd-accordion__label:hover {
+  background: #a8a7a8;
+}
+
+.cd-accordion__input:checked + .accordion-capas:after {
+  transform: rotate(180deg);
+}
+
+.cd-accordion__input:checked ~ .cd-accordion__sub {
+  display: block;
+}
+
+.cd-accordion__sub--l1 {
+  /* padding-inline-start: 2rem; */
+}
+
+.cd-accordion__sub--l1 .cd-accordion__label {
+  background: var(--gris40);
+  font: var(--mapLvl2);
+  z-index: 2;
+  padding-inline-start: 2rem;
+}
+
+.list-level1 {
+  margin-block-end: 0.5rem;
+}
+
+.cd-accordion__sub--l2 {
+  /* margin-inline-start: 1rem; */
+  /* padding-inline-end: 1.375rem; */
+}
+
+@import "simbologia.css";

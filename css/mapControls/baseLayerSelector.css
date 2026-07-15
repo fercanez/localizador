@@ -1,0 +1,126 @@
+.baseLayer-control {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  gap: 0.5rem;
+  max-width: 5rem;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 2000;
+  margin-inline-end: 0.625rem;
+  margin-block-end: 1.5rem;
+  /* border: 2px solid purple; */
+  overflow: visible;
+}
+
+.google-toggle {
+  background-image: url("https://www.sistema.sqnodo.com/proyectos/CAPACITACION/23/mapas/cartografia/resources/img/google-calles.png");
+  background-size: cover;
+  block-size: 5rem;
+  inline-size: 5rem;
+  border-radius: 0.5rem;
+  border: black solid 4px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: black;
+  min-width: 5rem;
+  cursor: pointer;
+}
+
+.google-toggle:hover {
+  border: black solid 5px;
+}
+
+.google-toggle span {
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
+    1px 1px 0 #000;
+  color: white;
+  font-size: 1rem;
+}
+
+.google-options {
+  /* border: 2px solid purple; */
+  display: inline-flex;
+  flex-direction: row-reverse;
+  background: rgba(255, 255, 255, 1);
+  gap: 0.5rem;
+  padding: 0.5rem;
+  padding-block-end: 1.5rem;
+  border-radius: 0.5rem;
+  opacity: 0;
+  overflow: hidden;
+  transition: opacity 0.25s linear;
+}
+
+.google-options.isVisible {
+  opacity: 1;
+  width: auto;
+  overflow: auto;
+  max-width: none;
+}
+
+.option {
+  block-size: 4rem;
+  inline-size: 4rem;
+  border-radius: 0.5rem;
+  border: gray solid 4px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: black;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.option span {
+  position: absolute;
+  bottom: -1.5rem;
+}
+
+.option:hover {
+  border: gray solid 5px;
+}
+
+.option.isActive {
+  text-decoration: underline;
+  border: cornflowerblue solid 6px;
+}
+
+.googleSatelite {
+  background-image: url("https://www.sistema.sqnodo.com/proyectos/CAPACITACION/23/mapas/cartografia/resources/img/google-satelite.png");
+  color: white;
+}
+
+.optionTerrain {
+  background: var(--gris20);
+  background-image: url("https://www.sistema.sqnodo.com/proyectos/CAPACITACION/23/mapas/cartografia/resources/img/google-relieve.png");
+  background-size: cover;
+}
+
+.optionTraffic {
+  background: var(--gris20);
+  background-image: url("https://www.sistema.sqnodo.com/proyectos/CAPACITACION/23/mapas/cartografia/resources/img/google-trafico.png");
+  background-size: cover;
+}
+
+.optionBike {
+  background: var(--gris20);
+  background-image: url("https://www.sistema.sqnodo.com/proyectos/CAPACITACION/23/mapas/cartografia/resources/img/google-bicicleta.png");
+  background-size: cover;
+}
+
+.moreOptions-header span {
+  cursor: pointer;
+}
+
+.moreOptions i {
+  font-size: 1.5rem;
+  color: var(--gris20);
+}

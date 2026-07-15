@@ -1,0 +1,8 @@
+.enlace {
+  color: var(--black10);
+  text-decoration: underline;
+}
+
+.disabled-link {
+  pointer-events: none;
+}

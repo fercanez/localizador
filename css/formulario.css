@@ -1,0 +1,49 @@
+.contenedorFormulario {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.tituloFormulario {
+  font: var(--headline4);
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+}
+
+.subtituloFormulario {
+  height: 40px;
+  box-sizing: border-box;
+  box-shadow: inset 4px 0 var(--gray80);
+  align-items: center;
+  padding-left: 0.85rem;
+  width: 100%;
+}
+
+.subtituloFormulario:hover {
+  color: var(--black10);
+}
+
+.encabezadoFormulario {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.seccionFormulario {
+  padding: 1rem 0.5rem;
+}
+
+.radio-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.metas-options {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
+.input-not-visible {
+  display: none;
+}

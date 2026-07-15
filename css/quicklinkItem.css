@@ -1,0 +1,40 @@
+.quicklinkItem {
+  position: relative;
+  block-size: 100%;
+  inline-size: 100%;
+  overflow: hidden;
+  color: black;
+}
+
+.quicklinkItem img {
+  object-fit: fill;
+  width: 100%;
+  height: 100%;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.quicklinkItem h4 {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  z-index: 10;
+  margin: 0;
+}
+
+#triangle-topleft {
+  width: 0;
+  height: 0;
+  --color: rgba(249, 249, 249, 0.5);
+  border-bottom: 150px solid var(--color);
+  border-left: 150px solid transparent;
+  position: absolute;
+}
+
+#triangle-topleft {
+  position: absolute;
+  color: white;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+}

@@ -1,0 +1,40 @@
+@import "sidePanels/simbologia.css";
+
+/* Style the buttons that are used to open and close the accordion panel */
+.acordeon {
+  color: #444;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  border: none;
+  outline: none;
+  transition: 0.4s;
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.acordeon-active,
+.acordeon:hover {
+  background-color: #fff;
+}
+
+/* Style the accordion panel. Note: hidden by default */
+.panel {
+  padding: 0 18px;
+  background-color: white;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+
+.acordeon:after {
+  content: "˅"; /* Unicode character for "plus" sign (+) */
+  font-size: 15px;
+  color: #777;
+  float: right;
+  margin-left: 5px;
+  transition: transform 0.2s;
+}
+
+.acordeon-active:after {
+  transform: rotate(180deg); /* Unicode character for "minus" sign (-) */
+}

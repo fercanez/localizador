@@ -1,0 +1,18 @@
+.frameBtn-container {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  position: fixed;
+  bottom: 0;
+  left: 10%;
+  z-index: 20;
+}
+
+.frameBtn {
+  color: var(--gray50);
+  background: var(--gray70);
+  border-radius: 4px 4px 0 0;
+  display: block;
+  height: 1.5rem;
+  padding: 0.25rem;
+}

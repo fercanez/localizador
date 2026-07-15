@@ -1,0 +1,19 @@
+{
+  "name": "localizacion-mxli-app",
+  "version": "1.0.0",
+  "description": "App Android/iOS del visor de Catastro Mexicali (Capacitor)",
+  "private": true,
+  "scripts": {
+    "build:android": "npx cap sync android",
+    "open:android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/splash-screen": "^6.0.2",
+    "@capacitor/status-bar": "^6.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}

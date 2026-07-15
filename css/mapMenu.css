@@ -1,0 +1,253 @@
+@import "toggleSwitch.css";
+@import "plusminusToggle.css";
+@import "sidePanels/acordeonCapas.css";
+
+.mapMenu {
+  background: transparent;
+  height: calc(100vh - 8.5rem);
+  width: 5rem;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 5rem;
+  transition: width 0.5s;
+  vertical-align: middle;
+  z-index: 100;
+  /* border: solid 2px purple; */
+}
+
+.mapMenu-nav {
+  width: 5rem;
+  overflow: hidden;
+  transition: 0.25s width;
+  background: var(--gris10);
+  height: 100%;
+  flex: 1;
+}
+
+.mapMenu-item {
+  flex: 1;
+}
+
+.mapMenu-link,
+.mapMenu-btn {
+  color: var(--gray20);
+  block-size: 5rem;
+  inline-size: 5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  background: var(--gris10);
+  transition: all 0.25s;
+}
+
+.mapMenu-icon {
+  font-size: 2.25rem;
+  color: var(--gris20);
+}
+
+.mapMenu-link:hover {
+  color: var(--secundario3);
+}
+
+.active,
+.mapMenu-link:hover {
+  color: var(--secundario3);
+  box-shadow: inset 6px 0px 0 var(--secundario3);
+}
+
+.active i {
+  color: var(--secundario3);
+}
+
+/* #quickMenuBtn:checked + .quickMenu {
+    width: 0;
+  }
+  
+  #quickMenuBtn:checked + .quickMenu {
+    width: 0;
+  }
+  
+  #quickMenuBtn:checked ~ .quickMenu-section {
+    width: 0;
+    right: 0;
+  } */
+
+#mapMenu-btn {
+  float: left;
+}
+
+#quickMenuBtn {
+  display: none;
+  position: fixed;
+  right: -20px;
+  top: -20px;
+  line-height: 0;
+  font-size: 0;
+  margin: 0;
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.mapMenu-section {
+  width: 450px;
+  height: calc(100vh - 80px);
+  background: var(--gray30);
+  z-index: 50;
+  position: fixed;
+  top: 80px;
+  right: 80px;
+  transition: width 0.5s;
+}
+
+.mostrar {
+  width: 0;
+}
+
+.map-sideElement {
+  width: 0px;
+  height: calc(100vh - 120px);
+  position: fixed;
+  left: 0;
+  padding: 0;
+  z-index: -10;
+  transition: 0.5s width;
+  box-sizing: border-box;
+  background: white;
+  overflow: hidden;
+}
+
+.test-container {
+  position: relative;
+  background: var(--grid40);
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.map-sideElement h3 {
+  margin-bottom: 1rem;
+}
+
+.map-sidePanel-header {
+  border-bottom: solid 1px black;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.map-sidePanel-header span {
+  color: black;
+}
+
+.map-open {
+  width: 400px;
+  padding: 0;
+  margin-left: 5rem;
+  height: calc(100% - 8.5rem);
+  /* padding-left: 5rem; */
+  overflow: visible;
+}
+/* 
+  .show {
+    width: 200px !important;
+  } */
+
+.notVisible {
+  width: 0;
+}
+
+.layerControl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  /* justify-content: space-between; */
+  align-items: center;
+  /* pointer-events: none; */
+  min-height: 3.375rem;
+  padding-inline-start: 2.5rem;
+  padding-inline-end: 1rem;
+}
+
+/* .layerControl:hover {
+  background: var(--white);
+} */
+
+.listado-capas {
+  /* overflow: scroll; */
+  height: calc(100vh - 8.5rem);
+  position: relative;
+  z-index: 10;
+  padding: 1rem;
+  background: var(--gris40);
+  /* max-width: 25rem; */
+}
+
+.settings-link-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  color: black;
+}
+
+.settings-link-container a {
+  color: #252525;
+}
+
+.settings-link-container p {
+  margin: 0 5px 0 0px;
+}
+
+.settings-link-container a:hover {
+  color: #252525;
+}
+
+.settings-link-container {
+  color: #252525;
+}
+
+.openMapMenu {
+  background: var(--secundario3);
+  border-radius: 4px;
+  width: 3.75rem;
+  height: 3.75rem;
+  margin: 0.625rem;
+  box-sizing: border-box;
+  color: var(--white);
+  transition: all 0.25s;
+}
+
+.openMapMenu .mapMenu-icon {
+  color: var(--white);
+}
+
+.openMapMenu .mapMenu-icon:hover {
+  color: var(--white);
+}
+
+.openMapMenu:hover {
+  color: var(--white);
+}
+
+.leaflet-left {
+  left: 5rem;
+}
+
+.leaflet-control-locate {
+  display: none;
+  color: #ffffff;
+}
+
+#locateBtn:hover {
+  cursor: pointer;
+}
+
+.locationIsActive,
+.btnIsActive {
+  background: var(--secundario3) !important;
+  font-weight: bold;
+}

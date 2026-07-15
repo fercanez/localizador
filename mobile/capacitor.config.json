@@ -1,0 +1,24 @@
+{
+  "appId": "mx.gob.mexicali.catastro.localizacion",
+  "appName": "Catastro Mexicali",
+  "webDir": "www",
+  "server": {
+    "url": "https://localizacion.geomexicali.info/login.php",
+    "cleartext": false,
+    "androidScheme": "https",
+    "allowNavigation": [
+      "localizacion.geomexicali.info",
+      "www.geomexicali.info",
+      "*.geomexicali.info"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#6f2f3d"
+    }
+  }
+}

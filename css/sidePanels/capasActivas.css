@@ -1,0 +1,34 @@
+.sortableItem {
+  display: grid;
+  grid-template-areas: "sort layername remove" "sort opacitySlider opacitySlider";
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: auto 1fr auto;
+  cursor: grab;
+}
+
+.sort {
+  grid-area: sort;
+}
+
+.layerName {
+  grid-area: layername;
+}
+
+.remove {
+  grid-area: remove;
+  color: #943f52;
+}
+
+.remove:hover a {
+  color: #943f52;
+}
+
+.rangeOpacityInput {
+  grid-area: opacitySlider;
+}
+
+.gu-mirror {
+  cursor: grabbing;
+  cursor: -moz-grabbing;
+  cursor: -webkit-grabbing;
+}

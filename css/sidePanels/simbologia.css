@@ -1,0 +1,168 @@
+.capas {
+  display: inline-block;
+  min-width: 300px;
+  max-width: 300px;
+  height: 300px;
+  position: relative;
+}
+
+.lista-capas {
+  background: var(--gris40);
+  z-index: 50;
+  position: relative;
+}
+
+.simbologia {
+  min-width: 280px;
+  max-width: 300px;
+  overflow: hidden;
+  position: absolute;
+  right: -37px;
+  top: 0;
+  z-index: 5;
+  vertical-align: middle;
+  transition: transform 1s;
+}
+
+.simbologia-content {
+  display: grid;
+  grid-template-columns: minmax(280px, 300px) auto;
+  grid-template-rows: 1fr;
+  z-index: -10;
+  height: 100%;
+}
+
+.simbologia-leyendas {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.25rem;
+}
+
+.simbologia-empty {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.simbologia-item {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #d0d0d0;
+}
+
+.simbologia-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.simbologia-item.is-selected {
+  background: rgba(155, 47, 85, 0.08);
+  border-radius: 6px;
+  padding: 0.5rem;
+}
+
+.simbologia-item__title {
+  margin: 0 0 0.25rem;
+  font-size: 0.88rem;
+  color: #5a2f3d;
+}
+
+.simbologia-item__image {
+  display: block;
+  max-width: 100%;
+  max-height: 140px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 0.25rem 0;
+}
+
+.simbologia-item__desc {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #444;
+}
+
+.simbologia-item__error {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: #9b2f55;
+  font-style: italic;
+}
+
+.simbologia-item__note {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #666;
+  font-style: italic;
+}
+
+.simbologia-item__html {
+  margin-top: 0.35rem;
+}
+
+.simbologia-rule {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 0.35rem;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.simbologia-rule__swatch {
+  width: 22px;
+  height: 12px;
+  border: 1px solid #666;
+  border-radius: 2px;
+  display: block;
+}
+
+.simbologia-rule__label {
+  font-size: 0.75rem;
+  color: #333;
+  line-height: 1.2;
+}
+
+.descripcion {
+  background: #e9e9e9;
+  padding: 0.75rem;
+  height: 100%;
+}
+
+.visibilitado {
+  transform: translate(calc(100% - 37px));
+}
+
+.simbology-btn-container {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  justify-content: space-around;
+  /* height: 300px; */
+  /* width: 100px; */
+  min-height: 100%;
+  flex: 1;
+}
+.test {
+  writing-mode: vertical-rl;
+}
+
+#btn-simbologia {
+  border: none;
+  text-align: center;
+  padding: 0;
+  background: #e9e9e9;
+  border-radius: 0 4px 4px 0;
+}
+
+#btn {
+  writing-mode: vertical-rl;
+  flex: 1;
+  padding: 0.5rem;
+  /* background: #e9e9e9; */
+}

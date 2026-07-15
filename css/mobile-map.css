@@ -1,0 +1,393 @@
+/* Compactación móvil / tablet / app Capacitor — prioriza celular real */
+@media (max-width: 900px) {
+  html {
+    font-size: 14px !important;
+  }
+
+  .header-catastro-mxli {
+    height: 42px !important;
+    padding: 0 6px !important;
+    border-top-width: 2px !important;
+    border-bottom-width: 2px !important;
+  }
+
+  .header-catastro-mxli > div {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .header-catastro-mxli img {
+    height: 28px !important;
+    max-width: 22px !important;
+    padding: 1px 2px !important;
+    margin-right: 6px !important;
+    border-radius: 4px !important;
+  }
+
+  .header-catastro-texto .dependencia,
+  .header-catastro-texto .ciudad {
+    display: none !important;
+  }
+
+  .header-catastro-texto .titulo {
+    font-size: 11px !important;
+    letter-spacing: 0 !important;
+    margin-top: 0 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 42vw;
+  }
+
+  .header-user-box {
+    gap: 0.25rem !important;
+    flex-shrink: 0;
+  }
+
+  .header-user-name {
+    display: none !important;
+  }
+
+  .header-user-box a {
+    padding: 0.15rem 0.35rem !important;
+    font-size: 0.62rem !important;
+    border-radius: 5px !important;
+  }
+
+  .contenedorPrincipal,
+  .main,
+  .layoutPublicMap,
+  .mapMenu,
+  .listado-capas,
+  .map3d iframe,
+  .sidePanel-content,
+  .map-sideElement,
+  .mapMenu-nav {
+    height: calc(100vh - 42px) !important;
+    height: calc(100dvh - 42px) !important;
+  }
+
+  .contenedorPrincipal,
+  .main,
+  .layoutPublicMap,
+  .mapMenu,
+  #map2d,
+  .sidePanel,
+  .sidePanel-content,
+  .map-sideElement {
+    top: 42px !important;
+  }
+
+  #map2d {
+    top: 42px !important;
+  }
+
+  .mapMenu,
+  .sidePanel,
+  .sidePanel-content {
+    height: calc(100vh - 42px) !important;
+    height: calc(100dvh - 42px) !important;
+  }
+
+  /* Barra izquierda gris — más delgada */
+  .mapMenu {
+    width: 36px !important;
+  }
+
+  .mapMenu-nav {
+    width: 36px !important;
+  }
+
+  .mapMenu-link,
+  .mapMenu-btn {
+    block-size: 36px !important;
+    inline-size: 36px !important;
+  }
+
+  .mapMenu-icon {
+    font-size: 1.05rem !important;
+  }
+
+  .openMapMenu {
+    width: 28px !important;
+    height: 28px !important;
+    margin: 4px !important;
+  }
+
+  /* Panel Capas más estrecho para dejar ver el mapa */
+  .map-open {
+    width: min(68vw, 260px) !important;
+    margin-left: 36px !important;
+    height: calc(100% - 42px) !important;
+    top: 42px !important;
+  }
+
+  .listado-capas {
+    padding: 0.35rem !important;
+    height: calc(100vh - 42px) !important;
+    height: calc(100dvh - 42px) !important;
+    gap: 0.15rem !important;
+  }
+
+  .map-sidePanel-header {
+    padding: 0.15rem 0.2rem !important;
+    min-height: 0 !important;
+  }
+
+  .map-sidePanel-header h3 {
+    font-size: 0.78rem !important;
+    margin: 0 !important;
+  }
+
+  .settings-link-container p {
+    display: none;
+  }
+
+  .settings-link-container .material-symbols-outlined {
+    font-size: 16px !important;
+  }
+
+  .leaflet-left {
+    left: 40px !important;
+  }
+
+  .leaflet-top.leaflet-left {
+    top: 6px !important;
+  }
+
+  /* Acordeón / títulos (anulan --mapLvl1 / --button rem grandes) */
+  .cd-accordion,
+  .cd-accordion ul,
+  .accordion-capas,
+  .cd-accordion__label,
+  .cd-accordion__label--level1,
+  .cd-accordion__label--level2,
+  .cd-accordion__sub--l1 .cd-accordion__label,
+  .cd-accordion__label--icon-folder,
+  .cd-accordion__button {
+    min-height: 1.65rem !important;
+    padding: 0.2rem 0.4rem !important;
+    font: 700 0.7rem / 1.15 "Gotham", "Montserrat", sans-serif !important;
+    font-size: 0.7rem !important;
+    line-height: 1.15 !important;
+  }
+
+  .cd-accordion__sub--l1 .cd-accordion__label {
+    padding-inline-start: 0.55rem !important;
+    font-size: 0.65rem !important;
+  }
+
+  .accordion-capas.subgrupo1:after,
+  .cd-accordion__label::before,
+  .cd-accordion__label::after {
+    font-size: 12px !important;
+  }
+
+  .cd-accordion__item {
+    margin-block-end: 0.15rem !important;
+  }
+
+  .wms-layer-panel {
+    padding: 0.35rem 0.2rem 0.5rem !important;
+  }
+
+  .wms-layer-panel__heading {
+    margin: 0 0 0.35rem !important;
+    font-size: 0.65rem !important;
+  }
+
+  .wms-layer-list {
+    gap: 0.35rem !important;
+  }
+
+  .wms-layer-card {
+    padding: 0.35rem 0.4rem 0.4rem !important;
+    border-radius: 6px !important;
+  }
+
+  .wms-layer-card__header {
+    gap: 0.3rem !important;
+    margin-bottom: 0.3rem !important;
+  }
+
+  .wms-layer-card__color {
+    width: 3px !important;
+    height: 18px !important;
+  }
+
+  .wms-layer-card__title {
+    font-size: 0.7rem !important;
+  }
+
+  .wms-layer-card__opacity-value {
+    font-size: 0.65rem !important;
+    min-width: 28px !important;
+  }
+
+  .wms-layer-card__check input {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .wms-layer-card__slider {
+    height: 4px !important;
+    margin: 0 0 0.35rem !important;
+  }
+
+  .wms-layer-card__actions {
+    gap: 0.25rem !important;
+  }
+
+  .wms-layer-card__btn {
+    font-size: 0.62rem !important;
+    padding: 0.15rem 0.25rem !important;
+    border-radius: 4px !important;
+  }
+
+  /* Toolbar búsqueda / iconos */
+  .map-top-toolbar {
+    top: 48px !important;
+    left: 42px !important;
+    right: 6px !important;
+    max-width: none !important;
+    padding: 4px 5px !important;
+    gap: 4px !important;
+    border-width: 1px !important;
+    border-radius: 7px !important;
+  }
+
+  .map-top-toolbar__handle {
+    width: 18px !important;
+    height: 26px !important;
+    font-size: 12px !important;
+  }
+
+  .map-top-toolbar__search {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    gap: 4px !important;
+  }
+
+  .buscador-predio-label {
+    display: none !important;
+  }
+
+  .buscador-predio-input {
+    width: 90px !important;
+    max-width: 28vw !important;
+    height: 26px !important;
+    font-size: 11px !important;
+    padding: 0 6px !important;
+  }
+
+  .buscador-predio-btn {
+    height: 26px !important;
+    padding: 0 8px !important;
+    font-size: 11px !important;
+  }
+
+  .map-top-toolbar__tools {
+    gap: 3px !important;
+  }
+
+  .map-top-toolbar__tools .control-icon,
+  .map-top-toolbar__zoom a {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.8rem !important;
+    line-height: 24px !important;
+    border-radius: 5px !important;
+  }
+
+  .map-top-toolbar__zoom a {
+    font-size: 14px !important;
+  }
+
+  .simbologia {
+    min-width: 180px !important;
+    max-width: 200px !important;
+  }
+
+  .simbologia-content {
+    grid-template-columns: minmax(180px, 200px) auto !important;
+  }
+
+  #btn {
+    font-size: 0.65rem !important;
+    padding: 0.25rem !important;
+  }
+
+  /* Popup información — no tape el mapa */
+  .leaflet-popup {
+    max-width: min(72vw, 260px) !important;
+  }
+
+  .leaflet-popup-content-wrapper {
+    max-width: min(72vw, 260px) !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28) !important;
+  }
+
+  .leaflet-popup-content {
+    margin: 6px 8px !important;
+    width: auto !important;
+    min-height: 0 !important;
+    max-height: 150px !important;
+    overflow-y: auto !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  .leaflet-popup-tip-container {
+    margin-top: -1px !important;
+  }
+
+  .leaflet-container a.leaflet-popup-close-button {
+    top: 2px !important;
+    right: 4px !important;
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 16px !important;
+    padding: 0 !important;
+    line-height: 20px !important;
+  }
+
+  .mxli-feature-popup {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  .mxli-feature-popup__head {
+    padding: 4px 22px 4px 6px !important;
+    margin: -2px -2px 6px -2px !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    font-weight: 700 !important;
+  }
+
+  .mxli-feature-popup__body {
+    gap: 0.15rem !important;
+  }
+
+  .mxli-feature-popup__body div {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .header-catastro-texto .titulo {
+    font-size: 10px !important;
+    max-width: 36vw;
+  }
+
+  .map-open {
+    width: min(72vw, 240px) !important;
+  }
+
+  .buscador-predio-input {
+    width: 72px !important;
+  }
+}

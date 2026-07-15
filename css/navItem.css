@@ -1,0 +1,8 @@
+.navItem a {
+  display: flex;
+  align-items: center;
+  padding-inline-start: 1.5rem;
+  padding-inline-end: 1.5rem;
+  block-size: 2.5rem;
+  gap: 0.5rem;
+}

@@ -1,0 +1,39 @@
+.modalLogin {
+  padding: 3.125rem 5.25rem;
+  text-align: center;
+}
+
+.modalLogin h3 {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: left;
+  margin-bottom: 2rem;
+}
+
+.loginForm label {
+  width: 100%;
+}
+
+.olvidePassword-link {
+  text-align: left;
+  width: 100%;
+}
+
+.registrarse-link {
+  display: block;
+  margin-top: 4.68rem;
+}
+
+.sub-title {
+  font: var(--button);
+}
+
+.btn-entrar {
+  border: none;
+}

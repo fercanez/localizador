@@ -1,0 +1,7 @@
+#visible-uploadBtn:hover {
+  cursor: pointer;
+}
+
+.leaflet-container a {
+  border: none;
+}

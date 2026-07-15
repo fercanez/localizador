@@ -1,0 +1,33 @@
+@import "nav.css";
+@import "registro.css";
+
+.header {
+  background: var(--secundario2);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding-inline: 2rem;
+  block-size: 5rem;
+  max-block-size: 5rem;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 2000;
+}
+
+.navigation {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 100%;
+}
+
+.avatar {
+  margin-inline-start: 5.25rem;
+}
+
+.avatar i {
+  font-size: 3rem;
+  color: var(--gray10);
+  vertical-align: middle;
+}

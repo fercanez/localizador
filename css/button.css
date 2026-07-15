@@ -1,0 +1,68 @@
+.button-pri {
+  color: var(--white);
+  background: var(--gray40);
+  min-block-size: 3rem;
+  padding-inline: 1.125rem;
+  border: none;
+  border-radius: 0.25rem;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.boton {
+  min-width: 12rem;
+  min-height: 3rem;
+  border: none;
+  border-radius: 0.25rem;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  text-decoration: none;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 500;
+  cursor: pointer;
+  padding-inline: 0.5rem;
+}
+
+.boton-primario {
+  background: var(--secundario2);
+  color: var(--white);
+}
+
+.boton-secundario {
+  border: solid 2px #989898;
+  color: #989898;
+}
+
+.boton-terciario {
+  background-color: var(--secundario3);
+  color: var(--white);
+}
+
+.boton-secundario:hover {
+  border: solid 2px #989898;
+  color: #989898;
+}
+
+.boton-icono {
+  display: inline-flex;
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+.boton-navegacion,
+.boton-navegacion:hover {
+  color: var(--black);
+  font-family: var(--secondaryFontFamily);
+  font-size: 1rem;
+  font-weight: 300;
+}
+
+.boton-navegacion i {
+  margin-inline-end: 1rem;
+}

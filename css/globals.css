@@ -1,0 +1,35 @@
+a {
+  text-decoration: none;
+  color: var(--white);
+}
+
+a:hover {
+  color: var(--white);
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+h2 {
+  font: var(--headline2);
+  margin: 0;
+}
+
+h3 {
+  font: var(--headline3);
+  margin: 0;
+}
+
+.main-container {
+  position: fixed;
+  top: 5rem;
+  bottom: 3.5rem;
+  height: calc(100vh - 8.5rem);
+  width: 100%;
+  z-index: 5000;
+  overflow: hidden;
+  overflow-y: scroll;
+}

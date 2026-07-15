@@ -1,0 +1,133 @@
+@font-face {
+  font-family: "icomoon";
+  src: url("../fonts/icomoon.eot?5fb3ze");
+  src: url("../fonts/icomoon.eot?5fb3ze#iefix") format("embedded-opentype"),
+    url("../fonts/icomoon.ttf?5fb3ze") format("truetype"),
+    url("../fonts/icomoon.woff?5fb3ze") format("woff"),
+    url("../fonts/icomoon.svg?5fb3ze#icomoon") format("svg");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+[class^="icon-"],
+[class*=" icon-"] {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: "icomoon" !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-lapizRregla:before {
+  content: "\e922";
+}
+
+.icon-2D:before {
+  content: "\e900";
+}
+.icon-3D:before {
+  content: "\e901";
+}
+.icon-25D:before {
+  content: "\e902";
+}
+.icon-Ajustes:before {
+  content: "\e903";
+}
+.icon-Ayuda:before {
+  content: "\e904";
+}
+.icon-Campana:before {
+  content: "\e905";
+}
+.icon-Capas:before {
+  content: "\e906";
+}
+.icon-Compartir:before {
+  content: "\e907";
+}
+.icon-Cruz:before {
+  content: "\e908";
+}
+.icon-Eliminar:before {
+  content: "\e909";
+}
+.icon-Expandir:before {
+  content: "\e90a";
+}
+.icon-Flecha:before {
+  content: "\e90b";
+}
+.icon-Guardar:before {
+  content: "\e90c";
+}
+.icon-Historial:before {
+  content: "\e90d";
+}
+.icon-Impresora:before {
+  content: "\e90e";
+}
+.icon-Informacion:before {
+  content: "\e90f";
+}
+.icon-Lapiz:before {
+  content: "\e910";
+}
+.icon-Lupa:before {
+  content: "\e911";
+}
+.icon-Mano:before {
+  content: "\e912";
+}
+.icon-Mapa:before {
+  content: "\e913";
+}
+.icon-Mas:before {
+  content: "\e914";
+}
+.icon-MasCirculo:before {
+  content: "\e915";
+}
+.icon-MenuHamburguesa:before {
+  content: "\e916";
+}
+.icon-MoverCapas:before {
+  content: "\e917";
+}
+.icon-Opciones:before {
+  content: "\e918";
+}
+.icon-Regla:before {
+  content: "\e919";
+}
+.icon-Salir:before {
+  content: "\e91a";
+}
+.icon-Subir_1:before {
+  content: "\e91b";
+}
+.icon-SubirCapa:before {
+  content: "\e91c";
+}
+.icon-Tarea:before {
+  content: "\e91d";
+}
+.icon-Tramite:before {
+  content: "\e91e";
+}
+.icon-Usuario_1C:before {
+  content: "\e91f";
+}
+.icon-Ubicacion_2:before {
+  content: "\e920";
+}
+.icon-Agregar:before {
+  content: "\e921";
+}

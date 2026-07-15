@@ -1,0 +1,174 @@
+@import "globals.css";
+@import "icons.css";
+@import "header.css";
+@import "body.css";
+@import "layoutHome.css";
+@import "button.css";
+@import "quicklink.css";
+@import "login.css";
+@import "layoutMapa.css";
+@import "split.css";
+@import "frameBtn.css";
+@import "sideElement.css";
+@import "layoutPublicMap.css";
+@import "link.css";
+@import "inputs.css";
+@import "modal.css";
+@import "login.css";
+@import "registro.css";
+@import "finalRegistro.css";
+@import "footer.css";
+@import "sugerencias.css";
+@import "ayuda.css";
+@import "formulario.css";
+@import "acordeon.css";
+@import "tramites.css";
+@import "recursos.css";
+@import "mapTools.css";
+@import "mapTopToolbar.css";
+@import "mobile-map.css";
+@import "tramite.css";
+@import "modelos.css";
+@import "enlaces.css";
+
+:root {
+  --white: #ffffff;
+  --gray10: #f1f1f1;
+  --gray30: #f8f8f8;
+  --gray35: #b2b2b2;
+  --gray40: #989898;
+  --gray50: #707070;
+  --gray60: #fafafa;
+  --gray70: #e8e8e8;
+  --gray80: #515151;
+  --black10: #252525;
+  --black: #000000;
+
+  --secundario1: #943f52;
+  --secundario2: #651c32;
+  --secundario3: #ac905b;
+  --cafe10: #efeadf;
+  --gris10: #353e42;
+  --gris20: #75787b;
+  --gris30: #a3a5a8;
+  --gris40: #f8f8f8;
+  --gris50: #c2c4c5;
+  --gris60: #b2b2b2;
+  --gris70: #949494b3;
+  --gris80: #d9d9d9;
+  --gris90: #efeadf;
+
+  --baseFontFamily: "Montserrat", sans-serif;
+  --secondaryFontFamily: "Gotham", sans-serif;
+  --baseFont: normal 1rem / 1.1875rem var(--baseFontFamily);
+  /* --baseFontSecondary:  */
+  --button: 600 1.25rem / 1.5rem var(--baseFontFamily);
+  --headline1: bold 3.65rem / 4.55rem var(--baseFontFamily);
+  --headline2: bold 3rem / 3.625rem var(--baseFontFamily);
+  --headline3: 600 1.5rem / 1.8rem var(--baseFontFamily);
+  --headline4: 600 2.25rem / 2.75rem var(--baseFontFamily);
+
+  --encabezado1: bold 2rem var(--baseFontFamily);
+  --encabezado2: bold 1.75rem var(--baseFontFamily);
+  --encabezado3: bold 1.25rem var(--baseFontFamily);
+  --encabezado4: bold 1.25rem var(--baseFontFamily);
+  --texto: 300 1.25rem var(--secondaryFontFamily);
+  --enlace: 300 1.5rem var(--secondaryFontFamily);
+
+  --mapLvl1: bold 1.125rem / 1.375rem var(--secondaryFontFamily);
+  --mapLvl2: 500 1rem / 1.1875rem var(--secondaryFontFamily);
+  --mapLvl3: normal 1rem / 1.1875rem var(--secondaryFontFamily);
+}
+
+.contenedorPrincipal {
+  min-height: 100vh;
+}
+
+main {
+  background: rgb(255, 255, 255);
+  min-height: calc(100vh - 8.5rem);
+}
+footer {
+  background: rgb(83, 83, 83);
+}
+
+@media only screen and (max-width: 1920px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+.test-link {
+  color: black;
+  margin-inline-end: 0.5rem;
+}
+
+.test-link:hover {
+  color: black;
+}
+
+/* CORRECCIÓN: mapbox/map25d no debe cubrir el mapa Leaflet */
+#map25d {
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+#map2d {
+  z-index: 10 !important;
+}
+
+.leaflet-control-container,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+.buscador-predio-flotante {
+  z-index: 100000 !important;
+  pointer-events: auto !important;
+}
+
+#editToolsContainer:not(.displayEditTools) {
+  transform: translateX(-50%) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Popup de información de capas */
+.mxli-feature-popup {
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mxli-feature-popup__head {
+  background: #9b2f55;
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 4px 4px 0 0;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.25;
+  margin: -4px -4px 8px -4px;
+}
+
+.mxli-feature-popup__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mxli-feature-popup__body b {
+  font-weight: 700;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+.leaflet-popup-content {
+  margin: 10px 12px !important;
+}

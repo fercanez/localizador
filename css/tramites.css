@@ -1,0 +1,101 @@
+.tramites-container {
+  padding-block-start: 10rem;
+}
+
+.tramites-intro h1 {
+  font-family: var(--baseFontFamily);
+  font-weight: bold;
+  font-size: 3.75rem;
+  line-height: 4.55rem;
+  color: var(--secundario3);
+  text-transform: uppercase;
+}
+
+.tramites-intro p {
+  font-family: var(--secondaryFontFamily);
+  color: var(--black);
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.tramites-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto;
+  gap: 9rem;
+  margin-block-end: 5.25rem;
+}
+
+.tramites-buscador {
+  text-align: center;
+}
+
+.tramites-buscador p {
+  font: var(--baseFontFamily);
+  font-weight: bold;
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+}
+
+.searchInput {
+  display: flex;
+  max-inline-size: 28rem;
+}
+
+.searchInput input {
+  border: none;
+  border-top: 1px solid var(--gris60);
+  border-left: 1px solid var(--gris60);
+  border-bottom: 1px solid var(--gris60);
+  border-radius: 0.25rem 0 0 0.25rem;
+  width: 100%;
+  padding-inline: 1.5rem;
+  outline: none;
+}
+
+.searchInput input:active {
+  border: none;
+}
+
+.searhInput-icon {
+  background: var(--secundario1);
+  color: var(--white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-around;
+  block-size: 3rem;
+  inline-size: 3.5rem;
+  box-sizing: border-box;
+  font-size: 1.25rem;
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.tramites-grupos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 9rem;
+  row-gap: 4.62rem;
+}
+
+.tramites-grupo {
+  box-shadow: inset 5px 0 var(--secundario3);
+  padding-inline-start: 2.75rem;
+}
+
+.tramites-grupo h3 {
+  font-family: var(--baseFontFamily);
+  font-weight: bold;
+  text-transform: uppercase;
+  color: var(--secundario1);
+  font-size: 1.875rem;
+  line-height: 2.5rem;
+  margin-block-end: 1.25rem;
+}
+
+.tramites-grupos ul li a {
+  color: var(--black10);
+  font-family: var(--secondaryFontFamily);
+  font-size: 1.125rem;
+  line-height: 1.3rem;
+  text-decoration: underline;
+}

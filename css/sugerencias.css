@@ -1,0 +1,12 @@
+.form-sugerencias {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 704px;
+  margin: 0 auto;
+}
+
+.enviar-sugerencia {
+  width: 12rem;
+  margin: 0 auto;
+}

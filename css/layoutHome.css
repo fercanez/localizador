@@ -1,0 +1,55 @@
+@import "buscarTramite.css";
+
+.layoutHome {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  max-width: 80.125rem;
+  margin: 0 auto 0 auto;
+  gap: 2rem;
+  box-sizing: border-box;
+  padding-block-start: 3.5rem;
+}
+
+.layout-block:nth-of-type(1) {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 2rem;
+}
+
+.layout-block:nth-of-type(2) {
+  display: grid;
+  grid-template-columns: auto;
+  grid-auto-rows: min-content;
+  gap: 2rem;
+}
+
+.welcome {
+  padding-inline-start: 2.4rem;
+
+  border-left: solid 5px var(--gray30);
+}
+
+.welcomeMap {
+  height: 100%;
+}
+
+.welcomeMap .button-pri {
+  position: relative;
+  left: 50%;
+  bottom: 7rem;
+  transform: translate(-50%, -50%);
+}
+
+#map {
+  height: 100%;
+  width: 100%;
+}
+
+/* Extra big screen devices (1200px and above) */
+/* @media screen and (min-width: 1080px) {
+  .layoutHome {
+    grid-template-columns: 1fr;
+  }
+} */

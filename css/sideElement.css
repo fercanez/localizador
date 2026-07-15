@@ -1,0 +1,49 @@
+@import "sidePanels/notificaciones.css";
+
+.sideElement {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: var(--gray30);
+}
+
+.sideElement h3 {
+  margin-bottom: 1rem;
+}
+
+.sidePanel-header {
+  border-bottom: solid 1px black;
+}
+
+.sidePanel-content {
+  overflow-y: scroll;
+  padding-right: 2.625rem;
+  margin-top: 1.5rem;
+  height: calc(100vh - 20rem);
+}
+
+div[data-side="left"] {
+  padding-right: 0;
+}
+
+/* width */
+.sidePanel-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+/* Track */
+/* .sidePanel-content::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 5px grey;
+  border-radius: 10px;
+} */
+
+/* Handle */
+.sidePanel-content::-webkit-scrollbar-thumb {
+  background: var(--gray50);
+  border-radius: 2px;
+}
+
+.sidePanel-content fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}

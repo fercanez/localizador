@@ -1,0 +1,26 @@
+.plus-minus-toggle {
+  cursor: pointer;
+  height: 21px;
+  position: relative;
+  width: 21px;
+}
+.plus-minus-toggle:before,
+.plus-minus-toggle:after {
+  background: #943f52;
+  content: "";
+  height: 2.5px;
+  left: 0;
+  position: absolute;
+  top: 50%;
+  width: 21px;
+  transition: transform 500ms ease;
+}
+.plus-minus-toggle:after {
+  transform-origin: center;
+}
+.plus-minus-toggle.collapsed:after {
+  transform: rotate(90deg);
+}
+.plus-minus-toggle.collapsed:before {
+  transform: rotate(180deg);
+}

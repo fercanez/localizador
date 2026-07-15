@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Catastro Mexicali</string>
+    <string name="title_activity_main">Catastro Mexicali</string>
+    <string name="package_name">mx.gob.mexicali.catastro.localizacion</string>
+    <string name="custom_url_scheme">mx.gob.mexicali.catastro.localizacion</string>
+</resources>
