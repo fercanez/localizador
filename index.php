@@ -278,7 +278,7 @@ window.mxliCanLayer = function (layerKey) {
 <script src="js/layerControls.js?v=72"></script>
 <script src="js/wmsLayerPanel.js?v=72"></script>
 <script src="js/simbologiaPanel.js?v=72"></script>
-<script src="js/buscadorPredios.js?v=73"></script>
+<script src="js/buscadorPredios.js?v=83"></script>
 <script src="js/mapTopToolbar.js?v=72"></script>
 <script src="js/permissions.js?v=73"></script>
 
