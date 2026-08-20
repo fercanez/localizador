@@ -289,20 +289,32 @@
   }
 
   .map-top-toolbar__tools {
-    gap: 3px !important;
+    gap: 5px !important;
+    flex-wrap: wrap !important;
   }
 
   .map-top-toolbar__tools .control-icon,
   .map-top-toolbar__zoom a {
-    width: 26px !important;
-    height: 26px !important;
-    font-size: 0.8rem !important;
-    line-height: 24px !important;
-    border-radius: 5px !important;
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 1.15rem !important;
+    line-height: 38px !important;
+    border-radius: 8px !important;
+  }
+
+  .map-top-toolbar__tools .control-icon--camera {
+    width: 52px !important;
+    height: 52px !important;
+    margin-left: auto !important;
+  }
+
+  .map-top-toolbar__tools .control-icon--camera svg {
+    width: 30px !important;
+    height: 30px !important;
   }
 
   .map-top-toolbar__zoom a {
-    font-size: 14px !important;
+    font-size: 18px !important;
   }
 
   .simbologia {

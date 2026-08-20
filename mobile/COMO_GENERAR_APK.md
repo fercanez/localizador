@@ -37,6 +37,7 @@ En Android Studio:
 1. Abra la app
 2. Inicie sesión con `admin` / la contraseña creada por `scripts/seed_admin.php`
 3. Debe verse el mapa; si es admin, el botón **Usuarios**
+4. Con rol **Inspector** o **Administrador**: icono de cámara → **Tomar / seleccionar foto** (cámara trasera). La app pide permiso de cámara y GPS.
 
 ## Ícono de la app (Escudo de Mexicali)
 

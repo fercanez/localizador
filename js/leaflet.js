@@ -577,11 +577,44 @@ async function fetchFeatureInfoFromApi(capaLayers, version, point, size) {
   return data;
 }
 
+function canUseFeatureInfo() {
+  if (getCapasConsultablesActivas().length > 0) return true;
+  if (
+    typeof window.isInspeccionesCapaActive === "function" &&
+    window.isInspeccionesCapaActive()
+  ) {
+    return true;
+  }
+  return false;
+}
+
 async function getFeatureInfo(evt) {
+  if (
+    typeof window.mxliFindInspectionFeature === "function" &&
+    typeof window.isInspeccionesCapaActive === "function" &&
+    window.isInspeccionesCapaActive()
+  ) {
+    const insp = window.mxliFindInspectionFeature(evt.latlng);
+    if (insp) {
+      return {
+        properties: insp,
+        sourceLayer: "inspecciones_fotos",
+        isInspection: true,
+      };
+    }
+  }
+
   const capas = getCapasConsultablesActivas();
   if (capas.length === 0) {
+    if (
+      typeof window.isInspeccionesCapaActive === "function" &&
+      window.isInspeccionesCapaActive()
+    ) {
+      alert("No hay una inspección fotográfica en este punto.");
+      return null;
+    }
     alert(
-      "Active Predios, Predios Baldíos, Usos de Suelo Actual, Colonias o Usos de Suelo 2040 para consultar informacion."
+      "Active Predios, Colonias, Inspecciones fotográficas u otra capa consultable."
     );
     return null;
   }
@@ -923,6 +956,13 @@ function createZonaHomogeneaPopup(info) {
 }
 
 function createFeaturePopup(data) {
+  if (
+    typeof window.isInspectionFeatureInfo === "function" &&
+    window.isInspectionFeatureInfo(data)
+  ) {
+    return window.createInspectionPopup(data);
+  }
+
   if (isUsoPredioFeatureInfo(data)) {
     return createUsoPredioPopup(data);
   }
@@ -1021,9 +1061,9 @@ function desactivarInformacion(state) {
 
 safeOn($getFeatureInfoBtn, "click", (e) => {
   e.stopPropagation();
-  if (getCapasConsultablesActivas().length === 0) {
+  if (!canUseFeatureInfo()) {
     alert(
-      "Active Predios, Predios Baldíos, Usos de Suelo Actual, Colonias o Usos de Suelo 2040 para consultar informacion."
+      "Active Predios, Colonias, Inspecciones fotográficas u otra capa consultable."
     );
     return false;
   }

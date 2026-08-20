@@ -45,9 +45,24 @@ function mxli_normalize_inspection_clave(mixed $value): string
     return strtoupper(preg_replace('/\s+/', '', (string)$value));
 }
 
+function mxli_normalize_inspection_notes(mixed $value): string
+{
+    $text = trim((string)$value);
+    if ($text === "") {
+        return "";
+    }
+    return function_exists("mb_strtoupper") ? mb_strtoupper($text, "UTF-8") : strtoupper($text);
+}
+
 function mxli_can_inspection_manage(?array $user = null): bool
 {
     return mxli_can("inspections.manage", $user) || mxli_can("users.manage", $user);
+}
+
+function mxli_can_view_inspections_map_layer(?array $user = null): bool
+{
+    return mxli_can("map.inspect", $user)
+        || mxli_can_inspection_manage($user);
 }
 
 function mxli_can_access_inspection_row(array $row, ?array $user = null): bool
@@ -66,9 +81,20 @@ function mxli_can_access_inspection_row(array $row, ?array $user = null): bool
     return $ownerId > 0 && $ownerId === (int)($user["id"] ?? 0);
 }
 
+function mxli_inspections_web_base(): string
+{
+    $script = str_replace("\\", "/", (string)($_SERVER["SCRIPT_NAME"] ?? ""));
+    if (preg_match('#^(.*?)/(?:api|admin)/#', $script, $m)) {
+        return rtrim($m[1], "/");
+    }
+    $dir = rtrim(str_replace("\\", "/", dirname($script)), "/");
+    return $dir === "/" ? "" : $dir;
+}
+
 function mxli_public_inspection_row(array $row, ?array $user = null): array
 {
     $id = (int)$row["id"];
+    $base = mxli_inspections_web_base();
     return [
         "id" => $id,
         "clavecatas" => (string)$row["clavecatas"],
@@ -79,7 +105,7 @@ function mxli_public_inspection_row(array $row, ?array $user = null): array
         "updated_at" => $row["updated_at"] ?? null,
         "created_by" => isset($row["created_by"]) ? (int)$row["created_by"] : null,
         "created_by_name" => (string)($row["created_by_name"] ?? $row["username"] ?? ""),
-        "photo_url" => "api/inspection-photo.php?id=" . $id,
+        "photo_url" => $base . "/api/inspection-photo.php?id=" . $id,
     ];
 }
 

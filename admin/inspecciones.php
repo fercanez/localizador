@@ -21,7 +21,7 @@ $canManageAll = mxli_can_inspection_manage();
   <title>Inspecciones fotográficas | Catastro Mexicali</title>
   <link rel="stylesheet" href="../css/auth-app.css">
   <link rel="stylesheet" href="../css/admin-users.css">
-  <link rel="stylesheet" href="../css/admin-inspecciones.css">
+  <link rel="stylesheet" href="../css/admin-inspecciones.css?v=5">
 </head>
 <body class="admin-body">
   <header class="admin-header">
@@ -40,9 +40,26 @@ $canManageAll = mxli_can_inspection_manage();
         <div class="inspect-admin-filters">
           <input type="text" id="filter-clave" placeholder="Filtrar por clave…" maxlength="32">
           <button type="button" id="btn-refresh-inspect" class="admin-secondary">Actualizar</button>
+          <button type="button" id="btn-export-csv" class="admin-secondary">Exportar Excel (CSV)</button>
         </div>
       </div>
-      <div id="inspect-grid" class="inspect-grid"></div>
+      <div class="inspect-table-wrap">
+        <table class="inspect-table" id="inspect-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Foto</th>
+              <th>Clave catastral</th>
+              <th>Fecha</th>
+              <th>Inspector</th>
+              <th>Notas</th>
+              <th>GPS</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="inspect-grid"></tbody>
+        </table>
+      </div>
       <p id="inspect-list-msg" class="admin-msg" hidden></p>
     </section>
   </main>
@@ -51,7 +68,7 @@ $canManageAll = mxli_can_inspection_manage();
     <form method="dialog" id="inspect-edit-form" class="admin-form">
       <h3>Editar inspección</h3>
       <input type="hidden" id="edit-inspect-id">
-      <img id="edit-inspect-preview" class="inspect-edit-preview" alt="Foto">
+      <img id="edit-inspect-preview" class="inspect-edit-preview" alt="Foto" title="Ver foto ampliada">
       <label>Clave catastral
         <input type="text" id="edit-inspect-clave" maxlength="32" required>
       </label>
@@ -65,6 +82,12 @@ $canManageAll = mxli_can_inspection_manage();
     </form>
   </dialog>
 
-  <script src="../js/admin-inspecciones.js"></script>
+  <dialog id="inspect-lightbox" class="inspect-lightbox" aria-label="Foto ampliada">
+    <button type="button" id="inspect-lightbox-close" class="inspect-lightbox__close" aria-label="Cerrar">×</button>
+    <img id="inspect-lightbox-img" alt="Foto ampliada">
+    <p id="inspect-lightbox-caption" class="inspect-lightbox__caption"></p>
+  </dialog>
+
+  <script src="../js/admin-inspecciones.js?v=5"></script>
 </body>
 </html>

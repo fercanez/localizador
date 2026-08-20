@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . "/includes/init.php";
 require_once dirname(__DIR__) . "/includes/auth.php";
 require_once dirname(__DIR__) . "/includes/inspections.php";
+require_once dirname(__DIR__) . "/includes/predio-lookup.php";
 
 header("Content-Type: application/json; charset=UTF-8");
 header("Cache-Control: no-store, no-cache, must-revalidate");
@@ -73,11 +74,11 @@ try {
         }
 
         $clave = mxli_normalize_inspection_clave($_POST["clavecatas"] ?? "");
-        $notes = trim((string)($_POST["notes"] ?? ""));
+        $notes = mxli_normalize_inspection_notes($_POST["notes"] ?? "");
         $lat = $_POST["lat"] ?? null;
         $lng = $_POST["lng"] ?? null;
 
-        if ($clave === "" || !preg_match('/^[A-Z0-9]{4,32}$/', $clave)) {
+        if ($clave !== "" && !preg_match('/^[A-Z0-9]{4,32}$/', $clave)) {
             mxli_json_response(["ok" => false, "error" => "Clave catastral inválida"], 400);
         }
 
@@ -86,13 +87,26 @@ try {
         }
 
         $file = $_FILES["photo"];
-        if (($file["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            mxli_json_response(["ok" => false, "error" => "Error al subir la foto"], 400);
+        $uploadErr = (int)($file["error"] ?? UPLOAD_ERR_NO_FILE);
+        if ($uploadErr !== UPLOAD_ERR_OK) {
+            $uploadErrors = [
+                UPLOAD_ERR_INI_SIZE => "La foto supera el límite del servidor. Use una imagen más liviana.",
+                UPLOAD_ERR_FORM_SIZE => "La foto supera el tamaño permitido.",
+                UPLOAD_ERR_PARTIAL => "La foto se subió incompleta. Intente de nuevo.",
+                UPLOAD_ERR_NO_FILE => "Falta la fotografía",
+                UPLOAD_ERR_NO_TMP_DIR => "El servidor no tiene carpeta temporal.",
+                UPLOAD_ERR_CANT_WRITE => "El servidor no pudo guardar la foto en disco.",
+                UPLOAD_ERR_EXTENSION => "Una extensión de PHP bloqueó la subida.",
+            ];
+            mxli_json_response([
+                "ok" => false,
+                "error" => $uploadErrors[$uploadErr] ?? "Error al subir la foto",
+            ], 400);
         }
 
-        $maxBytes = 8 * 1024 * 1024;
+        $maxBytes = 16 * 1024 * 1024;
         if ((int)($file["size"] ?? 0) > $maxBytes) {
-            mxli_json_response(["ok" => false, "error" => "La foto supera 8 MB"], 400);
+            mxli_json_response(["ok" => false, "error" => "La foto supera 16 MB"], 400);
         }
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
@@ -104,6 +118,24 @@ try {
         ];
         if (!isset($allowed[$mime])) {
             mxli_json_response(["ok" => false, "error" => "Formato no permitido (use JPG, PNG o WebP)"], 400);
+        }
+
+        $latVal = is_numeric($lat) ? (float)$lat : null;
+        $lngVal = is_numeric($lng) ? (float)$lng : null;
+
+        if ($clave !== "") {
+            $predio = mxli_predio_by_clave($clave);
+            if ($predio !== null) {
+                $latVal = (float)$predio["lat"];
+                $lngVal = (float)$predio["lng"];
+            }
+        }
+
+        if ($latVal === null || $lngVal === null) {
+            mxli_json_response([
+                "ok" => false,
+                "error" => "No hay ubicación: capture una clave catastral válida o active el GPS",
+            ], 400);
         }
 
         $subdir = date("Y/m");
@@ -119,9 +151,6 @@ try {
         if (!move_uploaded_file($file["tmp_name"], $dest)) {
             mxli_json_response(["ok" => false, "error" => "No se pudo almacenar la foto"], 500);
         }
-
-        $latVal = is_numeric($lat) ? (float)$lat : null;
-        $lngVal = is_numeric($lng) ? (float)$lng : null;
 
         $stmt = $pdo->prepare(
             "INSERT INTO app_inspection_photos
@@ -172,7 +201,7 @@ try {
             ? mxli_normalize_inspection_clave($body["clavecatas"])
             : (string)$current["clavecatas"];
         $notes = array_key_exists("notes", $body)
-            ? trim((string)$body["notes"])
+            ? mxli_normalize_inspection_notes($body["notes"])
             : (string)$current["notes"];
 
         if ($clave === "" || !preg_match('/^[A-Z0-9]{4,32}$/', $clave)) {

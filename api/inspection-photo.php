@@ -41,8 +41,21 @@ try {
 
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     $mime = $finfo->file($path) ?: "image/jpeg";
+    $ext = match ($mime) {
+        "image/png" => "png",
+        "image/webp" => "webp",
+        default => "jpg",
+    };
+    $clave = preg_replace('/[^A-Z0-9_-]/i', "", (string)($row["clavecatas"] ?? "inspeccion")) ?: "inspeccion";
+    $filename = "inspeccion-" . $clave . "-" . $id . "." . $ext;
+
     header("Content-Type: " . $mime);
     header("Cache-Control: private, max-age=3600");
+    if (!empty($_GET["download"])) {
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+    } else {
+        header('Content-Disposition: inline; filename="' . $filename . '"');
+    }
     readfile($path);
 } catch (Throwable $e) {
     http_response_code(500);

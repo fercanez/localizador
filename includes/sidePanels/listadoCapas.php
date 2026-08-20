@@ -1,5 +1,8 @@
 <?php
+require_once dirname(__DIR__) . "/inspections.php";
+
 $layerMetadata = require dirname(__DIR__) . "/layer-metadata.php";
+$showInspeccionesCapa = mxli_can_view_inspections_map_layer();
 
 $wmsCapasGeoservidor = [
     [
@@ -172,6 +175,28 @@ $wmsCapasGeoservidor = array_values(array_filter(
                                     </div>
                                 </div>
                             <?php endforeach; ?>
+
+                            <?php if ($showInspeccionesCapa): ?>
+                                <div class="wms-layer-card wms-layer-card--inspect"
+                                    data-layer-id="inspecciones_fotos_chkbox"
+                                    data-layer-var="inspecciones_fotos"
+                                    data-title="Inspecciones fotográficas"
+                                    data-opacity="100">
+                                    <div class="wms-layer-card__header">
+                                        <label class="wms-layer-card__check" for="inspecciones_fotos_chkbox">
+                                            <input type="checkbox"
+                                                id="inspecciones_fotos_chkbox"
+                                                name="inspecciones_fotos_chkbox"
+                                                onchange="toggleLayer('inspecciones_fotos_chkbox', inspecciones_fotos)">
+                                        </label>
+                                        <span class="wms-layer-card__color"
+                                            style="background: #9b2f55"></span>
+                                        <span class="wms-layer-card__title">Inspecciones fotográficas</span>
+                                    </div>
+                                    <p class="wms-layer-card__hint">Puntos de tomas con GPS. Cada inspector tiene un color distinto. Use la herramienta <strong>i</strong> para ver la ficha.</p>
+                                    <div id="inspect-users-legend" class="inspect-users-legend" hidden></div>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     </li>
