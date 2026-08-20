@@ -1,0 +1,119 @@
+/* Inspección fotográfica — diálogo en mapa */
+.inspect-photo-dialog {
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  width: min(420px, 94vw);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.inspect-photo-dialog::backdrop {
+  background: rgba(30, 20, 25, 0.45);
+}
+
+.inspect-photo-form {
+  padding: 1rem 1.1rem 1.1rem;
+  display: grid;
+  gap: 0.65rem;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.inspect-photo-form h3 {
+  margin: 0;
+  color: #6f2f3d;
+  font-size: 1.1rem;
+}
+
+.inspect-photo-form__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5a4a50;
+}
+
+.inspect-photo-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #3a2a30;
+}
+
+.inspect-photo-form input,
+.inspect-photo-form textarea {
+  border: 1px solid #d7ccd1;
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.inspect-photo-preview-wrap {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.inspect-photo-preview {
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 1px solid #e4d8dd;
+  background: #faf7f5;
+}
+
+.inspect-photo-take {
+  border: 1px dashed #9b2f55;
+  background: #fff5f8;
+  color: #9b2f55;
+  border-radius: 10px;
+  padding: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inspect-photo-msg {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.inspect-photo-msg.is-ok { color: #2f7d4b; }
+.inspect-photo-msg.is-error { color: #9b2f55; }
+
+.inspect-photo-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.inspect-photo-btn {
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.inspect-photo-btn--ghost {
+  background: #fff;
+  border-color: #6f2f3d;
+  color: #6f2f3d;
+}
+
+.inspect-photo-btn--primary {
+  background: #9b2f55;
+  color: #fff;
+}
+
+.control-icon--camera svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  fill: currentColor;
+}
+
+@media (max-width: 900px) {
+  .inspect-photo-dialog {
+    width: min(96vw, 420px);
+  }
+}

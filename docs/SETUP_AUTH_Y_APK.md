@@ -31,11 +31,12 @@ Requiere extensión PHP `pdo_pgsql`.
 ## Roles y permisos
 
 Los roles viven en la tabla `app_roles` (permisos de herramientas + capas visibles).
-Roles base sembrados: **admin**, **consulta**, **campo**.
+Roles base sembrados: **admin**, **consulta**, **campo**, **inspector**.
 
 ```bash
 cd /var/www/html/localizacion
 php scripts/migrate_custom_roles.php
+php scripts/migrate_inspection_photos.php
 ```
 
 También puede aplicar el SQL directo:
@@ -49,8 +50,19 @@ psql -U canez -d NOMBRE_BD -f /var/www/html/localizacion/sql/migrate_custom_role
 | **admin** | Sí | Sí | Sí | Sí | Sí | Todas |
 | **consulta** | Sí | Sí | Sí | No | No | Todas |
 | **campo** | Sí | Sí | Sí | Sí | No | Todas |
+| **inspector** | Sí (búsqueda) | No | Sí | No | Inspección foto | Predios, Colonias |
 
 Desde **Usuarios → Roles y permisos** puede crear roles nuevos (p. ej. “Urbanismo”) eligiendo herramientas y un subconjunto de las 8 capas WMS.
+
+### Inspección fotográfica (rol Inspector)
+
+Permiso **`map.inspect`**: botón de cámara en el mapa para capturar clave catastral + foto (ideal en celular/APK).
+
+Permiso **`inspections.manage`**: ver, editar y eliminar **todas** las inspecciones (administradores).
+
+- En el mapa: icono de cámara → capturar clave y foto.
+- Módulo: **Inspecciones** (header) para ver, editar notas/clave o borrar registros.
+- Fotos en `uploads/inspections/` (no van a git).
 
 Los usuarios antiguos con rol `user` se convierten a `consulta` en la migración de roles v2.
 

@@ -48,7 +48,9 @@
       "map.print": "Imprimir",
       "map.locate": "GPS",
       "map.measure": "Medir",
-      "map.upload": "Subir",
+      "map.upload": "Subir",
+      "map.inspect": "Inspeccionar",
+      "inspections.manage": "Gestionar inspecciones",
       "users.manage": "Usuarios",
     };
     return (list || [])

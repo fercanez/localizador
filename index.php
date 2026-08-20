@@ -1,6 +1,7 @@
 <?php
 include "includes/init.php";
 require_once __DIR__ . "/includes/auth.php";
+require_once __DIR__ . "/includes/inspections.php";
 mxli_require_login();
 $mxliUser = mxli_current_user();
 ?>
@@ -235,6 +236,9 @@ html, body {
     <?php if (mxli_can("users.manage")): ?>
       <a href="admin/usuarios.php">Usuarios</a>
     <?php endif; ?>
+    <?php if (mxli_can("map.inspect") || mxli_can_inspection_manage()): ?>
+      <a href="admin/inspecciones.php">Inspecciones</a>
+    <?php endif; ?>
     <a href="logout.php">Salir</a>
   </div>
 </header>
@@ -279,8 +283,9 @@ window.mxliCanLayer = function (layerKey) {
 <script src="js/wmsLayerPanel.js?v=72"></script>
 <script src="js/simbologiaPanel.js?v=72"></script>
 <script src="js/buscadorPredios.js?v=83"></script>
+<script src="js/inspeccionFotos.js?v=1"></script>
 <script src="js/mapTopToolbar.js?v=72"></script>
-<script src="js/permissions.js?v=73"></script>
+<script src="js/permissions.js?v=74"></script>
 
 <script>
 <?php include "js/menuBtn.js"; ?>

@@ -28,6 +28,10 @@
       hide(document.getElementById("shp-upload"));
     }
 
+    if (!can("map.inspect")) {
+      hide(document.getElementById("inspectPhotoBtn"));
+    }
+
     if (!can("map.print")) {
       hide(document.getElementById("printMapBtn"));
       var printMode = document.getElementById("printMode-dialog");
@@ -50,6 +54,10 @@
 
     if (!can("users.manage")) {
       document.querySelectorAll('a[href="admin/usuarios.php"]').forEach(hide);
+    }
+
+    if (!can("map.inspect") && !can("inspections.manage")) {
+      document.querySelectorAll('a[href="admin/inspecciones.php"]').forEach(hide);
     }
 
     document.querySelectorAll("[data-gs-layer]").forEach(function (card) {

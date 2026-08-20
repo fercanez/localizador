@@ -38,3 +38,7 @@ _archive/
 
 # PDFs de muestra / export
 *.pdf
+
+# Fotos de inspección en campo (no versionar)
+uploads/inspections/*
+!uploads/inspections/.gitkeep

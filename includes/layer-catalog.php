@@ -106,6 +106,8 @@ function mxli_tool_permission_defs(): array
         "map.locate" => "Geolocalización GPS",
         "map.measure" => "Medir / dibujar",
         "map.upload" => "Subir SHP / KML / KMZ",
+        "map.inspect" => "Inspección fotográfica en campo",
+        "inspections.manage" => "Gestionar todas las inspecciones",
         "users.manage" => "Administrar usuarios y roles",
     ];
 }
@@ -123,6 +125,13 @@ function mxli_default_role_seeds(): array
         "map.measure",
     ];
     $campoTools = array_merge($consultaTools, ["map.upload"]);
+    $inspectorTools = [
+        "map.view",
+        "map.search",
+        "map.locate",
+        "map.inspect",
+    ];
+    $inspectorLayers = ["predios_mexicali_2025", "colonias"];
 
     return [
         [
@@ -148,6 +157,14 @@ function mxli_default_role_seeds(): array
             "is_system" => true,
             "permissions" => $campoTools,
             "allowed_layers" => $allLayers,
+        ],
+        [
+            "slug" => "inspector",
+            "name" => "Inspector",
+            "description" => "Captura fotográfica de predios en campo",
+            "is_system" => true,
+            "permissions" => $inspectorTools,
+            "allowed_layers" => $inspectorLayers,
         ],
     ];
 }
