@@ -249,6 +249,10 @@ function mxli_permissions_for_role(string $role): array
         if ($role === "admin" && !in_array("users.manage", $perms, true)) {
             $perms[] = "users.manage";
         }
+        // Administrador siempre puede consultar nombres del padrón
+        if ($role === "admin" && !in_array("map.padron", $perms, true)) {
+            $perms[] = "map.padron";
+        }
         if (!in_array("map.view", $perms, true)) {
             array_unshift($perms, "map.view");
         }
@@ -302,6 +306,10 @@ function mxli_user_permissions(?array $user = null): array
     }
     $perms = mxli_permissions_for_role((string)($user["role"] ?? "consulta"));
     if (mxli_to_bool($user["can_view_padron"] ?? false) && !in_array("map.padron", $perms, true)) {
+        $perms[] = "map.padron";
+    }
+    // Quien administra usuarios también puede consultar nombres de registro
+    if (in_array("users.manage", $perms, true) && !in_array("map.padron", $perms, true)) {
         $perms[] = "map.padron";
     }
     return array_values($perms);

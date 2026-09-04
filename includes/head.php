@@ -58,6 +58,6 @@
 
     <!-- Plugin para imprimir mapa -->
     <script src="./resources/leaflet-browser-print/leaflet.browser.print.js"></script>
-  <link rel="stylesheet" href="./css/index.css?v=73">
-  <link rel="stylesheet" href="./css/inspeccion-fotos.css?v=10">
+  <link rel="stylesheet" href="./css/index.css?v=76">
+  <link rel="stylesheet" href="./css/inspeccion-fotos.css?v=13">
 </head>

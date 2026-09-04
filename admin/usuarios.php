@@ -22,11 +22,11 @@ $layerCatalog = mxli_layer_catalog();
 <body class="admin-body">
   <header class="admin-header">
     <div>
-      <a class="admin-back" href="../index.php">← Volver al mapa</a>
+      <a class="admin-back" href="../index.php">â† Volver al mapa</a>
       <h1>Usuarios y roles</h1>
       <p>Administrador: <strong><?= htmlspecialchars($me["username"], ENT_QUOTES, "UTF-8") ?></strong></p>
     </div>
-    <a class="admin-logout" href="../logout.php">Cerrar sesión</a>
+    <a class="admin-logout" href="../logout.php">Cerrar sesiÃ³n</a>
   </header>
 
   <nav class="admin-tabs" role="tablist">
@@ -48,7 +48,7 @@ $layerCatalog = mxli_layer_catalog();
           <label>Correo
             <input type="email" name="email">
           </label>
-          <label>Contraseña
+          <label>ContraseÃ±a
             <input type="password" name="password" required minlength="6">
           </label>
           <label>Rol
@@ -56,13 +56,13 @@ $layerCatalog = mxli_layer_catalog();
           </label>
           <label class="admin-check">
             <input type="checkbox" name="can_view_padron" id="create-padron">
-            <span>Ver nombre del contribuyente (padrón)
-              <small>Independiente del rol; el usuario debe volver a iniciar sesión tras el cambio.</small>
+            <span>Ver nombre del contribuyente (padrÃ³n)
+              <small>Independiente del rol; el usuario debe volver a iniciar sesiÃ³n tras el cambio.</small>
             </span>
           </label>
           <label>Vence el (opcional)
             <input type="date" name="expires_at">
-            <small>Vacío = sin vencimiento. Ese día aún puede entrar; al día siguiente ya no.</small>
+            <small>VacÃ­o = sin vencimiento. Ese dÃ­a aÃºn puede entrar; al dÃ­a siguiente ya no.</small>
           </label>
           <button type="submit" class="auth-btn">Crear usuario</button>
         </form>
@@ -81,10 +81,10 @@ $layerCatalog = mxli_layer_catalog();
                 <th>Usuario</th>
                 <th>Nombre</th>
                 <th>Rol</th>
-                <th>Padrón</th>
+                <th>PadrÃ³n</th>
                 <th>Activo</th>
                 <th>Vence</th>
-                <th>Último acceso</th>
+                <th>Ãšltimo acceso</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -106,7 +106,7 @@ $layerCatalog = mxli_layer_catalog();
             <thead>
               <tr>
                 <th>Rol</th>
-                <th>Descripción</th>
+                <th>DescripciÃ³n</th>
                 <th>Permisos</th>
                 <th>Capas</th>
                 <th>Acciones</th>
@@ -131,21 +131,21 @@ $layerCatalog = mxli_layer_catalog();
       <label>Correo
         <input type="email" name="email" id="edit-email">
       </label>
-      <label>Nueva contraseña (opcional)
-        <input type="password" name="password" id="edit-password" minlength="6" placeholder="Dejar vacío para no cambiar">
+      <label>Nueva contraseÃ±a (opcional)
+        <input type="password" name="password" id="edit-password" minlength="6" placeholder="Dejar vacÃ­o para no cambiar">
       </label>
       <label>Rol
         <select name="role" id="edit-role"></select>
       </label>
       <label class="admin-check">
         <input type="checkbox" name="can_view_padron" id="edit-padron">
-        <span>Ver nombre del contribuyente (padrón)
-          <small>Override por usuario. También puede otorgarse por rol en «Roles y permisos».</small>
+        <span>Ver nombre del contribuyente (padrÃ³n)
+          <small>Override por usuario. TambiÃ©n puede otorgarse por rol en Â«Roles y permisosÂ».</small>
         </span>
       </label>
       <label>Vence el (opcional)
         <input type="date" name="expires_at" id="edit-expires">
-        <small>Vacío = sin vencimiento</small>
+        <small>VacÃ­o = sin vencimiento</small>
       </label>
       <label class="admin-check">
         <input type="checkbox" name="is_active" id="edit-active">
@@ -166,7 +166,7 @@ $layerCatalog = mxli_layer_catalog();
       <label>Nombre
         <input type="text" name="name" id="role-name" required minlength="2">
       </label>
-      <label>Descripción
+      <label>DescripciÃ³n
         <input type="text" name="description" id="role-description" placeholder="Opcional">
       </label>
 
@@ -213,6 +213,6 @@ $layerCatalog = mxli_layer_catalog();
   </dialog>
 
   <script src="../js/admin-users.js"></script>
-  <script src="../js/admin-roles.js"></script>
+  <script src="../js/admin-roles.js?v=9"></script>
 </body>
 </html>

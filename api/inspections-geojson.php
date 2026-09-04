@@ -30,12 +30,62 @@ try {
         exit;
     }
 
+    $allowedAreas = mxli_inspection_areas_for_user($user);
+    if ($allowedAreas === []) {
+        http_response_code(403);
+        echo json_encode(["type" => "FeatureCollection", "features" => []]);
+        exit;
+    }
+
     $params = [];
     $where = "p.lat IS NOT NULL AND p.lng IS NOT NULL";
 
-    if (!mxli_can_inspection_manage($user)) {
-        $where .= " AND p.created_by = :uid";
-        $params["uid"] = (int)$user["id"];
+    $areaParam = strtolower(trim((string)($_GET["area"] ?? "")));
+    if ($areaParam !== "") {
+        $area = mxli_normalize_inspection_area($areaParam);
+        if (!in_array($area, $allowedAreas, true)) {
+            http_response_code(403);
+            echo json_encode(["type" => "FeatureCollection", "features" => []]);
+            exit;
+        }
+        $where .= " AND p.inspection_area = :area";
+        $params["area"] = $area;
+        $filterAreas = [$area];
+    } else {
+        $placeholders = [];
+        foreach ($allowedAreas as $i => $a) {
+            $key = "area" . $i;
+            $placeholders[] = ":" . $key;
+            $params[$key] = $a;
+        }
+        $where .= " AND p.inspection_area IN (" . implode(", ", $placeholders) . ")";
+        $filterAreas = $allowedAreas;
+    }
+
+    // Own rows unless user manages that row's area
+    $manageUrbano = mxli_can_manage_inspection_area("urbano", $user);
+    $manageCatastro = mxli_can_manage_inspection_area("catastro", $user);
+    if (!$manageUrbano || !$manageCatastro) {
+        $ownParts = [];
+        if (in_array("urbano", $filterAreas, true)) {
+            if ($manageUrbano) {
+                $ownParts[] = "p.inspection_area = 'urbano'";
+            } else {
+                $ownParts[] = "(p.inspection_area = 'urbano' AND p.created_by = :uid)";
+                $params["uid"] = (int)$user["id"];
+            }
+        }
+        if (in_array("catastro", $filterAreas, true)) {
+            if ($manageCatastro) {
+                $ownParts[] = "p.inspection_area = 'catastro'";
+            } else {
+                $ownParts[] = "(p.inspection_area = 'catastro' AND p.created_by = :uid_cat)";
+                $params["uid_cat"] = (int)$user["id"];
+            }
+        }
+        if ($ownParts !== []) {
+            $where .= " AND (" . implode(" OR ", $ownParts) . ")";
+        }
     }
 
     $sql =

@@ -1,0 +1,256 @@
+/* Visor de expediente digital */
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #3d3336;
+  overflow: hidden;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  user-select: none;
+}
+
+.exp-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  background: linear-gradient(135deg, #6f2f3d, #5e2633);
+  color: #fff;
+  border-bottom: 2px solid #d6aa2f;
+  flex-wrap: wrap;
+}
+
+.exp-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.exp-bar__back {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  opacity: 0.92;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+
+body.exp-embed .exp-bar__back {
+  padding: 0.25rem 0.45rem;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 6px;
+}
+
+.exp-bar__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.exp-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.35rem;
+  padding-right: 0.45rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.exp-zoom__pct {
+  min-width: 3.2rem;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+.exp-btn {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.exp-btn--icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.exp-btn--icon svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.exp-btn--primary {
+  background: #9b2f55;
+  border-color: #9b2f55;
+}
+
+.exp-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#exp-scroll {
+  height: calc(100% - 56px);
+  overflow: auto;
+  padding: 12px 8px 28px;
+}
+
+.exp-page {
+  position: relative;
+  margin: 0 auto 14px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  width: fit-content;
+  max-width: none;
+}
+
+.exp-page__inner {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  max-width: 100%;
+}
+
+.exp-page canvas {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+}
+
+.exp-wm {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  background-repeat: repeat;
+  background-position: center;
+  background-size: 380px auto;
+  mix-blend-mode: multiply;
+}
+
+body:not(.wm-on) .exp-wm {
+  display: none !important;
+}
+
+.exp-msg {
+  color: #fff;
+  text-align: center;
+  padding: 2rem;
+}
+
+#exp-busy {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+#exp-busy.show {
+  display: flex;
+}
+
+@media print {
+  /* Una página PDF = una hoja; el papel lo elige el diálogo de impresión */
+  @page {
+    margin: 0 !important;
+  }
+
+  .exp-bar,
+  #exp-busy,
+  .exp-zoom {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #exp-scroll,
+  #exp-pages {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .exp-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    page-break-after: always;
+    break-after: page;
+    page-break-inside: avoid;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+
+  .exp-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .exp-page__inner {
+    position: relative !important;
+    display: block !important;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 auto !important;
+  }
+
+  .exp-page canvas {
+    /* Escala automática (contain): cabe completa en la hoja sin recortar */
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  .exp-wm {
+    opacity: 0.28 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

@@ -29,18 +29,30 @@ try {
     }
 
     if ($method === "GET") {
-        if (!mxli_can("map.inspect") && !mxli_can_inspection_manage()) {
+        $allowedAreas = mxli_inspection_areas_for_user($user);
+        if ($allowedAreas === []) {
             mxli_json_response(["ok" => false, "error" => "Sin permiso"], 403);
+        }
+
+        $areaParam = strtolower(trim((string)($_GET["area"] ?? "")));
+        if ($areaParam === "") {
+            mxli_json_response(["ok" => false, "error" => "Parámetro area requerido (urbano|catastro)"], 400);
+        }
+        $area = mxli_normalize_inspection_area($areaParam);
+        if (!in_array($area, $allowedAreas, true)) {
+            mxli_json_response(["ok" => false, "error" => "Sin permiso para esta área"], 403);
         }
 
         $clave = mxli_normalize_inspection_clave($_GET["clave"] ?? "");
         $tipo = mxli_normalize_inspection_types($_GET["tipo"] ?? "");
         $limit = min(2000, max(1, (int)($_GET["limit"] ?? 50)));
         $withCoords = isset($_GET["with_coords"]) && (string)$_GET["with_coords"] !== "0";
-        $params = [];
-        $where = "1=1";
+        $params = [
+            "area" => $area,
+        ];
+        $where = "p.inspection_area = :area";
 
-        if (!mxli_can_inspection_manage()) {
+        if (!mxli_can_manage_inspection_area($area, $user)) {
             $where .= " AND p.created_by = :uid";
             $params["uid"] = (int)$user["id"];
         }
@@ -48,8 +60,7 @@ try {
             $where .= " AND p.clavecatas ILIKE :clave";
             $params["clave"] = $clave . "%";
         }
-        if ($tipo !== "") {
-            // CSV may contain several; filter by first key (API uses single tipo)
+        if ($tipo !== "" && $area === "urbano") {
             $tipoKey = mxli_inspection_types_list($tipo)[0] ?? "";
             if ($tipoKey !== "") {
                 $where .= " AND (',' || COALESCE(p.inspection_types, '') || ',') ILIKE :tipo";
@@ -74,21 +85,24 @@ try {
 
         mxli_json_response([
             "ok" => true,
+            "area" => $area,
             "items" => array_map(
                 static fn ($row) => mxli_public_inspection_row($row, $user),
                 $rows
             ),
             "type_labels" => mxli_inspection_type_labels(),
+            "area_labels" => mxli_inspection_area_labels(),
         ]);
     }
 
     if ($method === "POST") {
-        if (!mxli_can("map.inspect")) {
+        $area = mxli_normalize_inspection_area($_POST["inspection_area"] ?? "urbano");
+        if (!mxli_can_capture_inspection_area($area, $user)) {
             mxli_json_response(["ok" => false, "error" => "Sin permiso para capturar"], 403);
         }
 
         $clave = mxli_normalize_inspection_clave($_POST["clavecatas"] ?? "");
-        $notes = trim((string)($_POST["notes"] ?? ""));
+        $notes = mxli_normalize_inspection_notes($_POST["notes"] ?? "");
         $lat = $_POST["lat"] ?? null;
         $lng = $_POST["lng"] ?? null;
         $typesRaw = $_POST["inspection_types"] ?? ($_POST["types"] ?? "");
@@ -96,11 +110,14 @@ try {
             $typesRaw = $_POST["inspection_types"];
         }
         $typesCsv = mxli_normalize_inspection_types($typesRaw);
+        if ($area === "catastro") {
+            $typesCsv = "";
+        }
 
         if ($clave === "" || !preg_match('/^[A-Z0-9]{4,32}$/', $clave)) {
             mxli_json_response(["ok" => false, "error" => "Clave catastral inválida"], 400);
         }
-        if ($typesCsv === "") {
+        if ($area === "urbano" && $typesCsv === "") {
             mxli_json_response(["ok" => false, "error" => "Seleccione al menos un tipo de inspección"], 400);
         }
 
@@ -143,11 +160,8 @@ try {
             mxli_json_response(["ok" => false, "error" => "No se pudo almacenar la foto"], 500);
         }
 
-        $notes = mb_strtoupper($notes, "UTF-8");
-
         $coordSource = strtolower(trim((string)($_POST["coord_source"] ?? "")));
         if ($coordSource !== "gps" && $coordSource !== "clave") {
-            // Default: clave present → centroid; else keep GPS if provided
             $coordSource = "clave";
         }
 
@@ -160,11 +174,8 @@ try {
                 $latVal = (float)$predio["lat"];
                 $lngVal = (float)$predio["lng"];
                 $coordSource = "clave";
-            } elseif ($latVal === null || $lngVal === null) {
-                // No centroid and no client GPS — leave null
             }
         } else {
-            // GPS path: keep client lat/lng; do not overwrite with centroid
             if ($latVal !== null && ($latVal < -90 || $latVal > 90)) {
                 $latVal = null;
             }
@@ -179,9 +190,9 @@ try {
 
         $stmt = $pdo->prepare(
             "INSERT INTO app_inspection_photos
-                (clavecatas, photo_path, notes, inspection_types, lat, lng, created_by, captured_at, updated_at)
+                (clavecatas, photo_path, notes, inspection_types, inspection_area, lat, lng, created_by, captured_at, updated_at)
              VALUES
-                (:clave, :path, :notes, :types, :lat, :lng, :uid, NOW(), NOW())
+                (:clave, :path, :notes, :types, :area, :lat, :lng, :uid, NOW(), NOW())
              RETURNING *"
         );
         $stmt->execute([
@@ -189,6 +200,7 @@ try {
             "path" => $relative,
             "notes" => $notes,
             "types" => $typesCsv,
+            "area" => $area,
             "lat" => $latVal,
             "lng" => $lngVal,
             "uid" => (int)$user["id"],
@@ -223,21 +235,28 @@ try {
             mxli_json_response(["ok" => false, "error" => "Acceso denegado"], 403);
         }
 
+        $rowArea = mxli_normalize_inspection_area($current["inspection_area"] ?? "urbano");
+
         $clave = array_key_exists("clavecatas", $body)
             ? mxli_normalize_inspection_clave($body["clavecatas"])
             : (string)$current["clavecatas"];
         $notes = array_key_exists("notes", $body)
-            ? trim((string)$body["notes"])
-            : (string)$current["notes"];
-        $typesCsv = array_key_exists("inspection_types", $body) || array_key_exists("types", $body)
-            ? mxli_normalize_inspection_types($body["inspection_types"] ?? $body["types"] ?? "")
-            : mxli_normalize_inspection_types($current["inspection_types"] ?? "");
+            ? mxli_normalize_inspection_notes($body["notes"])
+            : mxli_normalize_inspection_notes($current["notes"] ?? "");
+
+        if ($rowArea === "catastro") {
+            $typesCsv = "";
+        } else {
+            $typesCsv = array_key_exists("inspection_types", $body) || array_key_exists("types", $body)
+                ? mxli_normalize_inspection_types($body["inspection_types"] ?? $body["types"] ?? "")
+                : mxli_normalize_inspection_types($current["inspection_types"] ?? "");
+            if ($typesCsv === "") {
+                mxli_json_response(["ok" => false, "error" => "Seleccione al menos un tipo de inspección"], 400);
+            }
+        }
 
         if ($clave === "" || !preg_match('/^[A-Z0-9]{4,32}$/', $clave)) {
             mxli_json_response(["ok" => false, "error" => "Clave catastral inválida"], 400);
-        }
-        if ($typesCsv === "") {
-            mxli_json_response(["ok" => false, "error" => "Seleccione al menos un tipo de inspección"], 400);
         }
 
         $upd = $pdo->prepare(

@@ -6,12 +6,18 @@ require_once dirname(__DIR__) . "/includes/auth.php";
 require_once dirname(__DIR__) . "/includes/inspections.php";
 
 mxli_require_login();
-if (!mxli_can("map.inspect") && !mxli_can_inspection_manage()) {
+
+$areas = mxli_inspection_areas_for_user();
+if (!in_array("urbano", $areas, true)) {
+    if (in_array("catastro", $areas, true)) {
+        header("Location: inspecciones-catastro.php");
+        exit;
+    }
     mxli_require_permission("map.inspect");
 }
 
 $me = mxli_current_user();
-$canManageAll = mxli_can_inspection_manage();
+$canManageAll = mxli_can_manage_inspection_area("urbano");
 $typeLabels = mxli_inspection_type_labels();
 ?>
 <!DOCTYPE html>
@@ -19,17 +25,17 @@ $typeLabels = mxli_inspection_type_labels();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Inspecciones fotográficas | Catastro Mexicali</title>
+  <title>Inspecciones Control Urbano | Catastro Mexicali</title>
   <link rel="stylesheet" href="../css/auth-app.css">
   <link rel="stylesheet" href="../css/admin-users.css">
-  <link rel="stylesheet" href="../css/admin-inspecciones.css?v=7">
-  <link rel="stylesheet" href="../css/inspeccion-fotos.css?v=5">
+  <link rel="stylesheet" href="../css/admin-inspecciones.css?v=9">
+  <link rel="stylesheet" href="../css/inspeccion-fotos.css?v=6">
 </head>
-<body class="admin-body">
+<body class="admin-body" data-area="urbano">
   <header class="admin-header">
     <div>
       <a class="admin-back" href="../index.php">← Volver al mapa</a>
-      <h1>Inspecciones fotográficas</h1>
+      <h1>Inspecciones Control Urbano</h1>
       <p><?= $canManageAll ? "Gestión de todos los registros" : "Mis registros de campo" ?> — <strong><?= htmlspecialchars($me["username"] ?? "", ENT_QUOTES, "UTF-8") ?></strong></p>
     </div>
     <a class="admin-logout" href="../logout.php">Cerrar sesión</a>
@@ -57,6 +63,8 @@ $typeLabels = mxli_inspection_type_labels();
           </div>
           <button type="button" id="btn-refresh-inspect" class="admin-secondary">Actualizar</button>
           <button type="button" id="btn-export-csv" class="admin-secondary">Exportar Excel (CSV)</button>
+          <button type="button" id="btn-export-kmz" class="admin-secondary" title="Puntos con ficha y fotografía (Google Earth)">Exportar KMZ</button>
+          <button type="button" id="btn-export-kml" class="admin-secondary" title="Puntos con ficha (sin fotos embebidas)">Exportar KML</button>
         </div>
       </div>
       <div class="inspect-table-wrap">
@@ -66,7 +74,7 @@ $typeLabels = mxli_inspection_type_labels();
               <th>#</th>
               <th>Foto</th>
               <th>Clave</th>
-              <th>Tipos</th>
+              <th class="inspect-col-types">Tipos</th>
               <th>Fecha</th>
               <th>Inspector</th>
               <th>Notas</th>
@@ -89,7 +97,7 @@ $typeLabels = mxli_inspection_type_labels();
       <label>Clave
         <input type="text" id="edit-inspect-clave" maxlength="32" required>
       </label>
-      <div class="inspect-type-field">
+      <div class="inspect-type-field" id="edit-types-wrap">
         <span class="inspect-type-field__label">Tipo de inspección</span>
         <div class="inspect-type-toggles" id="edit-inspect-types">
           <?php foreach ($typeLabels as $key => $label): ?>
@@ -121,6 +129,6 @@ $typeLabels = mxli_inspection_type_labels();
     window.MXLI_INSPECT_CAN_MANAGE = <?= $canManageAll ? "true" : "false" ?>;
     window.MXLI_INSPECT_TYPE_LABELS = <?= json_encode($typeLabels, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>
-  <script src="../js/admin-inspecciones.js?v=7"></script>
+  <script src="../js/admin-inspecciones.js?v=9"></script>
 </body>
 </html>

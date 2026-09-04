@@ -74,7 +74,8 @@
       }
 
       .buscador-predio-input {
-        width:220px;
+        width:min(320px, 42vw);
+        min-width:200px;
         height:34px;
         border:1px solid #aaa;
         border-radius:6px;
@@ -150,8 +151,9 @@
         width:100%;
         text-align:left;
         display:flex;
-        justify-content:space-between;
-        gap:10px;
+        flex-direction:column;
+        align-items:flex-start;
+        gap:2px;
         padding:8px 10px;
         border-radius:8px;
         border:0;
@@ -160,6 +162,16 @@
         font-size:13px;
         font-weight:800;
         color:#1f1f1f;
+      }
+
+      .buscador-predio-results__item-main {
+        font-weight:800;
+      }
+
+      .buscador-predio-results__item-sub {
+        font-size:11px;
+        font-weight:600;
+        color:#6a5560;
       }
 
       .buscador-predio-results__item:hover {
@@ -212,18 +224,26 @@
     mount.dataset.ready = "1";
 
     const canPadron =
-      typeof window.mxliCanViewPadron === "function"
-        ? window.mxliCanViewPadron()
-        : typeof window.mxliCan === "function" && window.mxliCan("map.padron");
+      typeof window.mxliCanSearchByOwnerName === "function"
+        ? window.mxliCanSearchByOwnerName()
+        : typeof window.mxliCanViewPadron === "function"
+          ? window.mxliCanViewPadron()
+          : typeof window.mxliCan === "function" && window.mxliCan("map.padron");
     const label = canPadron
-      ? "Buscar predio o propietario:"
-      : "Buscar predio:";
-    const placeholder = canPadron ? "CLAVE O NOMBRE" : "CLAVE CATASTRAL";
+      ? "Buscar predio, dirección o propietario:"
+      : "Buscar predio o dirección:";
+    const placeholder = canPadron
+      ? "CLAVE, CALLE Y NÚMERO O NOMBRE DE REGISTRO"
+      : "CLAVE O CALLE Y NÚMERO";
 
     mount.innerHTML = `
       <div id="buscadorPredioBox" class="buscador-predio-box" style="position:relative">
         <label for="buscarPredioClave" class="buscador-predio-label">${label}</label>
-        <input id="buscarPredioClave" class="buscador-predio-input" type="text" placeholder="${placeholder}" />
+        <input id="buscarPredioClave" class="buscador-predio-input" type="text" placeholder="${placeholder}" title="${
+          canPadron
+            ? "Ejemplos: ST312014 · AV REFORMA 120 · GARCIA LOPEZ"
+            : "Ejemplos: ST312014 · AV REFORMA 120 · CALLE JUAREZ 45"
+        }" />
         <button id="btnBuscarPredioClave" class="buscador-predio-btn" type="button">Buscar</button>
         <button id="btnToggleMedidasPredio" class="buscador-predio-btn buscador-predio-btn-medidas is-on" type="button" title="Mostrar u ocultar medidas">Medidas</button>
         <div id="buscadorPredioResults" class="buscador-predio-results" hidden>
@@ -288,18 +308,26 @@
 
     let t = null;
     input.addEventListener("input", function () {
-      this.value = normalizarBusqueda(this.value);
+      // Conservar espacio final mientras se escribe (calle / nombre)
+      this.value = normalizarBusqueda(this.value, true);
       const value = this.value;
       if (t) clearTimeout(t);
       t = setTimeout(function () {
-        if (pareceNombre(value) && canViewPadron()) {
-          buscarPadronPorNombre(value);
-        } else if (esPrefijoListado(limpiarClave(value))) {
-          buscarListadoPorPrefijo(limpiarClave(value));
+        const q = String(value || "").trim();
+        if (!q) {
+          ocultarResultados();
+          return;
+        }
+        if (pareceDireccion(q)) {
+          buscarPadronPorDireccion(q);
+        } else if (pareceNombre(q) && canViewPadron()) {
+          buscarPadronPorNombre(q);
+        } else if (esPrefijoListado(limpiarClave(q))) {
+          buscarListadoPorPrefijo(limpiarClave(q));
         } else {
           ocultarResultados();
         }
-      }, value.length <= 2 ? 400 : 220);
+      }, value.trim().length <= 2 ? 400 : 220);
     });
 
     btn.addEventListener("click", function () {
@@ -324,35 +352,91 @@
   }
 
   function canViewPadron() {
+    if (typeof window.mxliCanSearchByOwnerName === "function") {
+      return window.mxliCanSearchByOwnerName();
+    }
     if (typeof window.mxliCanViewPadron === "function") {
       return window.mxliCanViewPadron();
     }
-    return typeof window.mxliCan === "function" && window.mxliCan("map.padron");
+    if (window.MXLI_USER && window.MXLI_USER.can_view_padron) return true;
+    return typeof window.mxliCan === "function" && (
+      window.mxliCan("map.padron") || window.mxliCan("users.manage")
+    );
   }
 
   function pareceNombre(valor) {
     const v = String(valor || "").trim();
     if (v.length < 3) return false;
     if (/\d/.test(v)) return false;
+    if (pareceDireccion(v)) return false;
     return /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(v);
   }
 
-  function normalizarBusqueda(valor) {
-    let v = String(valor || "").toUpperCase();
-    if (pareceNombre(v) || /\s/.test(v)) {
-      return v.replace(/\s+/g, " ").trim();
+  function pareceDireccion(valor) {
+    const v = String(valor || "").trim();
+    if (v.length < 3) return false;
+    // Prefijos típicos de vialidad
+    if (
+      /^(CALLE|AV\.?|AVENIDA|BLVD\.?|BOULEVARD|PRIV\.?|PRIVADA|ANDADOR|CERRADA|CIRCUITO|CALZ\.?|CALZADA|CARR\.?|CARRETERA|PROL\.?|PROLONGACION|PROLONGACIÓN)\b/i.test(
+        v
+      )
+    ) {
+      return true;
     }
-    return v.replace(/\s+/g, "").trim();
+    // Calle + número oficial: "REFORMA 120", "JUAREZ 45A"
+    if (/[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(v) && /\d/.test(v)) {
+      // No confundir claves tipo ST312014 (sin espacios)
+      const compact = v.replace(/\s+/g, "");
+      if (!/\s/.test(v) && /^[A-Z0-9]{4,20}$/i.test(compact)) {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function normalizarBusqueda(valor, alEscribir) {
+    let v = String(valor || "").toUpperCase();
+    const trailingSpace = alEscribir && /\s$/.test(v);
+    const trimmed = v.trim();
+
+    // Clave catastral compacta (sin espacios): ST312014
+    const compact = trimmed.replace(/\s+/g, "");
+    const pareceClaveCompacta =
+      trimmed.length > 0 &&
+      !/\s/.test(trimmed) &&
+      /^[A-Z0-9]+$/.test(compact) &&
+      !pareceDireccion(trimmed) &&
+      !pareceNombre(trimmed);
+
+    if (pareceClaveCompacta) {
+      return compact;
+    }
+
+    // Dirección / nombre / texto con espacios: conservar espacios
+    v = v.replace(/\s+/g, " ");
+    if (alEscribir) {
+      v = v.replace(/^\s+/, "");
+      if (trailingSpace && !/\s$/.test(v)) v += " ";
+      return v;
+    }
+    return v.trim();
   }
 
   function ejecutarBusqueda(valorOriginal) {
-    const crudo = String(valorOriginal || "").trim();
+    const crudo = normalizarBusqueda(valorOriginal, false);
+    if (pareceDireccion(crudo)) {
+      buscarPadronPorDireccion(crudo);
+      return;
+    }
     if (pareceNombre(crudo)) {
       if (!canViewPadron()) {
-        window.alert("Su rol no tiene permiso para buscar por propietario.");
+        window.alert(
+          "Para buscar por nombre de propietario se requiere permiso de padrón.\nPuede buscar por clave o por dirección (calle y número)."
+        );
         return;
       }
-      buscarPadronPorNombre(normalizarBusqueda(crudo));
+      buscarPadronPorNombre(crudo);
       return;
     }
     const value = limpiarClave(crudo);
@@ -447,6 +531,7 @@
     const total = (claves || []).length;
     const esPadron =
       String(prefix || "").indexOf("Propietario") === 0 ||
+      String(prefix || "").indexOf("Dirección") === 0 ||
       (total > 0 && claves[0] && typeof claves[0] === "object");
     const etiqueta = esPadron ? prefix : etiquetaPrefijoBusqueda(prefix);
     let titulo = etiqueta + ": " + total + (esPadron ? " coincidencia(s)" : " predio(s)");
@@ -466,10 +551,31 @@
       btn.type = "button";
       btn.className = "buscador-predio-results__item";
       if (clave && typeof clave === "object") {
-        btn.textContent =
-          (clave.clave || "") +
-          (clave.propietario ? " — " + clave.propietario : "");
-        const claveTxt = clave.clave;
+        const claveTxt = clave.clave || "";
+        const domicilio =
+          clave.domicilio ||
+          [clave.calle, clave.numero_oficial, clave.letra]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
+        const colonia = clave.colonia || "";
+        const propietario = canViewPadron() ? clave.propietario || "" : "";
+
+        const main = document.createElement("span");
+        main.className = "buscador-predio-results__item-main";
+        main.textContent = claveTxt || "Sin clave";
+
+        const sub = document.createElement("span");
+        sub.className = "buscador-predio-results__item-sub";
+        const bits = [];
+        if (domicilio) bits.push(domicilio);
+        if (colonia) bits.push(colonia);
+        if (propietario) bits.push(propietario);
+        sub.textContent = bits.join(" · ");
+
+        btn.appendChild(main);
+        if (bits.length) btn.appendChild(sub);
+
         btn.addEventListener("click", function () {
           ocultarResultados();
           const input = document.getElementById("buscarPredioClave");
@@ -490,6 +596,44 @@
     });
 
     box.hidden = total === 0;
+  }
+
+  async function buscarPadronPorDireccion(direccion) {
+    if (typeof window.mxliCan === "function" && !window.mxliCan("map.search")) {
+      window.alert("Su rol no tiene permiso para buscar predios.");
+      return;
+    }
+    const q = String(direccion || "").trim();
+    if (q.length < 3) {
+      window.alert("Capture calle y, si es posible, el número oficial.");
+      return;
+    }
+
+    const box = document.getElementById("buscadorPredioResults");
+    const title = document.getElementById("buscadorPredioResultsTitle");
+    if (box) box.hidden = false;
+    if (title) title.textContent = "Buscando dirección…";
+
+    try {
+      const res = await fetch(
+        "api/padron-address.php?direccion=" +
+          encodeURIComponent(q) +
+          "&limit=40"
+      );
+      const data = await res.json();
+      if (!res.ok || !data || data.ok === false) {
+        throw new Error((data && data.error) || "Error al buscar dirección.");
+      }
+      const rows = data.resultados || [];
+      renderResultados("Dirección " + q, rows, null);
+      if (!rows.length && title) {
+        title.textContent = "Sin coincidencias para «" + q + "»";
+        if (box) box.hidden = false;
+      }
+    } catch (err) {
+      renderResultados(q, [], null);
+      if (title) title.textContent = String(err && err.message ? err.message : "Error");
+    }
   }
 
   async function buscarPadronPorNombre(nombre) {

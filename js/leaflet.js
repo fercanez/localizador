@@ -595,10 +595,13 @@ async function getFeatureInfo(evt) {
   if (typeof mxliFindInspectionFeature === "function" && evt && evt.latlng) {
     const insp = mxliFindInspectionFeature(evt.latlng);
     if (insp) {
+      const area = (insp.inspection_area || "urbano") === "catastro" ? "catastro" : "urbano";
       return {
         properties: insp,
         isInspection: true,
-        sourceLayer: "inspecciones_fotos",
+        sourceLayer:
+          insp.sourceLayer ||
+          (area === "catastro" ? "inspecciones_catastro" : "inspecciones_fotos"),
         layer_type: "inspeccion_foto",
       };
     }
@@ -817,11 +820,20 @@ function createDataTable(data) {
   div.innerHTML = `
     <div class="mxli-feature-popup__head">Información del predio</div>
     <div class="mxli-feature-popup__body">
-      <div><b>Clave Catastral:</b> ${escapeHtml(clave)}</div>
+      <div><b>Clave:</b> ${escapeHtml(clave)}</div>
       <div><b>Homoclave:</b> ${escapeHtml(homoclave)}</div>
       <div><b>Manzana:</b> ${escapeHtml(manzana)}</div>
       <div><b>Lote:</b> ${escapeHtml(lote)}</div>
-      <div><b>Sup. Cart:</b> ${superficie} m²</div>
+      <div><b>Sup. cart.:</b> ${superficie} m²</div>
+      ${
+        typeof window.mxliExpedienteLinkHtml === "function"
+          ? window.mxliExpedienteLinkHtml(String(clave || "").toUpperCase())
+          : typeof window.mxliCan === "function" && window.mxliCan("map.expediente")
+            ? '<a href="#" class="mxli-expediente-link" data-expediente-clave="' +
+              escapeHtml(String(clave || "").toUpperCase()) +
+              '" role="button"><span class="mxli-expediente-link__text">Ver Expediente</span></a>'
+            : ""
+      }
     </div>
   `;
 

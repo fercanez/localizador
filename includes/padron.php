@@ -473,34 +473,332 @@ function mxli_padron_lookup_by_clave(string $clave): ?array
  */
 function mxli_padron_search_by_nombre(string $nombre, int $limit = 40): array
 {
-    $nombre = trim(preg_replace("/\s+/", " ", $nombre) ?? "");
-    if (mb_strlen($nombre) < 3) {
+    $nombre = trim(preg_replace("/\s+/u", " ", $nombre) ?? "");
+    if (mxli_padron_strlen($nombre) < 3) {
         return [];
     }
 
     $pdo = mxli_geonode_db();
     $map = mxli_padron_field_map($pdo);
-    if ($map["nombre"] === null) {
+    if ($map["nombre"] === null && ($map["razon_social"] ?? null) === null) {
         return [];
     }
 
-    $claveCol = mxli_padron_quote_ident($map["clave"]);
-    $nombreCol = mxli_padron_quote_ident($map["nombre"]);
     $qualified = mxli_padron_qualified();
     $limit = min(80, max(1, $limit));
 
+    // Tokens: "GARCIA LOPEZ" exige ambas partes (orden flexible)
+    $tokens = [];
+    foreach (preg_split("/\s+/u", mxli_padron_upper($nombre)) ?: [] as $t) {
+        $t = trim((string)$t);
+        if (mxli_padron_strlen($t) >= 2) {
+            $tokens[$t] = $t;
+        }
+    }
+    $tokens = array_values($tokens);
+    if ($tokens === []) {
+        return [];
+    }
+
+    $nameCols = [];
+    if (!empty($map["nombre"])) {
+        $nameCols[] = mxli_padron_quote_ident($map["nombre"]) . "::text";
+    }
+    if (!empty($map["razon_social"])) {
+        $nameCols[] = mxli_padron_quote_ident($map["razon_social"]) . "::text";
+    }
+    if ($nameCols === []) {
+        return [];
+    }
+
+    // Campo combinado para buscar en nombre y razón social
+    $haystack = "upper(trim(concat_ws(' ', " . implode(", ", $nameCols) . ")))";
+
+    $whereParts = [];
+    $params = [];
+    foreach ($tokens as $i => $tok) {
+        $key = "n" . $i;
+        $whereParts[] = "{$haystack} LIKE :" . $key;
+        $params[$key] = "%" . mxli_padron_upper($tok) . "%";
+    }
+    $where = implode(" AND ", $whereParts);
+
+    $orderCol = !empty($map["nombre"])
+        ? mxli_padron_quote_ident($map["nombre"])
+        : mxli_padron_quote_ident($map["razon_social"]);
+
     $sql = "SELECT * FROM {$qualified}
-            WHERE {$nombreCol}::text ILIKE :q
-            ORDER BY {$nombreCol}
+            WHERE {$where}
+            ORDER BY {$orderCol}
             LIMIT {$limit}";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute(["q" => "%" . $nombre . "%"]);
+    $stmt->execute($params);
 
     $out = [];
+    $seen = [];
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        if (is_array($row)) {
-            $out[] = mxli_padron_public_row($row, $map);
+        if (!is_array($row)) {
+            continue;
         }
+        $item = mxli_padron_public_row($row, $map);
+        $clave = (string)($item["clave"] ?? "");
+        if ($clave === "" || isset($seen[$clave])) {
+            continue;
+        }
+        $seen[$clave] = true;
+        $out[] = $item;
+    }
+    return $out;
+}
+
+/**
+ * Fila pública para búsquedas (omite propietario si $includeOwner = false).
+ *
+ * @return array<string,string>
+ */
+function mxli_padron_public_row_search(array $row, array $map, bool $includeOwner = false): array
+{
+    $full = mxli_padron_public_row($row, $map);
+    $out = [
+        "clave" => (string)($full["clave"] ?? ""),
+        "calle" => (string)($full["calle"] ?? ""),
+        "numero_oficial" => (string)($full["numero_oficial"] ?? ""),
+        "letra" => (string)($full["letra"] ?? ""),
+        "numero_interior" => (string)($full["numero_interior"] ?? ""),
+        "colonia" => (string)($full["colonia"] ?? ""),
+        "domicilio" => (string)($full["domicilio"] ?? ""),
+        "delegacion" => (string)($full["delegacion"] ?? ""),
+    ];
+    if ($includeOwner) {
+        $out["propietario"] = (string)($full["propietario"] ?? "");
+        $out["nombre_completo"] = (string)($full["nombre_completo"] ?? "");
+        $out["nombredespliegue"] = (string)($full["nombredespliegue"] ?? "");
+        $out["razon_social"] = (string)($full["razon_social"] ?? "");
+    }
+    return $out;
+}
+
+/**
+ * Longitud de string compatible sin mbstring.
+ */
+function mxli_padron_strlen(string $s): int
+{
+    return function_exists("mb_strlen") ? (int)mb_strlen($s, "UTF-8") : strlen($s);
+}
+
+/**
+ * Mayúsculas compatible sin mbstring.
+ */
+function mxli_padron_upper(string $s): string
+{
+    if (function_exists("mb_strtoupper")) {
+        return mb_strtoupper($s, "UTF-8");
+    }
+    return strtoupper($s);
+}
+
+/**
+ * Prefijos / ruido vial que no deben exigir coincidencia exacta.
+ *
+ * @return list<string>
+ */
+function mxli_padron_calle_stopwords(): array
+{
+    return [
+        "GRAL",
+        "GENERAL",
+        "AV",
+        "AVENIDA",
+        "CALLE",
+        "C",
+        "BLVD",
+        "BOULEVARD",
+        "PRIV",
+        "PRIVADA",
+        "ANDADOR",
+        "CERRADA",
+        "CIRCUITO",
+        "CALZ",
+        "CALZADA",
+        "CARR",
+        "CARRETERA",
+        "PROL",
+        "PROLONGACION",
+        "PROLONGACIÓN",
+        "DR",
+        "DRA",
+        "ING",
+        "LIC",
+        "PROF",
+        "DEL",
+        "DE",
+        "LA",
+        "LAS",
+        "LOS",
+        "EL",
+        "Y",
+        "AL",
+        "SAN",
+        "SANTA",
+        "STO",
+        "STA",
+    ];
+}
+
+/**
+ * Tokens significativos de un nombre de calle (sin puntuación ni prefijos).
+ *
+ * @return list<string>
+ */
+function mxli_padron_calle_tokens(string $calle): array
+{
+    $s = mxli_padron_upper($calle);
+    // Quitar puntuación (GRAL. → GRAL)
+    $s = preg_replace("/[^\p{L}\p{N}\s]/u", " ", $s) ?? $s;
+    $s = trim(preg_replace("/\s+/u", " ", $s) ?? "");
+    if ($s === "") {
+        return [];
+    }
+
+    $stop = array_fill_keys(mxli_padron_calle_stopwords(), true);
+    $tokens = [];
+    foreach (preg_split("/\s+/u", $s) ?: [] as $t) {
+        $t = trim((string)$t);
+        if ($t === "" || isset($stop[$t])) {
+            continue;
+        }
+        if (mxli_padron_strlen($t) < 2) {
+            continue;
+        }
+        if (!isset($tokens[$t])) {
+            $tokens[$t] = $t;
+        }
+    }
+    return array_values($tokens);
+}
+
+/**
+ * Parsea "CALLE REFORMA 123", "REFORMA #120", "AV HIDALGO 45-A".
+ *
+ * @return array{calle:string,numero:string,tokens:list<string>}
+ */
+function mxli_padron_parse_direccion(string $query): array
+{
+    $q = trim(preg_replace("/\s+/u", " ", mxli_padron_upper($query)) ?? "");
+    $q = str_replace(["№", "Nº", "N°"], "#", $q);
+    if ($q === "") {
+        return ["calle" => "", "numero" => "", "tokens" => []];
+    }
+
+    $calle = $q;
+    $numero = "";
+
+    // "CALLE X # 123" / "CALLE X NO. 123" / "CALLE X NUM 123"
+    if (preg_match('/^(.+?)\s+(?:#|NO\.?|NUM\.?|NÚM\.?|NUMERO|NÚMERO)\s*([0-9]+[A-Z]?)$/u', $q, $m)) {
+        $calle = trim($m[1]);
+        $numero = trim($m[2]);
+    } elseif (preg_match('/^(.+?)\s+([0-9]+[A-Z]?)$/u', $q, $m)) {
+        $cand = trim($m[1]);
+        if (mxli_padron_strlen($cand) >= 3) {
+            $calle = $cand;
+            $numero = trim($m[2]);
+        }
+    }
+
+    $tokens = mxli_padron_calle_tokens($calle);
+    // Si al quitar prefijos no quedó nada, usar palabras crudas sin stopwords estrictas
+    if ($tokens === []) {
+        $raw = preg_replace("/[^\p{L}\p{N}\s]/u", " ", mxli_padron_upper($calle)) ?? $calle;
+        foreach (preg_split("/\s+/u", trim($raw)) ?: [] as $t) {
+            $t = trim((string)$t);
+            if (mxli_padron_strlen($t) >= 3) {
+                $tokens[] = $t;
+            }
+        }
+    }
+
+    return ["calle" => $calle, "numero" => $numero, "tokens" => $tokens];
+}
+
+/**
+ * Búsqueda por calle + número oficial.
+ * Tolera prefijos (GRAL./AV./CALLE) y puntuación: "JOAQUIN AMARO" ≈ "GRAL. JOAQUIN AMARO".
+ *
+ * @return list<array<string,string>>
+ */
+function mxli_padron_search_by_direccion(string $query, int $limit = 40, bool $includeOwner = false): array
+{
+    $parsed = mxli_padron_parse_direccion($query);
+    $calle = trim($parsed["calle"]);
+    $numero = trim($parsed["numero"]);
+    $tokens = $parsed["tokens"] ?? [];
+
+    if ($tokens === [] && mxli_padron_strlen($calle) < 3) {
+        return [];
+    }
+    if ($tokens === [] && $calle !== "") {
+        $tokens = mxli_padron_calle_tokens($calle);
+    }
+    if ($tokens === []) {
+        return [];
+    }
+
+    $pdo = mxli_geonode_db();
+    $map = mxli_padron_field_map($pdo);
+    if ($map["calle"] === null) {
+        return [];
+    }
+
+    $calleCol = mxli_padron_quote_ident($map["calle"]);
+    // Texto de calle normalizado en SQL (sin puntuación)
+    $calleNorm = "regexp_replace(upper(trim({$calleCol}::text)), '[^A-Z0-9ÁÉÍÓÚÑÜ ]', ' ', 'g')";
+    $qualified = mxli_padron_qualified();
+    $limit = min(80, max(1, $limit));
+
+    $whereParts = [];
+    $params = [];
+    foreach ($tokens as $i => $tok) {
+        $key = "t" . $i;
+        // Cada token significativo debe aparecer (JOAQUIN y AMARO), con o sin GRAL.
+        $whereParts[] = "{$calleNorm} LIKE :" . $key;
+        $params[$key] = "%" . mxli_padron_upper($tok) . "%";
+    }
+
+    if ($numero !== "" && $map["numero"] !== null) {
+        $numCol = mxli_padron_quote_ident($map["numero"]);
+        $whereParts[] = "regexp_replace({$numCol}::text, '[^0-9A-Za-z]', '', 'g') ILIKE :numero";
+        $params["numero"] = $numero . "%";
+    }
+
+    $where = implode(" AND ", $whereParts);
+
+    // Preferir coincidencia "más corta" de calle (menos prefijos) y número cercano
+    $order = "length(trim({$calleCol}::text)) ASC, {$calleCol}";
+    if ($numero !== "" && $map["numero"] !== null) {
+        $numCol = mxli_padron_quote_ident($map["numero"]);
+        $order = "{$numCol}, length(trim({$calleCol}::text)) ASC, {$calleCol}";
+    }
+
+    $sql = "SELECT * FROM {$qualified}
+            WHERE {$where}
+            ORDER BY {$order}
+            LIMIT {$limit}";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+    $out = [];
+    $seen = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $item = mxli_padron_public_row_search($row, $map, $includeOwner);
+        $clave = (string)($item["clave"] ?? "");
+        if ($clave === "" || isset($seen[$clave])) {
+            continue;
+        }
+        $seen[$clave] = true;
+        $out[] = $item;
     }
     return $out;
 }

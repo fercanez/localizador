@@ -2,7 +2,10 @@
 require_once dirname(__DIR__) . "/inspections.php";
 
 $layerMetadata = require dirname(__DIR__) . "/layer-metadata.php";
-$showInspeccionesCapa = mxli_can_view_inspections_map_layer();
+$inspectAreas = mxli_inspection_areas_for_user();
+$showInspeccionesUrbano = in_array("urbano", $inspectAreas, true);
+$showInspeccionesCatastro = in_array("catastro", $inspectAreas, true);
+$showInspeccionesCapa = $showInspeccionesUrbano || $showInspeccionesCatastro;
 
 $wmsCapasGeoservidor = [
     [
@@ -126,8 +129,8 @@ $wmsCapasGeoservidor = array_values(array_filter(
                     <div class="lista-capas wms-layer-panel">
                         <h4 class="wms-layer-panel__heading">CAPAS WMS</h4>
                         <div id="wms-layer-list" class="wms-layer-list">
-                            <?php if ($showInspeccionesCapa): ?>
-                                <div class="wms-layer-card wms-layer-card--inspect"
+                            <?php if ($showInspeccionesUrbano): ?>
+                                <div class="wms-layer-card wms-layer-card--inspect wms-layer-card--inspect-urbano"
                                     data-layer-id="inspecciones_fotos_chkbox"
                                     data-layer-var="inspecciones_fotos"
                                     data-title="Inspecciones fotográficas"
@@ -139,12 +142,38 @@ $wmsCapasGeoservidor = array_values(array_filter(
                                                 name="inspecciones_fotos_chkbox"
                                                 onchange="toggleLayer('inspecciones_fotos_chkbox', inspecciones_fotos)">
                                         </label>
-                                        <span class="wms-layer-card__color"
-                                            style="background: #9b2f55"></span>
+                                        <span class="wms-layer-card__shape mxli-inspect-shape mxli-inspect-shape--circle"
+                                            style="background-color: #9b2f55"
+                                            aria-hidden="true"></span>
                                         <span class="wms-layer-card__title">Inspecciones fotográficas</span>
                                     </div>
-                                    <p class="wms-layer-card__hint">Puntos de tomas con GPS. Cada inspector tiene un color distinto. Toque un punto o use la herramienta <strong>i</strong> para ver la ficha.</p>
-                                    <div id="inspect-users-legend" class="inspect-users-legend" hidden></div>
+                                    <p class="wms-layer-card__hint">Control Urbano: círculos con color por inspector. Toque un punto o use la herramienta <strong>i</strong> para ver la ficha.</p>
+                                    <div id="inspect-users-legend-urbano" class="inspect-users-legend" hidden></div>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($showInspeccionesCatastro): ?>
+                                <div class="wms-layer-card wms-layer-card--inspect wms-layer-card--inspect-catastro"
+                                    data-layer-id="inspecciones_catastro_chkbox"
+                                    data-layer-var="inspecciones_catastro"
+                                    data-title="Inspecciones Catastro"
+                                    data-opacity="100">
+                                    <div class="wms-layer-card__header">
+                                        <label class="wms-layer-card__check" for="inspecciones_catastro_chkbox">
+                                            <input type="checkbox"
+                                                id="inspecciones_catastro_chkbox"
+                                                name="inspecciones_catastro_chkbox"
+                                                onchange="toggleLayer('inspecciones_catastro_chkbox', inspecciones_catastro)">
+                                        </label>
+                                        <span class="wms-layer-card__shape mxli-inspect-shape mxli-inspect-shape--tri"
+                                            style="color: #1a5fd0"
+                                            aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" focusable="false"><polygon points="12,3 22,21 2,21" fill="currentColor" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>
+                                        </span>
+                                        <span class="wms-layer-card__title">Inspecciones Catastro</span>
+                                    </div>
+                                    <p class="wms-layer-card__hint">Catastro: triángulos con color por inspector. Toque un punto o use la herramienta <strong>i</strong> para ver la ficha.</p>
+                                    <div id="inspect-users-legend-catastro" class="inspect-users-legend" hidden></div>
                                 </div>
                             <?php endif; ?>
 

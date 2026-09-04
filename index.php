@@ -237,7 +237,10 @@ html, body {
       <a href="admin/usuarios.php">Usuarios</a>
     <?php endif; ?>
     <?php if (mxli_can("map.inspect") || mxli_can_inspection_manage()): ?>
-      <a href="admin/inspecciones.php">Inspecciones</a>
+      <a href="admin/inspecciones.php">Control Urbano</a>
+    <?php endif; ?>
+    <?php if (mxli_can("map.inspect.catastro") || mxli_can_inspection_manage_catastro()): ?>
+      <a href="admin/inspecciones-catastro.php">Catastro</a>
     <?php endif; ?>
     <a href="logout.php">Salir</a>
   </div>
@@ -278,16 +281,18 @@ window.mxliCanLayer = function (layerKey) {
 </script>
 
 <script src="js/listaCapas.js?v=77"></script>
-<script src="js/padronPredio.js?v=7"></script>
-<script src="js/leaflet.js?v=85"></script>
+<script src="js/padronPredio.js?v=10"></script>
+<script src="js/expedienteBtn.js?v=3"></script>
+<script src="js/mapStatePersist.js?v=2"></script>
+<script src="js/leaflet.js?v=88"></script>
 <script src="js/layerControls.js?v=72"></script>
-<script src="js/wmsLayerPanel.js?v=73"></script>
+<script src="js/wmsLayerPanel.js?v=74"></script>
 <script src="js/simbologiaPanel.js?v=72"></script>
-<script src="js/buscadorPredios.js?v=86"></script>
-<script src="js/inspeccionesCapa.js?v=7"></script>
-<script src="js/inspeccionFotos.js?v=8"></script>
+<script src="js/buscadorPredios.js?v=89"></script>
+<script src="js/inspeccionesCapa.js?v=11"></script>
+<script src="js/inspeccionFotos.js?v=11"></script>
 <script src="js/mapTopToolbar.js?v=72"></script>
-<script src="js/permissions.js?v=74"></script>
+<script src="js/permissions.js?v=76"></script>
 
 <script>
 <?php include "js/menuBtn.js"; ?>

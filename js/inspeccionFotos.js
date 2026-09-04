@@ -10,12 +10,91 @@
   var loadTimer = null;
 
   function canInspect() {
-    return typeof window.mxliCan === "function" && window.mxliCan("map.inspect");
+    if (typeof window.mxliCan !== "function") return false;
+    return (
+      window.mxliCan("map.inspect") ||
+      window.mxliCan("map.inspect.catastro") ||
+      window.mxliCan("inspections.manage") ||
+      window.mxliCan("inspections.catastro.manage") ||
+      window.mxliCan("users.manage")
+    );
+  }
+
+  function canInspectUrbano() {
+    return (
+      typeof window.mxliCan === "function" &&
+      (window.mxliCan("map.inspect") ||
+        window.mxliCan("inspections.manage") ||
+        window.mxliCan("users.manage"))
+    );
+  }
+
+  function canInspectCatastro() {
+    return (
+      typeof window.mxliCan === "function" &&
+      (window.mxliCan("map.inspect.catastro") ||
+        window.mxliCan("inspections.catastro.manage") ||
+        window.mxliCan("users.manage"))
+    );
+  }
+
+  function userInspectionAreas() {
+    var areas = [];
+    if (canInspectUrbano()) areas.push("urbano");
+    if (canInspectCatastro()) areas.push("catastro");
+    return areas;
+  }
+
+  function defaultInspectionArea() {
+    var areas = userInspectionAreas();
+    if (areas.length === 1) return areas[0];
+    if (areas.indexOf("urbano") >= 0) return "urbano";
+    return areas[0] || "urbano";
+  }
+
+  var captureArea = "urbano";
+
+  function areaTitle(area) {
+    return area === "catastro" ? "Inspección Catastro" : "Inspección Control Urbano";
+  }
+
+  function mustChooseArea() {
+    return userInspectionAreas().length > 1;
+  }
+
+  function syncAreaUI(dlg) {
+    var root = dlg || document;
+    var title = root.querySelector("#inspect-dialog-title");
+    if (title) title.textContent = areaTitle(captureArea);
+    var typeField = root.querySelector(".inspect-type-field");
+    if (typeField) typeField.hidden = captureArea === "catastro";
+    var badge = root.querySelector("#inspect-area-badge");
+    if (badge) {
+      badge.textContent =
+        captureArea === "catastro" ? "Catastro" : "Control Urbano";
+      badge.classList.toggle("is-catastro", captureArea === "catastro");
+      badge.classList.toggle("is-urbano", captureArea !== "catastro");
+    }
+    var backBtn = root.querySelector("#inspect-area-back");
+    if (backBtn) backBtn.hidden = !mustChooseArea();
+  }
+
+  function showInspectStep(step) {
+    var choose = $("inspect-step-choose");
+    var capture = $("inspect-step-capture");
+    if (choose) choose.hidden = step !== "choose";
+    if (capture) capture.hidden = step !== "capture";
   }
 
   function canViewInspectionMarkers() {
     if (typeof window.mxliCan !== "function") return false;
-    return window.mxliCan("map.inspect") || window.mxliCan("inspections.manage");
+    return (
+      window.mxliCan("map.inspect") ||
+      window.mxliCan("map.inspect.catastro") ||
+      window.mxliCan("inspections.manage") ||
+      window.mxliCan("inspections.catastro.manage") ||
+      window.mxliCan("users.manage")
+    );
   }
 
   function $(id) {
@@ -67,6 +146,38 @@
 
   function typeKeys() {
     return Object.keys(TYPE_LABELS);
+  }
+
+  function areaChooseHtml() {
+    var areas = userInspectionAreas();
+    var cards = [];
+    if (areas.indexOf("urbano") >= 0) {
+      cards.push(
+        '<button type="button" class="inspect-area-choice inspect-area-choice--urbano" data-inspect-area="urbano">' +
+          '<span class="inspect-area-choice__title">Control Urbano</span>' +
+          '<span class="inspect-area-choice__desc">Inspección fotográfica con tipos (Lic. Construcción, Imagen Urbana, etc.)</span>' +
+          "</button>"
+      );
+    }
+    if (areas.indexOf("catastro") >= 0) {
+      cards.push(
+        '<button type="button" class="inspect-area-choice inspect-area-choice--catastro" data-inspect-area="catastro">' +
+          '<span class="inspect-area-choice__title">Catastro</span>' +
+          '<span class="inspect-area-choice__desc">Reporte fotográfico de Catastro (foto, GPS/centroide y notas)</span>' +
+          "</button>"
+      );
+    }
+    return (
+      '<div id="inspect-step-choose" class="inspect-step inspect-step-choose" hidden>' +
+      "<h3>Tipo de reporte</h3>" +
+      '<p class="inspect-photo-form__hint">Elija el área de inspección <strong>antes</strong> de capturar la foto, anotar y guardar.</p>' +
+      '<div class="inspect-area-choices">' +
+      cards.join("") +
+      "</div>" +
+      '<div class="inspect-photo-actions">' +
+      '<button type="button" id="inspect-choose-cancel" class="inspect-photo-btn inspect-photo-btn--ghost">Cancelar</button>' +
+      "</div></div>"
+    );
   }
 
   function typesHtml(selectedCsv, nameAttr) {
@@ -463,7 +574,16 @@
       return;
     }
 
-    fetch(API + "?with_coords=1&limit=2000")
+    var areas = userInspectionAreas();
+    var areaQ = areas.length === 1 ? "&area=" + encodeURIComponent(areas[0]) : "";
+    // Listing API requires area; if both, load sequentially via capa refresh instead
+    if (areas.length !== 1) {
+      if (typeof window.mxliRefreshInspeccionesCapa === "function") {
+        window.mxliRefreshInspeccionesCapa();
+      }
+      return;
+    }
+    fetch(API + "?with_coords=1&limit=2000" + areaQ)
       .then(function (res) {
         return res.json().then(function (data) {
           if (!res.ok || !data || data.ok === false) {
@@ -502,8 +622,13 @@
     dlg.id = "inspect-photo-dialog";
     dlg.className = "inspect-photo-dialog";
     dlg.innerHTML =
-      '<form method="post" id="inspect-photo-form" class="inspect-photo-form" novalidate>' +
-      '<h3>Inspección fotográfica</h3>' +
+      areaChooseHtml() +
+      '<form method="post" id="inspect-step-capture" class="inspect-photo-form inspect-step" hidden novalidate>' +
+      '<div class="inspect-area-banner">' +
+      '<span class="inspect-area-badge is-urbano" id="inspect-area-badge">Control Urbano</span>' +
+      '<button type="button" id="inspect-area-back" class="inspect-area-back" hidden>Cambiar tipo</button>' +
+      "</div>" +
+      '<h3 id="inspect-dialog-title">Inspección Control Urbano</h3>' +
       '<p class="inspect-photo-form__hint">Capture la clave catastral y la fotografía del predio.</p>' +
       '<label>Clave catastral<input type="text" id="inspect-clave" maxlength="32" required placeholder="ST312014"></label>' +
       coordSourceHtml() +
@@ -522,11 +647,8 @@
       "</form>";
     document.body.appendChild(dlg);
     bindCoordToggles(dlg);
-    var claveInput = $("inspect-clave");
-    if (claveInput) {
-      claveInput.addEventListener("input", autoPickCoordSourceFromClave);
-      claveInput.addEventListener("change", autoPickCoordSourceFromClave);
-    }
+    captureArea = defaultInspectionArea();
+    syncAreaUI(dlg);
 
     function closeInspectDialog() {
       var d = $("inspect-photo-dialog") || dlg;
@@ -539,6 +661,58 @@
       }
     }
 
+    function resetCaptureFields() {
+      var fileInput = $("inspect-photo-input");
+      var preview = $("inspect-preview");
+      if (fileInput) fileInput.value = "";
+      if (preview) {
+        preview.hidden = true;
+        preview.removeAttribute("src");
+      }
+      selectedFile = null;
+      var notes = $("inspect-notes");
+      if (notes) notes.value = "";
+      dlg.querySelectorAll('input[type="checkbox"][name="inspection_types"]').forEach(function (inp) {
+        inp.checked = false;
+      });
+      showMsg($("inspect-msg"), "", true);
+    }
+
+    function goToCapture(area) {
+      captureArea = area === "catastro" ? "catastro" : "urbano";
+      syncAreaUI(dlg);
+      showInspectStep("capture");
+      var clave = $("inspect-clave");
+      if (clave && !clave.value) clave.value = claveFromSearch();
+      if (clave) {
+        setTimeout(function () {
+          clave.focus();
+        }, 50);
+      }
+    }
+
+    dlg.querySelectorAll("[data-inspect-area]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        goToCapture(btn.getAttribute("data-inspect-area"));
+      });
+    });
+
+    var areaBack = $("inspect-area-back");
+    if (areaBack) {
+      areaBack.addEventListener("click", function () {
+        resetCaptureFields();
+        showInspectStep("choose");
+      });
+    }
+
+    var chooseCancel = $("inspect-choose-cancel");
+    if (chooseCancel) {
+      chooseCancel.addEventListener("click", function (event) {
+        event.preventDefault();
+        closeInspectDialog();
+      });
+    }
+
     var cancelBtn = $("inspect-cancel-btn");
     if (cancelBtn) {
       cancelBtn.addEventListener("click", function (event) {
@@ -549,7 +723,6 @@
     }
 
     dlg.addEventListener("cancel", function (event) {
-      // Escape key — allow default close
       event.preventDefault();
       closeInspectDialog();
     });
@@ -581,7 +754,13 @@
       preview.removeAttribute("src");
     });
 
-    $("inspect-photo-form").addEventListener("submit", function (event) {
+    var claveInput = $("inspect-clave");
+    if (claveInput) {
+      claveInput.addEventListener("input", autoPickCoordSourceFromClave);
+      claveInput.addEventListener("change", autoPickCoordSourceFromClave);
+    }
+
+    $("inspect-step-capture").addEventListener("submit", function (event) {
       event.preventDefault();
       if (!selectedFile) {
         showMsg($("inspect-msg"), "Seleccione o tome una fotografía.", false);
@@ -594,12 +773,21 @@
         return;
       }
 
+      if (!captureArea || (captureArea !== "urbano" && captureArea !== "catastro")) {
+        showMsg($("inspect-msg"), "Elija primero el tipo de reporte (área de inspección).", false);
+        if (mustChooseArea()) showInspectStep("choose");
+        return;
+      }
+
       showMsg($("inspect-msg"), "Guardando…", true);
 
       var typesCsv = selectedTypesCsv(dlg);
-      if (!typesCsv) {
+      if (captureArea === "urbano" && !typesCsv) {
         showMsg($("inspect-msg"), "Seleccione al menos un tipo de inspección.", false);
         return;
+      }
+      if (captureArea === "catastro") {
+        typesCsv = "";
       }
 
       var source = getCoordSource();
@@ -623,6 +811,7 @@
               .toUpperCase()
           );
           fd.append("inspection_types", typesCsv);
+          fd.append("inspection_area", captureArea);
           fd.append("photo", selectedFile);
           fd.append("coord_source", coords.source || source);
           if (coords.lat != null && coords.lng != null) {
@@ -647,7 +836,7 @@
             scheduleLoadMarkers();
           }
           if (typeof window.mxliRefreshInspeccionesCapa === "function") {
-            window.mxliRefreshInspeccionesCapa();
+            window.mxliRefreshInspeccionesCapa(captureArea);
           }
           window.alert("Inspección registrada correctamente.");
         })
@@ -664,16 +853,31 @@
     }
     ensureDialog();
     var dlg = $("inspect-photo-dialog");
+    var areas = userInspectionAreas();
+    if (!areas.length) {
+      window.alert("Su rol no tiene un área de inspección asignada.");
+      return;
+    }
+
     $("inspect-clave").value = claveFromSearch();
     $("inspect-notes").value = "";
-    var dlgEl = $("inspect-photo-dialog");
-    if (dlgEl) {
-      dlgEl.querySelectorAll('input[type="checkbox"][name="inspection_types"]').forEach(function (inp) {
-        inp.checked = false;
-      });
-    }
+    dlg.querySelectorAll('input[type="checkbox"][name="inspection_types"]').forEach(function (inp) {
+      inp.checked = false;
+    });
     showMsg($("inspect-msg"), "", true);
-    dlg.showModal();
+
+    if (mustChooseArea()) {
+      // Obliga a elegir área antes de foto / notas / guardar
+      captureArea = "";
+      showInspectStep("choose");
+    } else {
+      captureArea = areas[0];
+      syncAreaUI(dlg);
+      showInspectStep("capture");
+    }
+
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
   }
 
   function initCameraButton() {

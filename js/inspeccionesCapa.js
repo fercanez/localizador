@@ -5,9 +5,6 @@
   window.MxliInspeccionesCapaInit = true;
 
   var GEOJSON_API = "api/inspections-geojson.php";
-  var markers = [];
-  var loaded = false;
-  var userColorMap = {};
   var mapClickBound = false;
 
   var USER_COLORS = [
@@ -38,34 +35,72 @@
     closeButton: true,
   };
 
-  function colorForUser(props) {
+  /** @type {Record<string, {id:string, area:string, title:string, chkId:string, legendId:string, layer: L.LayerGroup, markers: any[], loaded: boolean, userColorMap: Record<string,string>}>} */
+  var LAYERS = {};
+
+  function colorForUser(props, state) {
+    var map = (state && state.userColorMap) || {};
     var userId = props.created_by != null ? String(props.created_by) : "";
     var userName = String(props.created_by_name || "").trim();
     var key = userId || userName || "0";
-    if (userColorMap[key]) return userColorMap[key];
+    if (map[key]) return map[key];
     var hash = 0;
     for (var i = 0; i < key.length; i++) {
       hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
     }
     var color = USER_COLORS[hash % USER_COLORS.length];
-    userColorMap[key] = color;
+    map[key] = color;
+    if (state) state.userColorMap = map;
     return color;
   }
 
-  function resetUserColors() {
-    userColorMap = {};
-  }
-
-  window.mxliInspectColorForUser = colorForUser;
+  window.mxliInspectColorForUser = function (props) {
+    var area = (props && props.inspection_area) === "catastro" ? "catastro" : "urbano";
+    var state = LAYERS[area];
+    return colorForUser(props || {}, state || { userColorMap: {} });
+  };
   window.mxliInspectUserColors = USER_COLORS;
 
   function canViewLayer() {
-    if (typeof window.mxliCan !== "function") return false;
-    return (
+    return userInspectionAreas().length > 0;
+  }
+
+  function userInspectionAreas() {
+    if (typeof window.mxliCan !== "function") return [];
+    var areas = [];
+    if (
       window.mxliCan("map.inspect") ||
       window.mxliCan("inspections.manage") ||
       window.mxliCan("users.manage")
-    );
+    ) {
+      areas.push("urbano");
+    }
+    if (
+      window.mxliCan("map.inspect.catastro") ||
+      window.mxliCan("inspections.catastro.manage") ||
+      window.mxliCan("users.manage")
+    ) {
+      areas.push("catastro");
+    }
+    return areas;
+  }
+
+  function canViewArea(area) {
+    return userInspectionAreas().indexOf(area) >= 0;
+  }
+
+  function geojsonUrl(area) {
+    return GEOJSON_API + "?area=" + encodeURIComponent(area);
+  }
+
+  function adminBoardHref(area) {
+    return area === "catastro"
+      ? "admin/inspecciones-catastro.php"
+      : "admin/inspecciones.php";
+  }
+
+  function layerIdForArea(area) {
+    return area === "catastro" ? "inspecciones_catastro" : "inspecciones_fotos";
   }
 
   function escapeHtml(v) {
@@ -86,9 +121,7 @@
   }
 
   function photoSrc(url) {
-    var u = String(url || "");
-    if (!u) return "";
-    return u;
+    return String(url || "");
   }
 
   function ensureInspeccionesPane() {
@@ -106,28 +139,99 @@
     return "inspeccionesPane";
   }
 
-  var inspecciones_fotos = L.layerGroup([], {
-    title: "Inspecciones fotográficas",
-  });
-  inspecciones_fotos.id = "inspecciones_fotos";
-  window.inspecciones_fotos = inspecciones_fotos;
-
-  function attachPaneToLayer() {
+  function makeLayerGroup(id, title) {
+    var group = L.layerGroup([], { title: title });
+    group.id = id;
     try {
-      inspecciones_fotos.options.pane = ensureInspeccionesPane();
+      group.options.pane = ensureInspeccionesPane();
     } catch (e) {}
-  }
-  attachPaneToLayer();
-  setTimeout(attachPaneToLayer, 500);
-  setTimeout(attachPaneToLayer, 1500);
-
-  function clearMarkers() {
-    markers = [];
-    inspecciones_fotos.clearLayers();
+    return group;
   }
 
-  function renderUserLegend(items) {
-    var legend = document.getElementById("inspect-users-legend");
+  function defineLayer(area, title, chkId, legendId) {
+    var id = layerIdForArea(area);
+    var group = makeLayerGroup(id, title);
+    window[id] = group;
+    LAYERS[area] = {
+      id: id,
+      area: area,
+      title: title,
+      chkId: chkId,
+      legendId: legendId,
+      layer: group,
+      markers: [],
+      loaded: false,
+      userColorMap: {},
+    };
+    return LAYERS[area];
+  }
+
+  defineLayer(
+    "urbano",
+    "Inspecciones fotográficas",
+    "inspecciones_fotos_chkbox",
+    "inspect-users-legend-urbano"
+  );
+  defineLayer(
+    "catastro",
+    "Inspecciones Catastro",
+    "inspecciones_catastro_chkbox",
+    "inspect-users-legend-catastro"
+  );
+
+  function attachPaneToLayers() {
+    Object.keys(LAYERS).forEach(function (area) {
+      try {
+        LAYERS[area].layer.options.pane = ensureInspeccionesPane();
+      } catch (e) {}
+    });
+  }
+  attachPaneToLayers();
+  setTimeout(attachPaneToLayers, 500);
+  setTimeout(attachPaneToLayers, 1500);
+
+  function shapeSwatchHtml(color, area, extraClass) {
+    var cls = extraClass ? " " + extraClass : "";
+    if (area === "catastro") {
+      return (
+        '<span class="mxli-inspect-shape mxli-inspect-shape--tri' +
+        cls +
+        '" style="color:' +
+        escapeHtml(color) +
+        '" aria-hidden="true">' +
+        '<svg viewBox="0 0 24 24" focusable="false">' +
+        '<polygon points="12,3 22,21 2,21" fill="currentColor" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>' +
+        "</svg></span>"
+      );
+    }
+    return (
+      '<span class="mxli-inspect-shape mxli-inspect-shape--circle' +
+      cls +
+      '" style="background-color:' +
+      escapeHtml(color) +
+      '" aria-hidden="true"></span>'
+    );
+  }
+
+  function triangleDivIcon(color) {
+    return L.divIcon({
+      className: "mxli-inspect-marker-wrap",
+      html: shapeSwatchHtml(color, "catastro", "mxli-inspect-shape--map"),
+      iconSize: [26, 26],
+      iconAnchor: [13, 18],
+      popupAnchor: [0, -14],
+    });
+  }
+
+  function clearLayerMarkers(state) {
+    state.markers = [];
+    state.layer.clearLayers();
+    state.userColorMap = {};
+    state.loaded = false;
+  }
+
+  function renderUserLegend(state, items) {
+    var legend = document.getElementById(state.legendId);
     if (!legend) return;
 
     var byUser = {};
@@ -136,7 +240,7 @@
       var userName = String(props.created_by_name || "Sin usuario").trim() || "Sin usuario";
       var key = userId || userName;
       if (!byUser[key]) {
-        byUser[key] = { name: userName, color: colorForUser(props) };
+        byUser[key] = { name: userName, color: colorForUser(props, state) };
       }
     });
 
@@ -160,9 +264,7 @@
         .map(function (u) {
           return (
             '<span class="inspect-users-legend__item">' +
-            '<span class="inspect-users-legend__dot" style="background:' +
-            escapeHtml(u.color) +
-            '"></span>' +
+            shapeSwatchHtml(u.color, state.area, "mxli-inspect-shape--legend") +
             escapeHtml(u.name) +
             "</span>"
           );
@@ -170,7 +272,6 @@
         .join("");
   }
 
-  /** Safe string HTML — never throws; missing fields → "—" */
   function buildInspectPopupHtml(props) {
     props = props || {};
     var src = "";
@@ -179,6 +280,8 @@
     var clave = "—";
     var fecha = "—";
     var inspector = "—";
+    var area = (props.inspection_area || "urbano") === "catastro" ? "catastro" : "urbano";
+    var state = LAYERS[area];
     var dotColor = "#9b2f55";
     try {
       src = photoSrc(props.photo_url);
@@ -187,7 +290,7 @@
       clave = String(props.clavecatas || "—").toUpperCase();
       fecha = String(formatDate(props.captured_at)).toUpperCase();
       inspector = String(props.created_by_name || "—").toUpperCase();
-      dotColor = props.marker_color || colorForUser(props);
+      dotColor = props.marker_color || colorForUser(props, state);
     } catch (err) {
       console.warn("buildInspectPopupHtml:", err);
     }
@@ -204,9 +307,18 @@
         '"></button>'
       : "";
 
+    var typesRow =
+      area === "catastro"
+        ? ""
+        : '<tr><td class="mxli-padron-label">Tipos</td><td class="mxli-padron-value"><b>' +
+          escapeHtml((types || "—").toUpperCase()) +
+          "</b></td></tr>";
+
     return (
       '<div class="mxli-feature-popup mxli-inspect-popup">' +
-      '<div class="mxli-feature-popup__head">Inspección</div>' +
+      '<div class="mxli-feature-popup__head">' +
+      escapeHtml(area === "catastro" ? "Inspección Catastro" : "Inspección fotográfica") +
+      "</div>" +
       '<div class="mxli-feature-popup__body mxli-inspect-popup__body">' +
       photoHtml +
       '<table class="mxli-padron-table mxli-inspect-ficha" role="presentation"><tbody>' +
@@ -216,17 +328,21 @@
       '<tr><td class="mxli-padron-label">Fecha</td><td class="mxli-padron-value"><b>' +
       escapeHtml(fecha) +
       "</b></td></tr>" +
-      '<tr><td class="mxli-padron-label">Inspector</td><td class="mxli-padron-value"><b><span class="mxli-inspect-popup__dot" style="background:' +
-      escapeHtml(dotColor) +
-      '"></span> ' +
+      '<tr><td class="mxli-padron-label">Inspector</td><td class="mxli-padron-value"><b>' +
+      shapeSwatchHtml(dotColor, area, "mxli-inspect-shape--popup") +
+      " " +
       escapeHtml(inspector) +
       "</b></td></tr>" +
-      '<tr><td class="mxli-padron-label">Tipos</td><td class="mxli-padron-value"><b>' +
-      escapeHtml((types || "—").toUpperCase()) +
-      "</b></td></tr>" +
+      typesRow +
       '<tr><td class="mxli-padron-label">Notas</td><td class="mxli-padron-value"><b>' +
       escapeHtml((notes || "—").toUpperCase()) +
       "</b></td></tr>" +
+      '<tr><td class="mxli-padron-label">Área</td><td class="mxli-padron-value"><b>' +
+      escapeHtml(String(props.area_label || (area === "catastro" ? "Catastro" : "Control Urbano")).toUpperCase()) +
+      "</b></td></tr>" +
+      '<tr><td colspan="2" class="mxli-padron-value"><a href="' +
+      escapeHtml(adminBoardHref(area)) +
+      '">Ver en administración</a></td></tr>' +
       "</tbody></table></div></div>"
     );
   }
@@ -251,7 +367,8 @@
     var props = marker.mxliInspection;
     props.isInspection = true;
     props.layer_type = props.layer_type || "inspeccion_foto";
-    props.sourceLayer = "inspecciones_fotos";
+    var area = (props.inspection_area || "urbano") === "catastro" ? "catastro" : "urbano";
+    props.sourceLayer = layerIdForArea(area);
     var html = buildInspectPopupHtml(props);
     if (!marker.getPopup()) {
       marker.bindPopup(html, POPUP_OPTS);
@@ -265,7 +382,7 @@
     } catch (e) {}
   }
 
-  function addFeature(feature) {
+  function addFeature(state, feature) {
     if (!feature || !feature.geometry || feature.geometry.type !== "Point") return;
     var coords = feature.geometry.coordinates || [];
     var lng = Number(coords[0]);
@@ -273,31 +390,46 @@
     if (!isFinite(lat) || !isFinite(lng)) return;
 
     var props = feature.properties || {};
-    var color = colorForUser(props);
+    props.inspection_area = state.area;
+    var color = colorForUser(props, state);
     props.marker_color = color;
     props.isInspection = true;
-    props.layer_type = props.layer_type || "inspeccion_foto";
+    props.layer_type = "inspeccion_foto";
+    props.sourceLayer = state.id;
 
     var paneName = "markerPane";
     try {
       paneName = ensureInspeccionesPane();
     } catch (e) {}
 
-    // CircleMarker: reliable hit area (radius >= 9), SVG default renderer, custom pane
-    var marker = L.circleMarker([lat, lng], {
-      radius: 10,
-      weight: 2,
-      color: "#ffffff",
-      fillColor: color,
-      fillOpacity: 0.92,
-      opacity: 1,
-      interactive: true,
-      bubblingMouseEvents: true,
-      pane: paneName,
-      className: "mxli-inspect-circle",
-    });
+    var marker;
+    if (state.area === "catastro") {
+      marker = L.marker([lat, lng], {
+        icon: triangleDivIcon(color),
+        interactive: true,
+        bubblingMouseEvents: true,
+        keyboard: true,
+        pane: paneName,
+        riseOnHover: true,
+        zIndexOffset: 20,
+      });
+    } else {
+      marker = L.circleMarker([lat, lng], {
+        radius: 10,
+        weight: 2,
+        color: "#ffffff",
+        fillColor: color,
+        fillOpacity: 0.92,
+        opacity: 1,
+        interactive: true,
+        bubblingMouseEvents: true,
+        pane: paneName,
+        className: "mxli-inspect-circle",
+      });
+    }
     marker.mxliInspection = props;
     marker.feature = props;
+    marker.mxliInspectArea = state.area;
 
     var popupHtml = buildInspectPopupHtml(props);
     marker.bindPopup(popupHtml, POPUP_OPTS);
@@ -317,68 +449,85 @@
       openInspectionMarkerPopup(marker);
     });
 
-    markers.push(marker);
-    inspecciones_fotos.addLayer(marker);
+    state.markers.push(marker);
+    state.layer.addLayer(marker);
     if (typeof marker.bringToFront === "function") {
       marker.bringToFront();
     }
   }
 
-  function loadGeoJson(force) {
-    if (!canViewLayer()) {
+  function loadGeoJson(area, force) {
+    var state = LAYERS[area];
+    if (!state || !canViewArea(area)) {
       return Promise.resolve([]);
     }
-    if (loaded && !force) {
+    if (state.loaded && !force) {
       return Promise.resolve(
-        markers.map(function (m) {
+        state.markers.map(function (m) {
           return m.mxliInspection;
         })
       );
     }
 
-    return fetch(GEOJSON_API, { credentials: "same-origin" })
+    return fetch(geojsonUrl(area), { credentials: "same-origin" })
       .then(function (res) {
         return res.json();
       })
       .then(function (data) {
-        clearMarkers();
-        resetUserColors();
+        clearLayerMarkers(state);
         var items = [];
         (data.features || []).forEach(function (feature) {
-          addFeature(feature);
-          if (feature.properties) items.push(feature.properties);
+          var props = feature.properties || {};
+          var featArea =
+            (props.inspection_area || area) === "catastro" ? "catastro" : "urbano";
+          if (featArea !== area) return;
+          if (!canViewArea(featArea)) return;
+          addFeature(state, feature);
+          items.push(props);
         });
-        renderUserLegend(items);
-        loaded = true;
+        state.loaded = true;
+        renderUserLegend(state, items);
         bringInspectionsToTop();
         bindMapClickFallback();
-        return markers.map(function (m) {
+        return state.markers.map(function (m) {
           return m.mxliInspection;
         });
       })
       .catch(function (err) {
-        console.error("Inspecciones capa:", err);
+        console.error("Inspecciones capa (" + area + "):", err);
         return [];
       });
   }
 
-  function isLayerOnMap() {
-    return typeof map2d !== "undefined" && map2d && map2d.hasLayer(inspecciones_fotos);
+  function isAreaLayerOnMap(area) {
+    var state = LAYERS[area];
+    return (
+      !!state &&
+      typeof map2d !== "undefined" &&
+      map2d &&
+      map2d.hasLayer(state.layer)
+    );
+  }
+
+  function anyInspectLayerOnMap() {
+    return isAreaLayerOnMap("urbano") || isAreaLayerOnMap("catastro");
   }
 
   window.isInspeccionesCapaActive = function () {
-    return isLayerOnMap();
+    return anyInspectLayerOnMap();
   };
 
   function bringInspectionsToTop() {
     var list = document.getElementById("wms-layer-list");
-    var card = document.querySelector(
-      '.wms-layer-card[data-layer-id="inspecciones_fotos_chkbox"]'
-    );
-
-    // Keep card FIRST in Capas UI (do not append to bottom)
-    if (list && card && list.firstChild !== card) {
-      list.insertBefore(card, list.firstChild);
+    var order = ["inspecciones_fotos_chkbox", "inspecciones_catastro_chkbox"];
+    // Keep inspection cards at the top of Capas (urbano first, then catastro)
+    for (var i = order.length - 1; i >= 0; i--) {
+      var card = document.querySelector(
+        '.wms-layer-card[data-layer-id="' + order[i] + '"]'
+      );
+      if (list && card) {
+        list.insertBefore(card, list.firstChild);
+      }
     }
 
     if (typeof applyWmsLayerStack === "function") {
@@ -389,27 +538,39 @@
       ensureInspeccionesPane();
     } catch (e) {}
 
-    if (isLayerOnMap()) {
-      if (typeof inspecciones_fotos.bringToFront === "function") {
-        inspecciones_fotos.bringToFront();
+    ["urbano", "catastro"].forEach(function (area) {
+      var state = LAYERS[area];
+      if (!state || !isAreaLayerOnMap(area)) return;
+      if (typeof state.layer.bringToFront === "function") {
+        state.layer.bringToFront();
       }
-      markers.forEach(function (m) {
-        if (m && typeof m.bringToFront === "function") m.bringToFront();
-      });
-    }
+    });
   }
 
   window.mxliBringInspectionsToTop = bringInspectionsToTop;
 
+  function allActiveMarkers() {
+    var list = [];
+    ["urbano", "catastro"].forEach(function (area) {
+      if (!isAreaLayerOnMap(area)) return;
+      var state = LAYERS[area];
+      if (!state) return;
+      state.markers.forEach(function (m) {
+        list.push(m);
+      });
+    });
+    return list;
+  }
+
   function findNearestInspection(latlng) {
-    if (!isLayerOnMap() || !latlng || typeof map2d === "undefined") return null;
+    if (!anyInspectLayerOnMap() || !latlng || typeof map2d === "undefined") return null;
     var clickPoint = map2d.latLngToContainerPoint(latlng);
     var best = null;
     var bestMarker = null;
     var bestDist = Infinity;
-    var tolerance = window.matchMedia("(max-width: 900px)").matches ? 32 : 24;
+    var tolerance = window.matchMedia("(max-width: 900px)").matches ? 36 : 28;
 
-    markers.forEach(function (marker) {
+    allActiveMarkers().forEach(function (marker) {
       var p = map2d.latLngToContainerPoint(marker.getLatLng());
       var dist = Math.hypot(p.x - clickPoint.x, p.y - clickPoint.y);
       if (dist <= tolerance && dist < bestDist) {
@@ -427,10 +588,8 @@
     return hit ? hit.props : null;
   };
 
-  /** Fallback when WMS tiles steal marker clicks: map click still fires */
   function onInspectMapClick(e) {
-    if (!isLayerOnMap() || !e || !e.latlng) return;
-    // If info tool is active, getFeatureInfo already handles inspections — skip duplicate
+    if (!anyInspectLayerOnMap() || !e || !e.latlng) return;
     var infoBtn = document.querySelector("#getFeatureInfoBtn");
     if (infoBtn && infoBtn.classList.contains("btnIsActive")) return;
 
@@ -449,7 +608,7 @@
     if (typeof map2d === "undefined" || !map2d) return;
     map2d.off("click", onInspectMapClick);
     mapClickBound = false;
-    if (isLayerOnMap()) {
+    if (anyInspectLayerOnMap()) {
       bindMapClickFallback();
     }
   };
@@ -457,7 +616,12 @@
   window.isInspectionFeatureInfo = function (info) {
     if (!info) return false;
     if (info.isInspection) return true;
-    if (info.sourceLayer === "inspecciones_fotos") return true;
+    if (
+      info.sourceLayer === "inspecciones_fotos" ||
+      info.sourceLayer === "inspecciones_catastro"
+    ) {
+      return true;
+    }
     var props = info.properties || info;
     return !!(props && props.layer_type === "inspeccion_foto");
   };
@@ -497,6 +661,20 @@
     else box.setAttribute("open", "");
   }
 
+  window.mxliRefreshInspeccionesCapa = function (area) {
+    var areas = area ? [area] : userInspectionAreas();
+    return Promise.all(
+      areas.map(function (a) {
+        if (!LAYERS[a] || !canViewArea(a)) return Promise.resolve([]);
+        LAYERS[a].loaded = false;
+        if (!isAreaLayerOnMap(a)) {
+          return autoActivateLayer(a);
+        }
+        return loadGeoJson(a, true);
+      })
+    );
+  };
+
   window.createInspectionPopup = function (info) {
     var props = (info && (info.properties || info)) || {};
     var wrap = document.createElement("div");
@@ -506,65 +684,88 @@
     return div;
   };
 
-  function onLayerToggle() {
-    var chk = document.getElementById("inspecciones_fotos_chkbox");
+  function onLayerToggle(area) {
+    var state = LAYERS[area];
+    if (!state) return;
+    var chk = document.getElementById(state.chkId);
     if (!chk) return;
     if (chk.checked) {
-      loadGeoJson(false).then(function () {
+      loadGeoJson(area, false).then(function () {
         bringInspectionsToTop();
         bindMapClickFallback();
       });
     } else {
-      clearMarkers();
-      resetUserColors();
-      renderUserLegend([]);
-      loaded = false;
+      clearLayerMarkers(state);
+      renderUserLegend(state, []);
     }
   }
 
-  function autoActivateLayer() {
-    if (!canViewLayer()) return false;
+  function autoActivateLayer(area) {
+    if (!canViewArea(area)) return Promise.resolve(false);
+    var state = LAYERS[area];
+    if (!state) return Promise.resolve(false);
 
-    var chk = document.getElementById("inspecciones_fotos_chkbox");
-    if (!chk || typeof toggleLayer !== "function" || !window.inspecciones_fotos) {
-      return false;
+    var chk = document.getElementById(state.chkId);
+    if (!chk || typeof toggleLayer !== "function" || !window[state.id]) {
+      return Promise.resolve(false);
     }
 
     if (!chk.checked) {
       chk.checked = true;
-      toggleLayer("inspecciones_fotos_chkbox", inspecciones_fotos);
+      toggleLayer(state.chkId, state.layer);
     }
 
     bringInspectionsToTop();
     bindMapClickFallback();
 
-    return loadGeoJson(false).then(function () {
+    return loadGeoJson(area, false).then(function () {
       bringInspectionsToTop();
+      return true;
     });
+  }
+
+  function autoActivateAll() {
+    var areas = userInspectionAreas();
+    var chain = Promise.resolve();
+    areas.forEach(function (area) {
+      chain = chain.then(function () {
+        return autoActivateLayer(area);
+      });
+    });
+    return chain;
   }
 
   function init() {
     if (!canViewLayer()) return;
 
-    attachPaneToLayer();
+    attachPaneToLayers();
 
-    var chk = document.getElementById("inspecciones_fotos_chkbox");
-    if (chk) {
-      chk.addEventListener("change", onLayerToggle);
-    }
+    Object.keys(LAYERS).forEach(function (area) {
+      if (!canViewArea(area)) return;
+      var state = LAYERS[area];
+      var chk = document.getElementById(state.chkId);
+      if (chk) {
+        chk.addEventListener("change", function () {
+          onLayerToggle(area);
+        });
+      }
+    });
 
     if (typeof map2d !== "undefined" && map2d) {
       map2d.on("overlayadd", function (e) {
-        if (e.layer === inspecciones_fotos && !loaded) {
-          loadGeoJson(false).then(function () {
+        Object.keys(LAYERS).forEach(function (area) {
+          var state = LAYERS[area];
+          if (e.layer !== state.layer) return;
+          if (!state.loaded) {
+            loadGeoJson(area, false).then(function () {
+              bringInspectionsToTop();
+              bindMapClickFallback();
+            });
+          } else {
             bringInspectionsToTop();
             bindMapClickFallback();
-          });
-        }
-        if (e.layer === inspecciones_fotos) {
-          bringInspectionsToTop();
-          bindMapClickFallback();
-        }
+          }
+        });
       });
     }
 
@@ -572,14 +773,17 @@
     function tryAutoActivate() {
       if (!canViewLayer()) return;
       attempts += 1;
-      var ok =
-        document.getElementById("inspecciones_fotos_chkbox") &&
+      var areas = userInspectionAreas();
+      var ready =
         typeof toggleLayer === "function" &&
         typeof group !== "undefined" &&
-        typeof map2d !== "undefined";
+        typeof map2d !== "undefined" &&
+        areas.every(function (area) {
+          return !!document.getElementById(LAYERS[area].chkId) && !!window[LAYERS[area].id];
+        });
 
-      if (ok) {
-        autoActivateLayer();
+      if (ready) {
+        autoActivateAll();
         return;
       }
       if (attempts < 20) {

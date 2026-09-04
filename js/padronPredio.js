@@ -5,6 +5,16 @@
     return typeof window.mxliCan === "function" && window.mxliCan("map.padron");
   }
 
+  /** true si el usuario puede buscar/ver nombre de registro (padrón). */
+  function canSearchByOwnerName() {
+    if (canViewPadron()) return true;
+    if (window.MXLI_USER && window.MXLI_USER.can_view_padron) return true;
+    return typeof window.mxliCan === "function" && window.mxliCan("users.manage");
+  }
+
+  window.mxliCanViewPadron = canViewPadron;
+  window.mxliCanSearchByOwnerName = canSearchByOwnerName;
+
   function escapeHtml(value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
@@ -161,6 +171,30 @@
   }
 
   window.mxliCanViewPadron = canViewPadron;
+  window.mxliCanSearchByOwnerName = canSearchByOwnerName;
+
+  function expedienteLinkHtml(claveU) {
+    if (typeof window.mxliCan !== "function" || !window.mxliCan("map.expediente")) {
+      return "";
+    }
+    return (
+      '<a href="#" class="mxli-expediente-link" data-expediente-clave="' +
+      escapeHtml(claveU) +
+      '" role="button">' +
+      '<span class="mxli-expediente-link__icon" aria-hidden="true">' +
+      '<svg viewBox="0 0 48 40" width="34" height="28" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M2 10h14l3 4h27v20a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V10z" fill="#e8b84a"/>' +
+      '<path d="M2 14h44v20a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V14z" fill="#f0c95a"/>' +
+      '<rect x="14" y="8" width="16" height="20" rx="1.5" fill="#f7fbff" stroke="#7eb6e8" stroke-width="1.2"/>' +
+      '<path d="M17 13h10M17 17h10M17 21h7" stroke="#7eb6e8" stroke-width="1.4" stroke-linecap="round"/>' +
+      "</svg>" +
+      "</span>" +
+      '<span class="mxli-expediente-link__text">Ver Expediente</span>' +
+      "</a>"
+    );
+  }
+
+  window.mxliExpedienteLinkHtml = expedienteLinkHtml;
 
   /**
    * Cuerpo del popup con permiso map.padron.
@@ -192,6 +226,7 @@
       tableRowHtml("uso_predial", "Uso", "…") +
       "</tbody>" +
       "</table>" +
+      expedienteLinkHtml(claveU) +
       "</div>"
     );
   };

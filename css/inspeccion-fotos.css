@@ -30,6 +30,100 @@
   color: #5a4a50;
 }
 
+.inspect-step-choose {
+  padding: 1rem 1.1rem 1.1rem;
+  display: grid;
+  gap: 0.75rem;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+.inspect-step-choose[hidden],
+.inspect-step[hidden] {
+  display: none !important;
+}
+.inspect-step-choose h3 {
+  margin: 0;
+  color: #6f2f3d;
+  font-size: 1.1rem;
+}
+.inspect-area-choices {
+  display: grid;
+  gap: 0.65rem;
+}
+.inspect-area-choice {
+  display: grid;
+  gap: 0.25rem;
+  text-align: left;
+  border: 1px solid #e0d4d8;
+  border-radius: 12px;
+  padding: 0.85rem 0.95rem;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.inspect-area-choice:hover,
+.inspect-area-choice:focus-visible {
+  border-color: #9b2f55;
+  box-shadow: 0 0 0 3px rgba(155, 47, 85, 0.15);
+  outline: none;
+}
+.inspect-area-choice--catastro:hover,
+.inspect-area-choice--catastro:focus-visible {
+  border-color: #1a5fd0;
+  box-shadow: 0 0 0 3px rgba(26, 95, 208, 0.15);
+}
+.inspect-area-choice__title {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #3a2a30;
+}
+.inspect-area-choice--urbano .inspect-area-choice__title {
+  color: #9b2f55;
+}
+.inspect-area-choice--catastro .inspect-area-choice__title {
+  color: #1a5fd0;
+}
+.inspect-area-choice__desc {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #6a5560;
+  line-height: 1.35;
+}
+.inspect-area-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+.inspect-area-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.inspect-area-badge.is-urbano {
+  background: #f8e8ee;
+  color: #9b2f55;
+}
+.inspect-area-badge.is-catastro {
+  background: #e8f0fc;
+  color: #1a5fd0;
+}
+.inspect-area-back {
+  border: none;
+  background: transparent;
+  color: #6f2f3d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
 .inspect-photo-form label {
   display: grid;
   gap: 0.3rem;
@@ -135,6 +229,67 @@
   box-sizing: border-box;
   cursor: pointer;
 }
+
+/* Formas de marcador: círculo = Control Urbano, triángulo = Catastro */
+.mxli-inspect-shape {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+.mxli-inspect-shape--circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #9b2f55;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.28);
+}
+.mxli-inspect-shape--tri {
+  width: 14px;
+  height: 14px;
+  color: #1a5fd0;
+  line-height: 0;
+}
+.mxli-inspect-shape--tri svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.45));
+}
+.mxli-inspect-shape--map.mxli-inspect-shape--tri {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+.mxli-inspect-shape--legend {
+  width: 12px;
+  height: 12px;
+}
+.mxli-inspect-shape--legend.mxli-inspect-shape--tri {
+  width: 13px;
+  height: 13px;
+}
+.mxli-inspect-shape--popup {
+  width: 12px;
+  height: 12px;
+  margin-right: 0.25rem;
+}
+.mxli-inspect-shape--popup.mxli-inspect-shape--tri {
+  width: 13px;
+  height: 13px;
+}
+.wms-layer-card__shape {
+  margin-right: 0.15rem;
+}
+.wms-layer-card__shape.mxli-inspect-shape--circle {
+  width: 14px;
+  height: 14px;
+}
+.wms-layer-card__shape.mxli-inspect-shape--tri {
+  width: 16px;
+  height: 16px;
+}
 .inspect-users-legend {
   margin: 0.45rem 0 0.15rem;
   padding: 0.45rem 0.5rem;
@@ -173,6 +328,9 @@
   flex-shrink: 0;
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
+}
+.mxli-inspect-popup__cam {
+  margin-right: 0.25rem;
 }
 .wms-layer-card--inspect .wms-layer-card__hint {
   font-size: 0.72rem;

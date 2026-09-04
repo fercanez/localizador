@@ -103,12 +103,18 @@ function mxli_tool_permission_defs(): array
         "map.search" => "Buscar predios",
         "map.info" => "Consultar información (clic)",
         "map.padron" => "Ver nombre del contribuyente (padrón)",
+        "map.expediente" => "Ver expediente digital (documentación)",
+        "map.expediente.download" => "Descargar expediente",
+        "map.expediente.print" => "Imprimir expediente",
+        "map.expediente.nowatermark" => "Ver expediente sin marca de agua (o quitarla)",
         "map.print" => "Imprimir mapa",
         "map.locate" => "Geolocalización GPS",
         "map.measure" => "Medir / dibujar",
         "map.upload" => "Subir SHP / KML / KMZ",
-        "map.inspect" => "Inspección fotográfica en campo",
-        "inspections.manage" => "Gestionar todas las inspecciones",
+        "map.inspect" => "Inspección fotográfica Control Urbano",
+        "inspections.manage" => "Gestionar inspecciones Control Urbano",
+        "map.inspect.catastro" => "Inspección fotográfica Catastro",
+        "inspections.catastro.manage" => "Gestionar inspecciones Catastro",
         "users.manage" => "Administrar usuarios y roles",
     ];
 }
@@ -133,6 +139,14 @@ function mxli_default_role_seeds(): array
         "map.inspect",
     ];
     $inspectorLayers = ["predios_mexicali_2025", "colonias"];
+    $inspectorCatastroTools = [
+        "map.view",
+        "map.search",
+        "map.info",
+        "map.locate",
+        "map.inspect.catastro",
+    ];
+    $inspectorCatastroLayers = ["predios_mexicali_2025", "colonias"];
 
     return [
         [
@@ -161,11 +175,19 @@ function mxli_default_role_seeds(): array
         ],
         [
             "slug" => "inspector",
-            "name" => "Inspector",
-            "description" => "Captura fotográfica de predios en campo",
+            "name" => "Inspector Control Urbano",
+            "description" => "Captura fotográfica Control Urbano",
             "is_system" => true,
             "permissions" => $inspectorTools,
             "allowed_layers" => $inspectorLayers,
+        ],
+        [
+            "slug" => "inspector_catastro",
+            "name" => "Inspector Catastro",
+            "description" => "Captura fotográfica de peritos de Catastro",
+            "is_system" => true,
+            "permissions" => $inspectorCatastroTools,
+            "allowed_layers" => $inspectorCatastroLayers,
         ],
     ];
 }
