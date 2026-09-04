@@ -485,6 +485,7 @@ const CAPAS_CONSULTABLES_WMS = [
   "geonode:colonias",
   "geonode:usos_prop_au40",
   "geonode:zonas_homogeneas_2017_2026_prop",
+  "geonode:avaluos_rusticos_mexicali",
 ];
 
 function esCapaConsultable(capa) {

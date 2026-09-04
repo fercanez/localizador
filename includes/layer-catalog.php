@@ -88,6 +88,15 @@ function mxli_layer_catalog(): array
             "datastore" => "geonode",
             "color" => "#a05a2c",
         ],
+        [
+            "key" => "avaluos_rusticos_mexicali",
+            "title" => "Avalúos Rústicos Mexicali",
+            "id" => "avaluos_rusticos_chkbox",
+            "var" => "avaluos_rusticos",
+            "workspace" => "geonode",
+            "datastore" => "geonode",
+            "color" => "#6d4c41",
+        ],
     ];
 }
 

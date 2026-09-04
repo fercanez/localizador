@@ -89,6 +89,15 @@ $wmsCapasGeoservidor = [
         "title" => "Zonas Homogéneas 2017-2026",
         "color" => "#a05a2c",
     ],
+    [
+        "id" => "avaluos_rusticos_chkbox",
+        "var" => "avaluos_rusticos",
+        "layer" => "avaluos_rusticos_mexicali",
+        "workspace" => "geonode",
+        "datastore" => "geonode",
+        "title" => "Avalúos Rústicos Mexicali",
+        "color" => "#6d4c41",
+    ],
 ];
 
 foreach ($wmsCapasGeoservidor as &$capa) {

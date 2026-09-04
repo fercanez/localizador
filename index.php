@@ -280,11 +280,11 @@ window.mxliCanLayer = function (layerKey) {
 };
 </script>
 
-<script src="js/listaCapas.js?v=77"></script>
+<script src="js/listaCapas.js?v=78"></script>
 <script src="js/padronPredio.js?v=10"></script>
 <script src="js/expedienteBtn.js?v=3"></script>
 <script src="js/mapStatePersist.js?v=2"></script>
-<script src="js/leaflet.js?v=88"></script>
+<script src="js/leaflet.js?v=89"></script>
 <script src="js/layerControls.js?v=72"></script>
 <script src="js/wmsLayerPanel.js?v=74"></script>
 <script src="js/simbologiaPanel.js?v=72"></script>

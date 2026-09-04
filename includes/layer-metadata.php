@@ -71,4 +71,8 @@ return [
         "title" => "Zonas Homogéneas 2017-2026",
         "abstract" => "Zonas homogéneas catastrales propuestas con valores unitarios 2017-2026.",
     ],
+    "avaluos_rusticos_mexicali" => [
+        "title" => "Avalúos Rústicos Mexicali",
+        "abstract" => "Avalúos rústicos del municipio de Mexicali.",
+    ],
 ];

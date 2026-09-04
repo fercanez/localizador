@@ -182,3 +182,22 @@ overlayMaps["zonas_homogeneas"] = zonas_homogeneas;
 overlayMaps["zonas_homogeneas_2017_2026_prop"] = zonas_homogeneas;
 overlayMaps["Zonas Homogéneas 2017-2026"] = zonas_homogeneas;
 overlayMaps["geonode:zonas_homogeneas_2017_2026_prop"] = zonas_homogeneas;
+
+// -----------------------------
+// AVALÚOS RÚSTICOS MEXICALI
+// -----------------------------
+var avaluos_rusticos = L.tileLayer.wms(WMS_GEOMEXICALI, Object.assign({
+  layers: "geonode:avaluos_rusticos_mexicali",
+  title: "Avalúos Rústicos Mexicali",
+  format: "image/png",
+  transparent: true,
+  version: "1.1.1",
+  attribution: "MXLI",
+  zIndex: 730,
+}, WMS_ZOOM));
+
+avaluos_rusticos.id = "avaluos_rusticos_mexicali";
+overlayMaps["avaluos_rusticos"] = avaluos_rusticos;
+overlayMaps["avaluos_rusticos_mexicali"] = avaluos_rusticos;
+overlayMaps["Avalúos Rústicos Mexicali"] = avaluos_rusticos;
+overlayMaps["geonode:avaluos_rusticos_mexicali"] = avaluos_rusticos;
