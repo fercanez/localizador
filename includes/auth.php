@@ -273,13 +273,38 @@ function mxli_layers_for_role(string $role): array
     return ["*"];
 }
 
+/**
+ * Asegura columna de override por usuario para ver padrón.
+ */
+function mxli_ensure_padron_permission_column(?PDO $pdo = null): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    try {
+        $pdo = $pdo ?? mxli_db();
+        $pdo->exec(
+            "ALTER TABLE app_users
+             ADD COLUMN IF NOT EXISTS can_view_padron BOOLEAN NOT NULL DEFAULT FALSE"
+        );
+        $done = true;
+    } catch (Throwable $e) {
+        // La migración puede ejecutarse aparte; no bloquear el resto del auth.
+    }
+}
+
 function mxli_user_permissions(?array $user = null): array
 {
     $user = $user ?? mxli_current_user();
     if ($user === null) {
         return [];
     }
-    return mxli_permissions_for_role((string)($user["role"] ?? "consulta"));
+    $perms = mxli_permissions_for_role((string)($user["role"] ?? "consulta"));
+    if (mxli_to_bool($user["can_view_padron"] ?? false) && !in_array("map.padron", $perms, true)) {
+        $perms[] = "map.padron";
+    }
+    return array_values($perms);
 }
 
 function mxli_allowed_layers(?array $user = null): array
@@ -316,14 +341,14 @@ function mxli_public_user(array $row): array
 {
     $role = mxli_normalize_role((string)$row["role"]);
     $expiresAt = mxli_normalize_expires_at($row["expires_at"] ?? null);
-    return [
+    $user = [
         "id" => (int)$row["id"],
         "username" => (string)$row["username"],
         "full_name" => (string)($row["full_name"] ?? ""),
         "email" => (string)($row["email"] ?? ""),
         "role" => $role,
         "role_label" => mxli_role_label($role),
-        "permissions" => mxli_permissions_for_role($role),
+        "can_view_padron" => mxli_to_bool($row["can_view_padron"] ?? false),
         "allowed_layers" => mxli_layers_for_role($role),
         "is_active" => mxli_to_bool($row["is_active"] ?? false),
         "expires_at" => $expiresAt,
@@ -332,22 +357,26 @@ function mxli_public_user(array $row): array
         "updated_at" => $row["updated_at"] ?? null,
         "last_login_at" => $row["last_login_at"] ?? null,
     ];
+    $user["permissions"] = mxli_user_permissions($user);
+    return $user;
 }
 
 function mxli_session_payload(array $row): array
 {
     $role = mxli_normalize_role((string)$row["role"]);
-    return [
+    $payload = [
         "id" => (int)$row["id"],
         "username" => (string)$row["username"],
         "full_name" => (string)($row["full_name"] ?? ""),
         "email" => (string)($row["email"] ?? ""),
         "role" => $role,
         "role_label" => mxli_role_label($role),
-        "permissions" => mxli_permissions_for_role($role),
+        "can_view_padron" => mxli_to_bool($row["can_view_padron"] ?? false),
         "allowed_layers" => mxli_layers_for_role($role),
         "expires_at" => mxli_normalize_expires_at($row["expires_at"] ?? null),
     ];
+    $payload["permissions"] = mxli_user_permissions($payload);
+    return $payload;
 }
 
 function mxli_set_session_user(array $row): void
@@ -365,11 +394,13 @@ function mxli_current_user(): ?array
     $user = $_SESSION["user"];
     $user["role"] = mxli_normalize_role((string)($user["role"] ?? "consulta"));
     $user["role_label"] = mxli_role_label($user["role"]);
-    $user["permissions"] = mxli_permissions_for_role($user["role"]);
+    $user["can_view_padron"] = mxli_to_bool($user["can_view_padron"] ?? false);
+    $user["permissions"] = mxli_user_permissions($user);
     $user["allowed_layers"] = mxli_layers_for_role($user["role"]);
     $user["expires_at"] = mxli_normalize_expires_at($user["expires_at"] ?? null);
     $_SESSION["user"]["role"] = $user["role"];
     $_SESSION["user"]["role_label"] = $user["role_label"];
+    $_SESSION["user"]["can_view_padron"] = $user["can_view_padron"];
     $_SESSION["user"]["permissions"] = $user["permissions"];
     $_SESSION["user"]["allowed_layers"] = $user["allowed_layers"];
     $_SESSION["user"]["expires_at"] = $user["expires_at"];
@@ -445,6 +476,8 @@ function mxli_authenticate(string $username, string $password): ?array
     if ($username === "" || $password === "") {
         return null;
     }
+
+    mxli_ensure_padron_permission_column();
 
     $stmt = mxli_db()->prepare(
         "SELECT * FROM app_users WHERE username = :u LIMIT 1"

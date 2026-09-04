@@ -54,6 +54,12 @@ $layerCatalog = mxli_layer_catalog();
           <label>Rol
             <select name="role" id="create-role"></select>
           </label>
+          <label class="admin-check">
+            <input type="checkbox" name="can_view_padron" id="create-padron">
+            <span>Ver nombre del contribuyente (padrón)
+              <small>Independiente del rol; el usuario debe volver a iniciar sesión tras el cambio.</small>
+            </span>
+          </label>
           <label>Vence el (opcional)
             <input type="date" name="expires_at">
             <small>Vacío = sin vencimiento. Ese día aún puede entrar; al día siguiente ya no.</small>
@@ -75,6 +81,7 @@ $layerCatalog = mxli_layer_catalog();
                 <th>Usuario</th>
                 <th>Nombre</th>
                 <th>Rol</th>
+                <th>Padrón</th>
                 <th>Activo</th>
                 <th>Vence</th>
                 <th>Último acceso</th>
@@ -129,6 +136,12 @@ $layerCatalog = mxli_layer_catalog();
       </label>
       <label>Rol
         <select name="role" id="edit-role"></select>
+      </label>
+      <label class="admin-check">
+        <input type="checkbox" name="can_view_padron" id="edit-padron">
+        <span>Ver nombre del contribuyente (padrón)
+          <small>Override por usuario. También puede otorgarse por rol en «Roles y permisos».</small>
+        </span>
       </label>
       <label>Vence el (opcional)
         <input type="date" name="expires_at" id="edit-expires">

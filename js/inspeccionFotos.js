@@ -5,12 +5,17 @@
   window.MxliInspeccionFotosInit = true;
 
   var API = "api/inspections.php";
-  var PREDIO_API = "api/wfs-nearest-predio.php";
-  var claveUserEdited = false;
-  var lastSuggestedClave = "";
+  var inspectionLayer = null;
+  var markersById = {};
+  var loadTimer = null;
 
   function canInspect() {
     return typeof window.mxliCan === "function" && window.mxliCan("map.inspect");
+  }
+
+  function canViewInspectionMarkers() {
+    if (typeof window.mxliCan !== "function") return false;
+    return window.mxliCan("map.inspect") || window.mxliCan("inspections.manage");
   }
 
   function $(id) {
@@ -25,192 +30,469 @@
     el.classList.toggle("is-error", !ok && !!text);
   }
 
-  function toUpperNotes(value) {
-    return String(value || "").toUpperCase();
-  }
-
-  function normalizeClave(value) {
-    return String(value || "").trim().replace(/\s+/g, "").toUpperCase();
-  }
-
-  function compressPhoto(file) {
-    return new Promise(function (resolve, reject) {
-      if (!file || !file.type || file.type.indexOf("image/") !== 0) {
-        reject(new Error("Seleccione una imagen válida."));
-        return;
-      }
-      var img = new Image();
-      var url = URL.createObjectURL(file);
-      img.onload = function () {
-        URL.revokeObjectURL(url);
-        var maxSide = 1920;
-        var w = img.naturalWidth || img.width;
-        var h = img.naturalHeight || img.height;
-        var scale = Math.min(1, maxSide / Math.max(w, h));
-        var canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(w * scale));
-        canvas.height = Math.max(1, Math.round(h * scale));
-        var ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(
-          function (blob) {
-            if (!blob) {
-              resolve(file);
-              return;
-            }
-            try {
-              resolve(new File([blob], "inspeccion.jpg", { type: "image/jpeg" }));
-            } catch (e) {
-              resolve(blob);
-            }
-          },
-          "image/jpeg",
-          0.82
-        );
-      };
-      img.onerror = function () {
-        URL.revokeObjectURL(url);
-        resolve(file);
-      };
-      img.src = url;
-    });
-  }
-
   function claveFromSearch() {
     var input = $("buscarPredioClave");
     if (!input) return "";
-    return normalizeClave(input.value);
+    return String(input.value || "").trim().replace(/\s+/g, "").toUpperCase();
   }
 
-  function applySuggestedClave(clave, distanceM, source) {
-    var input = $("inspect-clave");
-    if (!input || claveUserEdited) return false;
-
-    var current = normalizeClave(input.value);
-    if (current !== "" && current !== lastSuggestedClave) {
-      return false;
-    }
-
-    input.value = clave;
-    lastSuggestedClave = clave;
-
-    var hint = "Clave sugerida. El punto se ubicará en el centro del predio.";
-    if (source === "intersects") {
-      hint = "Clave sugerida (predio en su GPS). El punto se guardará en el centro del predio.";
-    } else if (distanceM != null) {
-      hint =
-        "Clave sugerida: predio a ~" +
-        Math.round(distanceM) +
-        " m. El punto se guardará en el centro del predio.";
-    }
-    showMsg($("inspect-msg"), hint, true);
-    return true;
+  function getMap() {
+    if (typeof map2d !== "undefined" && map2d) return map2d;
+    if (window.map2d) return window.map2d;
+    return null;
   }
 
-  function fetchPredio(params) {
-    var qs = Object.keys(params)
-      .map(function (key) {
-        return encodeURIComponent(key) + "=" + encodeURIComponent(String(params[key]));
-      })
-      .join("&");
-    return fetch(PREDIO_API + "?" + qs, { credentials: "same-origin" })
-      .then(function (res) {
-        return res.json().then(function (data) {
-          if (!res.ok || !data.ok) {
-            return null;
-          }
-          return data;
-        });
-      })
-      .catch(function () {
-        return null;
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function formatDate(v) {
+    if (!v) return "—";
+    try {
+      return new Date(v).toLocaleString("es-MX");
+    } catch (e) {
+      return String(v);
+    }
+  }
+
+  var TYPE_LABELS = {
+    lic_construccion: "Lic. Construcción",
+    imagen_urbana: "Imagen Urbana",
+    uso_suelo: "Uso de Suelo",
+    otro: "Otro",
+  };
+
+  function typeKeys() {
+    return Object.keys(TYPE_LABELS);
+  }
+
+  function typesHtml(selectedCsv, nameAttr) {
+    var selected = {};
+    var name = nameAttr || "inspection_types";
+    String(selectedCsv || "")
+      .split(",")
+      .forEach(function (k) {
+        k = String(k || "").trim();
+        if (k) selected[k] = true;
       });
+    return (
+      '<div class="inspect-type-field">' +
+      '<span class="inspect-type-field__label">Tipo de inspección (puede marcar varios)</span>' +
+      '<div class="inspect-type-grid" id="inspect-type-toggles">' +
+      typeKeys()
+        .map(function (key) {
+          var checked = selected[key] ? " checked" : "";
+          return (
+            '<label class="inspect-type-toggle">' +
+            '<input type="checkbox" name="' +
+            name +
+            '" value="' +
+            key +
+            '"' +
+            checked +
+            ">" +
+            '<span class="inspect-type-dot" aria-hidden="true"></span>' +
+            '<span class="inspect-type-text">' +
+            TYPE_LABELS[key] +
+            "</span></label>"
+          );
+        })
+        .join("") +
+      "</div></div>"
+    );
   }
 
-  function suggestClaveFromGps(options) {
-    options = options || {};
-    if (!navigator.geolocation) {
-      return Promise.resolve(null);
-    }
+  function selectedTypesCsv(root) {
+    var box = root || document;
+    var keys = [];
+    box.querySelectorAll('input[type="checkbox"][name="inspection_types"]:checked').forEach(function (inp) {
+      var k = inp.value;
+      if (k && keys.indexOf(k) < 0) keys.push(k);
+    });
+    return keys.join(",");
+  }
 
-    return new Promise(function (resolve) {
-      navigator.geolocation.getCurrentPosition(
-        function (pos) {
-          fetchPredio({ lat: pos.coords.latitude, lng: pos.coords.longitude }).then(function (data) {
-            if (data && data.clavecatas) {
-              applySuggestedClave(data.clavecatas, data.distance_m, data.source);
-            } else if (options.showNoMatch && !claveUserEdited) {
-              showMsg(
-                $("inspect-msg"),
-                "No hay predio cercano. Puede teclear la clave o dejarla vacía para usar el GPS.",
-                false
-              );
-            }
-            resolve(data);
-          });
-        },
-        function () {
-          if (options.showNoMatch) {
-            showMsg(
-              $("inspect-msg"),
-              "No se pudo obtener GPS. Capture la clave para ubicar el predio, o active la ubicación.",
-              false
-            );
-          }
-          resolve(null);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 }
-      );
+
+  function ensureMapLightbox() {
+    if (document.getElementById("inspect-lightbox")) return;
+    var dlg = document.createElement("dialog");
+    dlg.id = "inspect-lightbox";
+    dlg.className = "inspect-lightbox";
+    dlg.setAttribute("aria-label", "Foto ampliada");
+    dlg.innerHTML =
+      '<button type="button" id="inspect-lightbox-close" class="inspect-lightbox__close" aria-label="Cerrar">×</button>' +
+      '<img id="inspect-lightbox-img" alt="Foto ampliada">' +
+      '<p id="inspect-lightbox-caption" class="inspect-lightbox__caption"></p>';
+    document.body.appendChild(dlg);
+    function closeLb() {
+      if (typeof dlg.close === "function") dlg.close();
+      else dlg.removeAttribute("open");
+    }
+    var closeBtn = document.getElementById("inspect-lightbox-close");
+    if (closeBtn) closeBtn.addEventListener("click", closeLb);
+    dlg.addEventListener("click", function (e) {
+      if (e.target === dlg) closeLb();
     });
   }
 
-  function getCurrentPosition() {
+  function openMapLightbox(src, clave) {
+    ensureMapLightbox();
+    var box = document.getElementById("inspect-lightbox");
+    var img = document.getElementById("inspect-lightbox-img");
+    var cap = document.getElementById("inspect-lightbox-caption");
+    if (!box || !img) return;
+    img.src = src;
+    img.alt = "Foto " + (clave || "");
+    if (cap) cap.textContent = String(clave || "").toUpperCase();
+    if (typeof box.showModal === "function") box.showModal();
+    else box.setAttribute("open", "");
+  }
+
+  window.mxliOpenInspectionLightbox = openMapLightbox;
+
+
+  var FALLBACK_COLORS = [
+    "#9b2f55", "#1a5fd0", "#2f7d4b", "#e67e22", "#8e44ad", "#16a085",
+    "#c0392b", "#2980b9", "#d35400", "#27ae60", "#6c3483", "#117a65"
+  ];
+  var localColorMap = {};
+
+  function colorForInspector(item) {
+    if (typeof window.mxliInspectColorForUser === "function") {
+      return window.mxliInspectColorForUser(item || {});
+    }
+    var userId = item && item.created_by != null ? String(item.created_by) : "";
+    var userName = item && item.created_by_name ? String(item.created_by_name).trim() : "";
+    var key = userId || userName || "0";
+    if (localColorMap[key]) return localColorMap[key];
+    var hash = 0;
+    for (var i = 0; i < key.length; i++) {
+      hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    }
+    var color = FALLBACK_COLORS[hash % FALLBACK_COLORS.length];
+    localColorMap[key] = color;
+    return color;
+  }
+
+  function isValidCoord(lat, lng) {
+    return (
+      typeof lat === "number" &&
+      typeof lng === "number" &&
+      isFinite(lat) &&
+      isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180 &&
+      !(lat === 0 && lng === 0)
+    );
+  }
+
+
+  var PREDIO_API = "api/wfs-nearest-predio.php";
+  var coordSource = "clave"; // clave | gps
+
+  function getCoordSource() {
+    var on = document.querySelector(".inspect-coord-toggle.is-on");
+    if (on && on.getAttribute("data-coord-source")) {
+      return on.getAttribute("data-coord-source");
+    }
+    return coordSource || "clave";
+  }
+
+  function setCoordSource(src, announce) {
+    coordSource = src === "gps" ? "gps" : "clave";
+    document.querySelectorAll(".inspect-coord-toggle").forEach(function (btn) {
+      var on = btn.getAttribute("data-coord-source") === coordSource;
+      btn.classList.toggle("is-on", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    var hint = $("inspect-coord-hint");
+    if (hint) {
+      if (coordSource === "gps") {
+        hint.textContent = "Se usará la ubicación GPS del dispositivo/mapa.";
+      } else {
+        hint.textContent = "Se usará el centro geométrico del predio (clave).";
+      }
+    }
+    if (announce) {
+      showMsg($("inspect-msg"), hint ? hint.textContent : "", true);
+    }
+  }
+
+  function autoPickCoordSourceFromClave() {
+    var clave = String(($("inspect-clave") && $("inspect-clave").value) || "")
+      .trim()
+      .replace(/\s+/g, "");
+    setCoordSource(clave.length >= 4 ? "clave" : "gps", false);
+  }
+
+  function coordSourceHtml() {
+    return (
+      '<div class="inspect-coord-field">' +
+      '<span class="inspect-coord-field__label">Coordenadas</span>' +
+      '<div class="inspect-coord-toggles" role="group" aria-label="Origen de coordenadas">' +
+      '<button type="button" class="inspect-coord-toggle is-on" data-coord-source="clave" aria-pressed="true">Centro del predio</button>' +
+      '<button type="button" class="inspect-coord-toggle" data-coord-source="gps" aria-pressed="false">GPS actual</button>' +
+      "</div>" +
+      '<p id="inspect-coord-hint" class="inspect-coord-hint">Se usará el centro geométrico del predio (clave).</p>' +
+      "</div>"
+    );
+  }
+
+  function bindCoordToggles(root) {
+    var box = root || document;
+    box.querySelectorAll(".inspect-coord-toggle").forEach(function (btn) {
+      btn.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        setCoordSource(btn.getAttribute("data-coord-source") || "clave", true);
+      });
+    });
+  }
+
+  function fetchClaveCentroid(clave) {
+    return fetch(PREDIO_API + "?clave=" + encodeURIComponent(clave), {
+      credentials: "same-origin",
+    })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { res: res, data: data };
+        });
+      })
+      .then(function (payload) {
+        if (!payload.res.ok || !payload.data || !payload.data.ok) {
+          throw new Error(
+            (payload.data && payload.data.error) || "No se encontró centro del predio"
+          );
+        }
+        var lat = Number(payload.data.lat);
+        var lng = Number(payload.data.lng);
+        if (!isValidCoord(lat, lng)) {
+          throw new Error("Centro del predio inválido");
+        }
+        return { lat: lat, lng: lng, source: "clave" };
+      });
+  }
+
+  function readDeviceGps() {
     return new Promise(function (resolve) {
+      // Prefer recent map locate result (2 minutes)
+      if (
+        window.mxliLastGps &&
+        window.mxliLastGpsAt &&
+        Date.now() - window.mxliLastGpsAt < 120000 &&
+        isValidCoord(window.mxliLastGps.lat, window.mxliLastGps.lng)
+      ) {
+        resolve({
+          lat: window.mxliLastGps.lat,
+          lng: window.mxliLastGps.lng,
+          source: "gps",
+        });
+        return;
+      }
       if (!navigator.geolocation) {
         resolve(null);
         return;
       }
       navigator.geolocation.getCurrentPosition(
         function (pos) {
-          resolve({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          });
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          if (!isValidCoord(lat, lng)) {
+            resolve(null);
+            return;
+          }
+          window.mxliLastGps = { lat: lat, lng: lng };
+          window.mxliLastGpsAt = Date.now();
+          resolve({ lat: lat, lng: lng, source: "gps" });
         },
         function () {
           resolve(null);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
       );
     });
   }
 
-  function resolveSaveCoords(clave) {
-    if (clave.length >= 4) {
-      showMsg($("inspect-msg"), "Ubicando centroide del predio…", true);
-      return fetchPredio({ clave: clave }).then(function (data) {
-        if (data && data.lat != null && data.lng != null) {
-          return {
-            lat: data.lat,
-            lng: data.lng,
-            source: "centroid",
-          };
+  function resolveSaveCoords(clave, source) {
+    source = source === "gps" ? "gps" : "clave";
+    if (source === "gps") {
+      return readDeviceGps().then(function (gps) {
+        if (!gps) {
+          throw new Error(
+            "No se pudo obtener GPS. Active ubicación o use Centro del predio."
+          );
         }
-        showMsg($("inspect-msg"), "Clave no encontrada; se usará el GPS del dispositivo…", true);
-        return getCurrentPosition().then(function (coords) {
-          if (!coords) return null;
-          coords.source = "gps";
-          return coords;
-        });
+        return gps;
       });
     }
-
-    showMsg($("inspect-msg"), "Obteniendo ubicación GPS…", true);
-    return getCurrentPosition().then(function (coords) {
-      if (!coords) return null;
-      coords.source = "gps";
-      return coords;
+    return fetchClaveCentroid(clave).catch(function (err) {
+      // Fallback to GPS if centroid fails
+      return readDeviceGps().then(function (gps) {
+        if (gps) {
+          gps.source = "gps";
+          gps.fallbackFrom = "clave";
+          return gps;
+        }
+        throw err;
+      });
     });
+  }
+
+
+  function ensureInspectionLayer() {
+    var map = getMap();
+    if (!map || typeof L === "undefined") return null;
+    if (inspectionLayer) return inspectionLayer;
+
+    inspectionLayer = L.layerGroup();
+    inspectionLayer.addTo(map);
+
+    try {
+      if (typeof layerControl !== "undefined" && layerControl && layerControl.addOverlay) {
+        layerControl.addOverlay(inspectionLayer, "Inspecciones GPS");
+      }
+    } catch (e) {
+      // sin control de capas: la capa queda en el mapa
+    }
+
+    return inspectionLayer;
+  }
+
+  function markerPopupHtml(item) {
+    var src = item.photo_url || "";
+    var photo = src
+      ? '<button type="button" class="mxli-inspect-popup__thumb-btn" data-photo-src="' +
+        escapeHtml(src) +
+        '" data-photo-clave="' +
+        escapeHtml(item.clavecatas || "") +
+        '"><img class="mxli-inspect-popup__photo" src="' +
+        escapeHtml(src) +
+        '" alt="Foto"></button>'
+      : "";
+    var types = item.types_label || "";
+    return (
+      '<div class="mxli-feature-popup mxli-inspect-popup">' +
+      '<div class="mxli-feature-popup__head">Inspección</div>' +
+      '<div class="mxli-feature-popup__body mxli-inspect-popup__body">' +
+      photo +
+      '<table class="mxli-padron-table mxli-inspect-ficha" role="presentation"><tbody>' +
+      '<tr><td class="mxli-padron-label">Clave</td><td class="mxli-padron-value"><b>' +
+      escapeHtml(String(item.clavecatas || "—").toUpperCase()) +
+      "</b></td></tr>" +
+      '<tr><td class="mxli-padron-label">Fecha</td><td class="mxli-padron-value"><b>' +
+      escapeHtml(String(formatDate(item.captured_at)).toUpperCase()) +
+      "</b></td></tr>" +
+      '<tr><td class="mxli-padron-label">Inspector</td><td class="mxli-padron-value"><b>' +
+      escapeHtml(String(item.created_by_name || "—").toUpperCase()) +
+      "</b></td></tr>" +
+      '<tr><td class="mxli-padron-label">Tipos</td><td class="mxli-padron-value"><b>' +
+      escapeHtml(String(types || "—").toUpperCase()) +
+      "</b></td></tr>" +
+      '<tr><td class="mxli-padron-label">Notas</td><td class="mxli-padron-value"><b>' +
+      escapeHtml(String(item.notes || "—").toUpperCase()) +
+      "</b></td></tr>" +
+      "</tbody></table></div></div>"
+    );
+  }
+
+
+  function upsertMarker(item) {
+    var layer = ensureInspectionLayer();
+    if (!layer || !item) return;
+
+    var id = String(item.id);
+    var lat = item.lat != null ? Number(item.lat) : NaN;
+    var lng = item.lng != null ? Number(item.lng) : NaN;
+    if (!isValidCoord(lat, lng)) {
+      if (markersById[id]) {
+        layer.removeLayer(markersById[id]);
+        delete markersById[id];
+      }
+      return;
+    }
+
+    if (markersById[id]) {
+      markersById[id].setLatLng([lat, lng]);
+      markersById[id].setPopupContent(markerPopupHtml(item));
+      var fillUp = colorForInspector(item);
+      if (markersById[id].setStyle) {
+        markersById[id].setStyle({
+          color: "#ffffff",
+          fillColor: fillUp,
+          fillOpacity: 0.85,
+          opacity: 0.95,
+        });
+      }
+      return;
+    }
+
+    var fill = colorForInspector(item);
+    var marker = L.circleMarker([lat, lng], {
+      radius: 7,
+      weight: 2,
+      color: "#ffffff",
+      fillColor: fill,
+      fillOpacity: 0.85,
+      opacity: 0.95,
+      className: "mxli-inspect-marker",
+    });
+    marker.bindPopup(markerPopupHtml(item), { minWidth: 280, maxWidth: 360, className: "mxli-inspect-leaflet-popup" });
+    marker.on("popupopen", function () {
+      var root = marker.getPopup() && marker.getPopup().getElement();
+      if (!root) return;
+      root.querySelectorAll("[data-photo-src]").forEach(function (el) {
+        el.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          openMapLightbox(el.getAttribute("data-photo-src"), el.getAttribute("data-photo-clave") || "");
+        });
+      });
+    });
+    marker.addTo(layer);
+    markersById[id] = marker;
+  }
+
+  function loadInspectionMarkers() {
+    if (!canViewInspectionMarkers()) return;
+    if (!ensureInspectionLayer()) {
+      setTimeout(loadInspectionMarkers, 400);
+      return;
+    }
+
+    fetch(API + "?with_coords=1&limit=2000")
+      .then(function (res) {
+        return res.json().then(function (data) {
+          if (!res.ok || !data || data.ok === false) {
+            throw new Error((data && data.error) || "No se pudieron cargar inspecciones");
+          }
+          return data.items || [];
+        });
+      })
+      .then(function (items) {
+        var seen = {};
+        items.forEach(function (item) {
+          seen[String(item.id)] = true;
+          upsertMarker(item);
+        });
+        Object.keys(markersById).forEach(function (id) {
+          if (!seen[id] && inspectionLayer) {
+            inspectionLayer.removeLayer(markersById[id]);
+            delete markersById[id];
+          }
+        });
+      })
+      .catch(function () {
+        // Silencioso en mapa; el admin lista errores aparte.
+      });
+  }
+
+  function scheduleLoadMarkers() {
+    if (loadTimer) clearTimeout(loadTimer);
+    loadTimer = setTimeout(loadInspectionMarkers, 200);
   }
 
   function ensureDialog() {
@@ -220,11 +502,13 @@
     dlg.id = "inspect-photo-dialog";
     dlg.className = "inspect-photo-dialog";
     dlg.innerHTML =
-      '<form method="dialog" id="inspect-photo-form" class="inspect-photo-form">' +
-      "<h3>Inspección fotográfica</h3>" +
-      '<p class="inspect-photo-form__hint">Si captura o acepta una clave, el punto se coloca en el centro del predio. Si la deja vacía, se usa el GPS. Las notas se guardan en MAYÚSCULAS.</p>' +
-      '<label>Clave catastral (opcional)<input type="text" id="inspect-clave" maxlength="32" placeholder="ST312014 o vacía para usar GPS" autocomplete="off" style="text-transform:uppercase"></label>' +
-      '<label>Notas (opcional)<textarea id="inspect-notes" rows="2" placeholder="OBSERVACIONES" style="text-transform:uppercase"></textarea></label>' +
+      '<form method="post" id="inspect-photo-form" class="inspect-photo-form" novalidate>' +
+      '<h3>Inspección fotográfica</h3>' +
+      '<p class="inspect-photo-form__hint">Capture la clave catastral y la fotografía del predio.</p>' +
+      '<label>Clave catastral<input type="text" id="inspect-clave" maxlength="32" required placeholder="ST312014"></label>' +
+      coordSourceHtml() +
+      '<label>Notas (opcional)<textarea id="inspect-notes" rows="2" placeholder="Observaciones"></textarea></label>' +
+      typesHtml("") +
       '<div class="inspect-photo-preview-wrap">' +
       '<img id="inspect-preview" class="inspect-photo-preview" alt="Vista previa" hidden>' +
       '<button type="button" id="inspect-take-btn" class="inspect-photo-take">Tomar / seleccionar foto</button>' +
@@ -237,39 +521,43 @@
       "</div>" +
       "</form>";
     document.body.appendChild(dlg);
-
-    var takeBtn = $("inspect-take-btn");
-    var fileInput = $("inspect-photo-input");
-    var preview = $("inspect-preview");
+    bindCoordToggles(dlg);
     var claveInput = $("inspect-clave");
-    var notesInput = $("inspect-notes");
-    var selectedFile = null;
+    if (claveInput) {
+      claveInput.addEventListener("input", autoPickCoordSourceFromClave);
+      claveInput.addEventListener("change", autoPickCoordSourceFromClave);
+    }
 
     function closeInspectDialog() {
-      if (typeof dlg.close === "function") {
-        dlg.close();
-      } else {
-        dlg.removeAttribute("open");
+      var d = $("inspect-photo-dialog") || dlg;
+      if (!d) return;
+      try {
+        if (typeof d.close === "function") d.close();
+        else d.removeAttribute("open");
+      } catch (e) {
+        d.removeAttribute("open");
       }
     }
 
-    $("inspect-cancel-btn").addEventListener("click", function (event) {
+    var cancelBtn = $("inspect-cancel-btn");
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeInspectDialog();
+      });
+    }
+
+    dlg.addEventListener("cancel", function (event) {
+      // Escape key — allow default close
       event.preventDefault();
       closeInspectDialog();
     });
 
-    dlg.addEventListener("cancel", function () {
-      closeInspectDialog();
-    });
-
-    claveInput.addEventListener("input", function () {
-      claveUserEdited = true;
-      claveInput.value = normalizeClave(claveInput.value);
-    });
-
-    notesInput.addEventListener("input", function () {
-      notesInput.value = toUpperNotes(notesInput.value);
-    });
+    var takeBtn = $("inspect-take-btn");
+    var fileInput = $("inspect-photo-input");
+    var preview = $("inspect-preview");
+    var selectedFile = null;
 
     takeBtn.addEventListener("click", function () {
       fileInput.click();
@@ -291,8 +579,6 @@
       fileInput.value = "";
       preview.hidden = true;
       preview.removeAttribute("src");
-      claveUserEdited = false;
-      lastSuggestedClave = "";
     });
 
     $("inspect-photo-form").addEventListener("submit", function (event) {
@@ -302,51 +588,68 @@
         return;
       }
 
-      var clave = normalizeClave($("inspect-clave").value);
-      if (clave !== "" && clave.length < 4) {
-        showMsg($("inspect-msg"), "Capture una clave catastral válida o déjela vacía para usar GPS.", false);
-        $("inspect-clave").focus();
+      var clave = String($("inspect-clave").value || "").trim().replace(/\s+/g, "").toUpperCase();
+      if (clave.length < 4) {
+        showMsg($("inspect-msg"), "Capture una clave catastral válida.", false);
         return;
       }
 
-      var notes = toUpperNotes($("inspect-notes").value || "").trim();
+      showMsg($("inspect-msg"), "Guardando…", true);
 
-      resolveSaveCoords(clave)
+      var typesCsv = selectedTypesCsv(dlg);
+      if (!typesCsv) {
+        showMsg($("inspect-msg"), "Seleccione al menos un tipo de inspección.", false);
+        return;
+      }
+
+      var source = getCoordSource();
+      if (clave.length >= 4 && source !== "gps") {
+        source = "clave";
+        setCoordSource("clave", false);
+      }
+      if (clave.length < 4) {
+        source = "gps";
+        setCoordSource("gps", false);
+      }
+
+      resolveSaveCoords(clave, source)
         .then(function (coords) {
-          if (!coords) {
-            throw new Error("No hay ubicación: capture una clave válida o active el GPS.");
-          }
-
-          showMsg($("inspect-msg"), "Preparando foto…", true);
-          return compressPhoto(selectedFile).then(function (photoFile) {
-            var fd = new FormData();
-            fd.append("clavecatas", clave);
-            fd.append("notes", notes);
-            fd.append("photo", photoFile, photoFile.name || "inspeccion.jpg");
+          var fd = new FormData();
+          fd.append("clavecatas", clave);
+          fd.append(
+            "notes",
+            String($("inspect-notes").value || "")
+              .trim()
+              .toUpperCase()
+          );
+          fd.append("inspection_types", typesCsv);
+          fd.append("photo", selectedFile);
+          fd.append("coord_source", coords.source || source);
+          if (coords.lat != null && coords.lng != null) {
             fd.append("lat", String(coords.lat));
             fd.append("lng", String(coords.lng));
+          }
 
-            showMsg(
-              $("inspect-msg"),
-              coords.source === "centroid" ? "Guardando en el centro del predio…" : "Guardando con GPS…",
-              true
-            );
-            return fetch(API, { method: "POST", body: fd }).then(function (res) {
-              return res.json().then(function (data) {
-                if (!res.ok || !data.ok) {
-                  throw new Error((data && data.error) || "Error al guardar");
-                }
-                return data;
-              });
+          return fetch(API, { method: "POST", body: fd }).then(function (res) {
+            return res.json().then(function (data) {
+              if (!res.ok || !data.ok) {
+                throw new Error((data && data.error) || "Error al guardar");
+              }
+              return data;
             });
           });
         })
-        .then(function () {
+        .then(function (data) {
           dlg.close();
-          window.alert("Inspección registrada correctamente.");
+          if (data && data.item) {
+            upsertMarker(data.item);
+          } else {
+            scheduleLoadMarkers();
+          }
           if (typeof window.mxliRefreshInspeccionesCapa === "function") {
             window.mxliRefreshInspeccionesCapa();
           }
+          window.alert("Inspección registrada correctamente.");
         })
         .catch(function (err) {
           showMsg($("inspect-msg"), err.message || "Error", false);
@@ -354,72 +657,55 @@
     });
   }
 
-  function openDialog(event) {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
+  function openDialog() {
     if (!canInspect()) {
       window.alert("Su rol no tiene permiso de inspección fotográfica.");
       return;
     }
     ensureDialog();
     var dlg = $("inspect-photo-dialog");
-    if (!dlg) return;
-
-    claveUserEdited = false;
-    lastSuggestedClave = "";
-
-    var searchClave = claveFromSearch();
-    $("inspect-clave").value = searchClave;
-    if (searchClave) {
-      claveUserEdited = true;
-    }
-
+    $("inspect-clave").value = claveFromSearch();
     $("inspect-notes").value = "";
-    showMsg($("inspect-msg"), "Obteniendo GPS para sugerir clave…", true);
-
-    if (typeof dlg.showModal === "function") {
-      dlg.showModal();
-    } else {
-      dlg.setAttribute("open", "");
+    var dlgEl = $("inspect-photo-dialog");
+    if (dlgEl) {
+      dlgEl.querySelectorAll('input[type="checkbox"][name="inspection_types"]').forEach(function (inp) {
+        inp.checked = false;
+      });
     }
-
-    if (!searchClave) {
-      suggestClaveFromGps({ showNoMatch: true });
-    } else {
-      showMsg(
-        $("inspect-msg"),
-        "Clave del buscador. El punto se guardará en el centro del predio.",
-        true
-      );
-    }
+    showMsg($("inspect-msg"), "", true);
+    dlg.showModal();
   }
 
-  function bindButton(btn) {
-    if (!btn || btn.dataset.inspectBound === "1") return;
-    btn.dataset.inspectBound = "1";
+  function initCameraButton() {
+    if (!canInspect()) return;
+
+    var btn = $("inspectPhotoBtn");
+    if (!btn) {
+      setTimeout(initCameraButton, 400);
+      return;
+    }
+
     btn.addEventListener("click", openDialog);
-    btn.addEventListener("keydown", function (event) {
-      if (event.key === "Enter" || event.key === " ") {
-        openDialog(event);
-      }
-    });
     btn.setAttribute("title", "Inspección fotográfica");
     btn.setAttribute("role", "button");
     btn.setAttribute("tabindex", "0");
   }
 
   function init() {
-    if (!canInspect()) return;
-
-    var btn = $("inspectPhotoBtn");
-    if (!btn) {
-      setTimeout(init, 400);
-      return;
+    initCameraButton();
+    if (canViewInspectionMarkers()) {
+      // Prefer capa coloreada por inspector; fallback a marcadores propios
+      function bootMarkers() {
+        if (typeof window.mxliRefreshInspeccionesCapa === "function") {
+          window.mxliRefreshInspeccionesCapa();
+          return;
+        }
+        scheduleLoadMarkers();
+      }
+      bootMarkers();
+      setTimeout(bootMarkers, 800);
+      setTimeout(bootMarkers, 2000);
     }
-
-    bindButton(btn);
   }
 
   if (document.readyState === "loading") {
@@ -428,8 +714,8 @@
     init();
   }
 
-  setTimeout(init, 800);
-  setTimeout(init, 1600);
-
-  window.MxliInspeccionFotos = { open: openDialog };
+  window.MxliInspeccionFotos = {
+    open: openDialog,
+    reloadMarkers: loadInspectionMarkers,
+  };
 })();

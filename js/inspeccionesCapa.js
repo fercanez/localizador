@@ -8,6 +8,7 @@
   var markers = [];
   var loaded = false;
   var userColorMap = {};
+  var mapClickBound = false;
 
   var USER_COLORS = [
     "#9b2f55",
@@ -27,15 +28,21 @@
     "#922b21",
   ];
 
+  var POPUP_OPTS = {
+    minWidth: 280,
+    maxWidth: 360,
+    maxHeight: 380,
+    className: "mxli-inspect-leaflet-popup",
+    autoPan: true,
+    autoPanPadding: [40, 80],
+    closeButton: true,
+  };
+
   function colorForUser(props) {
     var userId = props.created_by != null ? String(props.created_by) : "";
     var userName = String(props.created_by_name || "").trim();
     var key = userId || userName || "0";
-
-    if (userColorMap[key]) {
-      return userColorMap[key];
-    }
-
+    if (userColorMap[key]) return userColorMap[key];
     var hash = 0;
     for (var i = 0; i < key.length; i++) {
       hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
@@ -48,6 +55,9 @@
   function resetUserColors() {
     userColorMap = {};
   }
+
+  window.mxliInspectColorForUser = colorForUser;
+  window.mxliInspectUserColors = USER_COLORS;
 
   function canViewLayer() {
     if (typeof window.mxliCan !== "function") return false;
@@ -71,42 +81,49 @@
     try {
       return new Date(v).toLocaleString("es-MX");
     } catch (e) {
-      return v;
+      return String(v);
     }
   }
 
   function photoSrc(url) {
     var u = String(url || "");
     if (!u) return "";
-    if (u.charAt(0) === "/" || /^https?:/i.test(u)) return u;
     return u;
+  }
+
+  function ensureInspeccionesPane() {
+    if (typeof map2d === "undefined" || !map2d || !map2d.createPane) {
+      return "markerPane";
+    }
+    if (!map2d.getPane("inspeccionesPane")) {
+      var pane = map2d.createPane("inspeccionesPane");
+      pane.style.zIndex = 650;
+      pane.style.pointerEvents = "auto";
+    } else {
+      map2d.getPane("inspeccionesPane").style.zIndex = 650;
+      map2d.getPane("inspeccionesPane").style.pointerEvents = "auto";
+    }
+    return "inspeccionesPane";
   }
 
   var inspecciones_fotos = L.layerGroup([], {
     title: "Inspecciones fotográficas",
-    pane: "overlayPane",
   });
   inspecciones_fotos.id = "inspecciones_fotos";
   window.inspecciones_fotos = inspecciones_fotos;
 
+  function attachPaneToLayer() {
+    try {
+      inspecciones_fotos.options.pane = ensureInspeccionesPane();
+    } catch (e) {}
+  }
+  attachPaneToLayer();
+  setTimeout(attachPaneToLayer, 500);
+  setTimeout(attachPaneToLayer, 1500);
+
   function clearMarkers() {
     markers = [];
     inspecciones_fotos.clearLayers();
-  }
-
-  function markerIcon(color) {
-    var c = color || "#9b2f55";
-    return L.divIcon({
-      className: "mxli-inspect-marker-wrap",
-      html:
-        '<span class="mxli-inspect-marker" style="background:' +
-        c +
-        ";box-shadow:0 0 0 2px #fff, 0 0 0 4px " +
-        c +
-        '66, 0 2px 6px rgba(0,0,0,0.35)" aria-hidden="true"></span>',
-      iconSize: [18, 18],
-      iconAnchor: [9, 9],
-    });
   }
 
   function renderUserLegend(items) {
@@ -119,10 +136,7 @@
       var userName = String(props.created_by_name || "Sin usuario").trim() || "Sin usuario";
       var key = userId || userName;
       if (!byUser[key]) {
-        byUser[key] = {
-          name: userName,
-          color: colorForUser(props),
-        };
+        byUser[key] = { name: userName, color: colorForUser(props) };
       }
     });
 
@@ -130,7 +144,7 @@
       return byUser[k];
     });
 
-    if (users.length <= 1) {
+    if (users.length < 1) {
       legend.hidden = true;
       legend.innerHTML = "";
       return;
@@ -156,6 +170,101 @@
         .join("");
   }
 
+  /** Safe string HTML — never throws; missing fields → "—" */
+  function buildInspectPopupHtml(props) {
+    props = props || {};
+    var src = "";
+    var types = "";
+    var notes = "";
+    var clave = "—";
+    var fecha = "—";
+    var inspector = "—";
+    var dotColor = "#9b2f55";
+    try {
+      src = photoSrc(props.photo_url);
+      types = props.types_label != null ? String(props.types_label) : "";
+      notes = props.notes != null ? String(props.notes) : "";
+      clave = String(props.clavecatas || "—").toUpperCase();
+      fecha = String(formatDate(props.captured_at)).toUpperCase();
+      inspector = String(props.created_by_name || "—").toUpperCase();
+      dotColor = props.marker_color || colorForUser(props);
+    } catch (err) {
+      console.warn("buildInspectPopupHtml:", err);
+    }
+
+    var photoHtml = src
+      ? '<button type="button" class="mxli-inspect-popup__thumb-btn" data-photo-src="' +
+        escapeHtml(src) +
+        '" data-photo-clave="' +
+        escapeHtml(props.clavecatas || "") +
+        '"><img class="mxli-inspect-popup__photo" src="' +
+        escapeHtml(src) +
+        '" alt="Foto ' +
+        escapeHtml(props.clavecatas || "") +
+        '"></button>'
+      : "";
+
+    return (
+      '<div class="mxli-feature-popup mxli-inspect-popup">' +
+      '<div class="mxli-feature-popup__head">Inspección</div>' +
+      '<div class="mxli-feature-popup__body mxli-inspect-popup__body">' +
+      photoHtml +
+      '<table class="mxli-padron-table mxli-inspect-ficha" role="presentation"><tbody>' +
+      '<tr><td class="mxli-padron-label">Clave</td><td class="mxli-padron-value"><b>' +
+      escapeHtml(clave) +
+      "</b></td></tr>" +
+      '<tr><td class="mxli-padron-label">Fecha</td><td class="mxli-padron-value"><b>' +
+      escapeHtml(fecha) +
+      "</b></td></tr>" +
+      '<tr><td class="mxli-padron-label">Inspector</td><td class="mxli-padron-value"><b><span class="mxli-inspect-popup__dot" style="background:' +
+      escapeHtml(dotColor) +
+      '"></span> ' +
+      escapeHtml(inspector) +
+      "</b></td></tr>" +
+      '<tr><td class="mxli-padron-label">Tipos</td><td class="mxli-padron-value"><b>' +
+      escapeHtml((types || "—").toUpperCase()) +
+      "</b></td></tr>" +
+      '<tr><td class="mxli-padron-label">Notas</td><td class="mxli-padron-value"><b>' +
+      escapeHtml((notes || "—").toUpperCase()) +
+      "</b></td></tr>" +
+      "</tbody></table></div></div>"
+    );
+  }
+
+  function wirePopupPhotoClicks(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll("[data-photo-src]").forEach(function (el) {
+      el.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        openMapLightbox(
+          el.getAttribute("data-photo-src"),
+          el.getAttribute("data-photo-clave") || ""
+        );
+      });
+    });
+  }
+
+  function openInspectionMarkerPopup(marker) {
+    if (!marker || !marker.mxliInspection) return;
+    if (typeof map2d === "undefined" || !map2d) return;
+    var props = marker.mxliInspection;
+    props.isInspection = true;
+    props.layer_type = props.layer_type || "inspeccion_foto";
+    props.sourceLayer = "inspecciones_fotos";
+    var html = buildInspectPopupHtml(props);
+    if (!marker.getPopup()) {
+      marker.bindPopup(html, POPUP_OPTS);
+    } else {
+      marker.setPopupContent(html);
+    }
+    marker.openPopup();
+    try {
+      var popEl = marker.getPopup() && marker.getPopup().getElement();
+      if (popEl) wirePopupPhotoClicks(popEl);
+    } catch (e) {}
+  }
+
   function addFeature(feature) {
     if (!feature || !feature.geometry || feature.geometry.type !== "Point") return;
     var coords = feature.geometry.coordinates || [];
@@ -166,15 +275,53 @@
     var props = feature.properties || {};
     var color = colorForUser(props);
     props.marker_color = color;
-    var marker = L.marker([lat, lng], {
-      icon: markerIcon(color),
-      title: (props.clavecatas || "Inspección") + " · " + (props.created_by_name || ""),
-      interactive: false,
+    props.isInspection = true;
+    props.layer_type = props.layer_type || "inspeccion_foto";
+
+    var paneName = "markerPane";
+    try {
+      paneName = ensureInspeccionesPane();
+    } catch (e) {}
+
+    // CircleMarker: reliable hit area (radius >= 9), SVG default renderer, custom pane
+    var marker = L.circleMarker([lat, lng], {
+      radius: 10,
+      weight: 2,
+      color: "#ffffff",
+      fillColor: color,
+      fillOpacity: 0.92,
+      opacity: 1,
+      interactive: true,
+      bubblingMouseEvents: true,
+      pane: paneName,
+      className: "mxli-inspect-circle",
     });
     marker.mxliInspection = props;
     marker.feature = props;
+
+    var popupHtml = buildInspectPopupHtml(props);
+    marker.bindPopup(popupHtml, POPUP_OPTS);
+
+    marker.on("popupopen", function () {
+      try {
+        var el = marker.getPopup() && marker.getPopup().getElement();
+        if (el) wirePopupPhotoClicks(el);
+      } catch (e) {}
+    });
+
+    marker.on("click", function (e) {
+      if (e && L && L.DomEvent) {
+        L.DomEvent.stopPropagation(e);
+        if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+      }
+      openInspectionMarkerPopup(marker);
+    });
+
     markers.push(marker);
     inspecciones_fotos.addLayer(marker);
+    if (typeof marker.bringToFront === "function") {
+      marker.bringToFront();
+    }
   }
 
   function loadGeoJson(force) {
@@ -182,9 +329,11 @@
       return Promise.resolve([]);
     }
     if (loaded && !force) {
-      return Promise.resolve(markers.map(function (m) {
-        return m.mxliInspection;
-      }));
+      return Promise.resolve(
+        markers.map(function (m) {
+          return m.mxliInspection;
+        })
+      );
     }
 
     return fetch(GEOJSON_API, { credentials: "same-origin" })
@@ -201,6 +350,8 @@
         });
         renderUserLegend(items);
         loaded = true;
+        bringInspectionsToTop();
+        bindMapClickFallback();
         return markers.map(function (m) {
           return m.mxliInspection;
         });
@@ -212,7 +363,7 @@
   }
 
   function isLayerOnMap() {
-    return typeof map2d !== "undefined" && map2d.hasLayer(inspecciones_fotos);
+    return typeof map2d !== "undefined" && map2d && map2d.hasLayer(inspecciones_fotos);
   }
 
   window.isInspeccionesCapaActive = function () {
@@ -225,21 +376,149 @@
       '.wms-layer-card[data-layer-id="inspecciones_fotos_chkbox"]'
     );
 
-    if (list && card) {
-      list.appendChild(card);
+    // Keep card FIRST in Capas UI (do not append to bottom)
+    if (list && card && list.firstChild !== card) {
+      list.insertBefore(card, list.firstChild);
     }
 
     if (typeof applyWmsLayerStack === "function") {
       applyWmsLayerStack();
     }
 
+    try {
+      ensureInspeccionesPane();
+    } catch (e) {}
+
     if (isLayerOnMap()) {
       if (typeof inspecciones_fotos.bringToFront === "function") {
         inspecciones_fotos.bringToFront();
       }
-      if (typeof group !== "undefined" && typeof group.bringToFront === "function") {
-        group.bringToFront();
+      markers.forEach(function (m) {
+        if (m && typeof m.bringToFront === "function") m.bringToFront();
+      });
+    }
+  }
+
+  window.mxliBringInspectionsToTop = bringInspectionsToTop;
+
+  function findNearestInspection(latlng) {
+    if (!isLayerOnMap() || !latlng || typeof map2d === "undefined") return null;
+    var clickPoint = map2d.latLngToContainerPoint(latlng);
+    var best = null;
+    var bestMarker = null;
+    var bestDist = Infinity;
+    var tolerance = window.matchMedia("(max-width: 900px)").matches ? 32 : 24;
+
+    markers.forEach(function (marker) {
+      var p = map2d.latLngToContainerPoint(marker.getLatLng());
+      var dist = Math.hypot(p.x - clickPoint.x, p.y - clickPoint.y);
+      if (dist <= tolerance && dist < bestDist) {
+        bestDist = dist;
+        best = marker.mxliInspection;
+        bestMarker = marker;
       }
+    });
+
+    return bestMarker ? { props: best, marker: bestMarker } : null;
+  }
+
+  window.mxliFindInspectionFeature = function (latlng) {
+    var hit = findNearestInspection(latlng);
+    return hit ? hit.props : null;
+  };
+
+  /** Fallback when WMS tiles steal marker clicks: map click still fires */
+  function onInspectMapClick(e) {
+    if (!isLayerOnMap() || !e || !e.latlng) return;
+    // If info tool is active, getFeatureInfo already handles inspections — skip duplicate
+    var infoBtn = document.querySelector("#getFeatureInfoBtn");
+    if (infoBtn && infoBtn.classList.contains("btnIsActive")) return;
+
+    var hit = findNearestInspection(e.latlng);
+    if (!hit || !hit.marker) return;
+    openInspectionMarkerPopup(hit.marker);
+  }
+
+  function bindMapClickFallback() {
+    if (typeof map2d === "undefined" || !map2d || mapClickBound) return;
+    map2d.on("click", onInspectMapClick);
+    mapClickBound = true;
+  }
+
+  window.mxliRebindInspectMapClick = function () {
+    if (typeof map2d === "undefined" || !map2d) return;
+    map2d.off("click", onInspectMapClick);
+    mapClickBound = false;
+    if (isLayerOnMap()) {
+      bindMapClickFallback();
+    }
+  };
+
+  window.isInspectionFeatureInfo = function (info) {
+    if (!info) return false;
+    if (info.isInspection) return true;
+    if (info.sourceLayer === "inspecciones_fotos") return true;
+    var props = info.properties || info;
+    return !!(props && props.layer_type === "inspeccion_foto");
+  };
+
+  function ensureMapLightbox() {
+    if (document.getElementById("inspect-lightbox")) return;
+    var dlg = document.createElement("dialog");
+    dlg.id = "inspect-lightbox";
+    dlg.className = "inspect-lightbox";
+    dlg.setAttribute("aria-label", "Foto ampliada");
+    dlg.innerHTML =
+      '<button type="button" id="inspect-lightbox-close" class="inspect-lightbox__close" aria-label="Cerrar">×</button>' +
+      '<img id="inspect-lightbox-img" alt="Foto ampliada">' +
+      '<p id="inspect-lightbox-caption" class="inspect-lightbox__caption"></p>';
+    document.body.appendChild(dlg);
+    function closeLb() {
+      if (typeof dlg.close === "function") dlg.close();
+      else dlg.removeAttribute("open");
+    }
+    var closeBtn = document.getElementById("inspect-lightbox-close");
+    if (closeBtn) closeBtn.addEventListener("click", closeLb);
+    dlg.addEventListener("click", function (ev) {
+      if (ev.target === dlg) closeLb();
+    });
+  }
+
+  function openMapLightbox(src, clave) {
+    ensureMapLightbox();
+    var box = document.getElementById("inspect-lightbox");
+    var img = document.getElementById("inspect-lightbox-img");
+    var cap = document.getElementById("inspect-lightbox-caption");
+    if (!box || !img) return;
+    img.src = src;
+    img.alt = "Foto " + (clave || "");
+    if (cap) cap.textContent = String(clave || "").toUpperCase();
+    if (typeof box.showModal === "function") box.showModal();
+    else box.setAttribute("open", "");
+  }
+
+  window.createInspectionPopup = function (info) {
+    var props = (info && (info.properties || info)) || {};
+    var wrap = document.createElement("div");
+    wrap.innerHTML = buildInspectPopupHtml(props);
+    var div = wrap.firstChild || wrap;
+    wirePopupPhotoClicks(div);
+    return div;
+  };
+
+  function onLayerToggle() {
+    var chk = document.getElementById("inspecciones_fotos_chkbox");
+    if (!chk) return;
+    if (chk.checked) {
+      loadGeoJson(false).then(function () {
+        bringInspectionsToTop();
+        bindMapClickFallback();
+      });
+    } else {
+      clearMarkers();
+      resetUserColors();
+      renderUserLegend([]);
+      loaded = false;
     }
   }
 
@@ -257,129 +536,34 @@
     }
 
     bringInspectionsToTop();
+    bindMapClickFallback();
 
     return loadGeoJson(false).then(function () {
       bringInspectionsToTop();
     });
   }
 
-  window.mxliAutoActivateInspeccionesCapa = autoActivateLayer;
-
-  window.mxliRefreshInspeccionesCapa = function () {
-    if (!canViewLayer()) return Promise.resolve();
-    loaded = false;
-    return loadGeoJson(true).then(function () {
-      if (isLayerOnMap()) {
-        bringInspectionsToTop();
-      }
-    });
-  };
-
-  window.mxliFindInspectionFeature = function (latlng) {
-    if (!isLayerOnMap() || !latlng || typeof map2d === "undefined") return null;
-
-    var clickPoint = map2d.latLngToContainerPoint(latlng);
-    var best = null;
-    var bestDist = Infinity;
-    var tolerance = window.matchMedia("(max-width: 900px)").matches ? 28 : 22;
-
-    markers.forEach(function (marker) {
-      var p = map2d.latLngToContainerPoint(marker.getLatLng());
-      var dist = Math.hypot(p.x - clickPoint.x, p.y - clickPoint.y);
-      if (dist <= tolerance && dist < bestDist) {
-        bestDist = dist;
-        best = marker.mxliInspection;
-      }
-    });
-
-    return best;
-  };
-
-  window.isInspectionFeatureInfo = function (info) {
-    if (!info) return false;
-    if (info.isInspection) return true;
-    if (info.sourceLayer === "inspecciones_fotos") return true;
-    var props = info.properties || info;
-    return !!(props && props.layer_type === "inspeccion_foto");
-  };
-
-  window.createInspectionPopup = function (info) {
-    var props = info.properties || info || {};
-    var src = photoSrc(props.photo_url);
-    var div = document.createElement("div");
-    div.className = "mxli-feature-popup mxli-inspect-popup";
-
-    var photoHtml = src
-      ? '<img class="mxli-inspect-popup__photo" src="' +
-        escapeHtml(src) +
-        '" alt="Foto ' +
-        escapeHtml(props.clavecatas || "") +
-        '">'
-      : "";
-
-    var inspector = escapeHtml(props.created_by_name || "—");
-    var dotColor = props.marker_color || colorForUser(props);
-    var inspectorLine =
-      '<span class="mxli-inspect-popup__inspector">' +
-      '<span class="mxli-inspect-popup__dot" style="background:' +
-      escapeHtml(dotColor) +
-      '"></span>' +
-      inspector +
-      "</span>";
-
-    div.innerHTML =
-      '<div class="mxli-feature-popup__head">Inspección fotográfica</div>' +
-      '<div class="mxli-feature-popup__body mxli-inspect-popup__body">' +
-      photoHtml +
-      "<div><b>Clave:</b> " +
-      escapeHtml(props.clavecatas || "—") +
-      "</div>" +
-      "<div><b>Fecha:</b> " +
-      escapeHtml(formatDate(props.captured_at)) +
-      "</div>" +
-      "<div><b>Inspector:</b> " +
-      inspectorLine +
-      "</div>" +
-      "<div><b>Notas:</b> " +
-      escapeHtml(props.notes || "—") +
-      "</div>" +
-      (src
-        ? '<a class="mxli-inspect-popup__link" href="admin/inspecciones.php">Ver en módulo</a>'
-        : "") +
-      "</div>";
-
-    return div;
-  };
-
-  function onLayerToggle() {
-    var chk = document.getElementById("inspecciones_fotos_chkbox");
-    if (!chk) return;
-    if (chk.checked) {
-      loadGeoJson(false).then(function () {
-        bringInspectionsToTop();
-      });
-    } else {
-      clearMarkers();
-      resetUserColors();
-      renderUserLegend([]);
-      loaded = false;
-    }
-  }
-
   function init() {
     if (!canViewLayer()) return;
+
+    attachPaneToLayer();
 
     var chk = document.getElementById("inspecciones_fotos_chkbox");
     if (chk) {
       chk.addEventListener("change", onLayerToggle);
     }
 
-    if (typeof group !== "undefined") {
-      group.on("layeradd", function (e) {
+    if (typeof map2d !== "undefined" && map2d) {
+      map2d.on("overlayadd", function (e) {
         if (e.layer === inspecciones_fotos && !loaded) {
           loadGeoJson(false).then(function () {
             bringInspectionsToTop();
+            bindMapClickFallback();
           });
+        }
+        if (e.layer === inspecciones_fotos) {
+          bringInspectionsToTop();
+          bindMapClickFallback();
         }
       });
     }

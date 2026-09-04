@@ -36,6 +36,9 @@ function mxli_users_db_error_message(Throwable $e): string
     if (str_contains($msg, "expires_at") && str_contains($msg, "does not exist")) {
         return "Falta la columna de vencimiento. En el servidor ejecute: php scripts/migrate_user_expiry.php";
     }
+    if (str_contains($msg, "can_view_padron") && str_contains($msg, "does not exist")) {
+        return "Falta la columna de padrón. En el servidor ejecute: php scripts/migrate_padron_permission.php";
+    }
     if (str_contains($msg, "app_users_username_key") || str_contains($msg, "unique")) {
         return "El usuario ya existe";
     }
@@ -52,12 +55,26 @@ function mxli_ensure_expires_column(PDO $pdo): void
     $done = true;
 }
 
+function mxli_ensure_padron_user_column(PDO $pdo): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $pdo->exec(
+        "ALTER TABLE app_users
+         ADD COLUMN IF NOT EXISTS can_view_padron BOOLEAN NOT NULL DEFAULT FALSE"
+    );
+    $done = true;
+}
+
 $returning =
-    "id, username, full_name, email, role, is_active, expires_at, created_at, updated_at, last_login_at";
+    "id, username, full_name, email, role, is_active, can_view_padron, expires_at, created_at, updated_at, last_login_at";
 
 try {
     $pdo = mxli_db();
     mxli_ensure_expires_column($pdo);
+    mxli_ensure_padron_user_column($pdo);
 
     if ($method === "GET") {
         $stmt = $pdo->query(
@@ -87,6 +104,9 @@ try {
         $email = trim((string)($body["email"] ?? ""));
         $role = mxli_normalize_role((string)($body["role"] ?? "consulta"));
         $isActive = array_key_exists("is_active", $body) ? (bool)$body["is_active"] : true;
+        $canViewPadron = array_key_exists("can_view_padron", $body)
+            ? (bool)$body["can_view_padron"]
+            : false;
         $expiresAt = array_key_exists("expires_at", $body)
             ? mxli_normalize_expires_at($body["expires_at"])
             : null;
@@ -103,8 +123,8 @@ try {
 
         $hash = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $pdo->prepare(
-            "INSERT INTO app_users (username, password_hash, full_name, email, role, is_active, expires_at)
-             VALUES (:username, :hash, :full_name, :email, :role, " . mxli_sql_bool($isActive) . ", :expires_at)
+            "INSERT INTO app_users (username, password_hash, full_name, email, role, is_active, can_view_padron, expires_at)
+             VALUES (:username, :hash, :full_name, :email, :role, " . mxli_sql_bool($isActive) . ", " . mxli_sql_bool($canViewPadron) . ", :expires_at)
              RETURNING {$returning}"
         );
 
@@ -154,6 +174,9 @@ try {
         $isActive = array_key_exists("is_active", $body)
             ? (bool)$body["is_active"]
             : mxli_to_bool($current["is_active"] ?? true);
+        $canViewPadron = array_key_exists("can_view_padron", $body)
+            ? (bool)$body["can_view_padron"]
+            : mxli_to_bool($current["can_view_padron"] ?? false);
         $expiresAt = array_key_exists("expires_at", $body)
             ? mxli_normalize_expires_at($body["expires_at"])
             : mxli_normalize_expires_at($current["expires_at"] ?? null);
@@ -185,6 +208,7 @@ try {
                     email = :email,
                     role = :role,
                     is_active = " . mxli_sql_bool($isActive) . ",
+                    can_view_padron = " . mxli_sql_bool($canViewPadron) . ",
                     expires_at = :expires_at,
                     updated_at = NOW()";
 
@@ -208,6 +232,10 @@ try {
                 "error" => mxli_users_db_error_message($e),
                 "detail" => $e->getMessage(),
             ], 500);
+        }
+
+        if ($me && (int)$me["id"] === $id && is_array($row)) {
+            mxli_set_session_user($row);
         }
 
         mxli_json_response(["ok" => true, "user" => mxli_public_user($row)]);

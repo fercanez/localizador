@@ -102,6 +102,7 @@ function mxli_tool_permission_defs(): array
         "map.view" => "Ver mapa",
         "map.search" => "Buscar predios",
         "map.info" => "Consultar información (clic)",
+        "map.padron" => "Ver nombre del contribuyente (padrón)",
         "map.print" => "Imprimir mapa",
         "map.locate" => "Geolocalización GPS",
         "map.measure" => "Medir / dibujar",
@@ -128,20 +129,10 @@ function mxli_default_role_seeds(): array
     $inspectorTools = [
         "map.view",
         "map.search",
-        "map.info",
         "map.locate",
         "map.inspect",
     ];
     $inspectorLayers = ["predios_mexicali_2025", "colonias"];
-    $supervisorTools = [
-        "map.view",
-        "map.search",
-        "map.info",
-        "map.locate",
-        "map.inspect",
-        "inspections.manage",
-    ];
-    $supervisorLayers = ["predios_mexicali_2025", "colonias"];
 
     return [
         [
@@ -175,14 +166,6 @@ function mxli_default_role_seeds(): array
             "is_system" => true,
             "permissions" => $inspectorTools,
             "allowed_layers" => $inspectorLayers,
-        ],
-        [
-            "slug" => "supervisor",
-            "name" => "Supervisor",
-            "description" => "Supervisión de inspecciones fotográficas",
-            "is_system" => true,
-            "permissions" => $supervisorTools,
-            "allowed_layers" => $supervisorLayers,
         ],
     ];
 }

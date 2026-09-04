@@ -34,7 +34,9 @@ try {
         }
 
         $clave = mxli_normalize_inspection_clave($_GET["clave"] ?? "");
-        $limit = min(200, max(1, (int)($_GET["limit"] ?? 50)));
+        $tipo = mxli_normalize_inspection_types($_GET["tipo"] ?? "");
+        $limit = min(2000, max(1, (int)($_GET["limit"] ?? 50)));
+        $withCoords = isset($_GET["with_coords"]) && (string)$_GET["with_coords"] !== "0";
         $params = [];
         $where = "1=1";
 
@@ -45,6 +47,17 @@ try {
         if ($clave !== "") {
             $where .= " AND p.clavecatas ILIKE :clave";
             $params["clave"] = $clave . "%";
+        }
+        if ($tipo !== "") {
+            // CSV may contain several; filter by first key (API uses single tipo)
+            $tipoKey = mxli_inspection_types_list($tipo)[0] ?? "";
+            if ($tipoKey !== "") {
+                $where .= " AND (',' || COALESCE(p.inspection_types, '') || ',') ILIKE :tipo";
+                $params["tipo"] = "%," . $tipoKey . ",%";
+            }
+        }
+        if ($withCoords) {
+            $where .= " AND p.lat IS NOT NULL AND p.lng IS NOT NULL";
         }
 
         $sql =
@@ -65,6 +78,7 @@ try {
                 static fn ($row) => mxli_public_inspection_row($row, $user),
                 $rows
             ),
+            "type_labels" => mxli_inspection_type_labels(),
         ]);
     }
 
@@ -74,12 +88,20 @@ try {
         }
 
         $clave = mxli_normalize_inspection_clave($_POST["clavecatas"] ?? "");
-        $notes = mxli_normalize_inspection_notes($_POST["notes"] ?? "");
+        $notes = trim((string)($_POST["notes"] ?? ""));
         $lat = $_POST["lat"] ?? null;
         $lng = $_POST["lng"] ?? null;
+        $typesRaw = $_POST["inspection_types"] ?? ($_POST["types"] ?? "");
+        if (isset($_POST["inspection_types"]) && is_array($_POST["inspection_types"])) {
+            $typesRaw = $_POST["inspection_types"];
+        }
+        $typesCsv = mxli_normalize_inspection_types($typesRaw);
 
-        if ($clave !== "" && !preg_match('/^[A-Z0-9]{4,32}$/', $clave)) {
+        if ($clave === "" || !preg_match('/^[A-Z0-9]{4,32}$/', $clave)) {
             mxli_json_response(["ok" => false, "error" => "Clave catastral inválida"], 400);
+        }
+        if ($typesCsv === "") {
+            mxli_json_response(["ok" => false, "error" => "Seleccione al menos un tipo de inspección"], 400);
         }
 
         if (empty($_FILES["photo"]) || !is_array($_FILES["photo"])) {
@@ -87,26 +109,13 @@ try {
         }
 
         $file = $_FILES["photo"];
-        $uploadErr = (int)($file["error"] ?? UPLOAD_ERR_NO_FILE);
-        if ($uploadErr !== UPLOAD_ERR_OK) {
-            $uploadErrors = [
-                UPLOAD_ERR_INI_SIZE => "La foto supera el límite del servidor. Use una imagen más liviana.",
-                UPLOAD_ERR_FORM_SIZE => "La foto supera el tamaño permitido.",
-                UPLOAD_ERR_PARTIAL => "La foto se subió incompleta. Intente de nuevo.",
-                UPLOAD_ERR_NO_FILE => "Falta la fotografía",
-                UPLOAD_ERR_NO_TMP_DIR => "El servidor no tiene carpeta temporal.",
-                UPLOAD_ERR_CANT_WRITE => "El servidor no pudo guardar la foto en disco.",
-                UPLOAD_ERR_EXTENSION => "Una extensión de PHP bloqueó la subida.",
-            ];
-            mxli_json_response([
-                "ok" => false,
-                "error" => $uploadErrors[$uploadErr] ?? "Error al subir la foto",
-            ], 400);
+        if (($file["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            mxli_json_response(["ok" => false, "error" => "Error al subir la foto"], 400);
         }
 
-        $maxBytes = 16 * 1024 * 1024;
+        $maxBytes = 8 * 1024 * 1024;
         if ((int)($file["size"] ?? 0) > $maxBytes) {
-            mxli_json_response(["ok" => false, "error" => "La foto supera 16 MB"], 400);
+            mxli_json_response(["ok" => false, "error" => "La foto supera 8 MB"], 400);
         }
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
@@ -118,24 +127,6 @@ try {
         ];
         if (!isset($allowed[$mime])) {
             mxli_json_response(["ok" => false, "error" => "Formato no permitido (use JPG, PNG o WebP)"], 400);
-        }
-
-        $latVal = is_numeric($lat) ? (float)$lat : null;
-        $lngVal = is_numeric($lng) ? (float)$lng : null;
-
-        if ($clave !== "") {
-            $predio = mxli_predio_by_clave($clave);
-            if ($predio !== null) {
-                $latVal = (float)$predio["lat"];
-                $lngVal = (float)$predio["lng"];
-            }
-        }
-
-        if ($latVal === null || $lngVal === null) {
-            mxli_json_response([
-                "ok" => false,
-                "error" => "No hay ubicación: capture una clave catastral válida o active el GPS",
-            ], 400);
         }
 
         $subdir = date("Y/m");
@@ -152,17 +143,52 @@ try {
             mxli_json_response(["ok" => false, "error" => "No se pudo almacenar la foto"], 500);
         }
 
+        $notes = mb_strtoupper($notes, "UTF-8");
+
+        $coordSource = strtolower(trim((string)($_POST["coord_source"] ?? "")));
+        if ($coordSource !== "gps" && $coordSource !== "clave") {
+            // Default: clave present → centroid; else keep GPS if provided
+            $coordSource = "clave";
+        }
+
+        $latVal = is_numeric($lat) ? (float)$lat : null;
+        $lngVal = is_numeric($lng) ? (float)$lng : null;
+
+        if ($coordSource !== "gps") {
+            $predio = mxli_predio_by_clave($clave);
+            if ($predio !== null && isset($predio["lat"], $predio["lng"])) {
+                $latVal = (float)$predio["lat"];
+                $lngVal = (float)$predio["lng"];
+                $coordSource = "clave";
+            } elseif ($latVal === null || $lngVal === null) {
+                // No centroid and no client GPS — leave null
+            }
+        } else {
+            // GPS path: keep client lat/lng; do not overwrite with centroid
+            if ($latVal !== null && ($latVal < -90 || $latVal > 90)) {
+                $latVal = null;
+            }
+            if ($lngVal !== null && ($lngVal < -180 || $lngVal > 180)) {
+                $lngVal = null;
+            }
+            if ($latVal !== null && $lngVal !== null && $latVal == 0.0 && $lngVal == 0.0) {
+                $latVal = null;
+                $lngVal = null;
+            }
+        }
+
         $stmt = $pdo->prepare(
             "INSERT INTO app_inspection_photos
-                (clavecatas, photo_path, notes, lat, lng, created_by, captured_at, updated_at)
+                (clavecatas, photo_path, notes, inspection_types, lat, lng, created_by, captured_at, updated_at)
              VALUES
-                (:clave, :path, :notes, :lat, :lng, :uid, NOW(), NOW())
+                (:clave, :path, :notes, :types, :lat, :lng, :uid, NOW(), NOW())
              RETURNING *"
         );
         $stmt->execute([
             "clave" => $clave,
             "path" => $relative,
             "notes" => $notes,
+            "types" => $typesCsv,
             "lat" => $latVal,
             "lng" => $lngVal,
             "uid" => (int)$user["id"],
@@ -201,17 +227,24 @@ try {
             ? mxli_normalize_inspection_clave($body["clavecatas"])
             : (string)$current["clavecatas"];
         $notes = array_key_exists("notes", $body)
-            ? mxli_normalize_inspection_notes($body["notes"])
+            ? trim((string)$body["notes"])
             : (string)$current["notes"];
+        $typesCsv = array_key_exists("inspection_types", $body) || array_key_exists("types", $body)
+            ? mxli_normalize_inspection_types($body["inspection_types"] ?? $body["types"] ?? "")
+            : mxli_normalize_inspection_types($current["inspection_types"] ?? "");
 
         if ($clave === "" || !preg_match('/^[A-Z0-9]{4,32}$/', $clave)) {
             mxli_json_response(["ok" => false, "error" => "Clave catastral inválida"], 400);
+        }
+        if ($typesCsv === "") {
+            mxli_json_response(["ok" => false, "error" => "Seleccione al menos un tipo de inspección"], 400);
         }
 
         $upd = $pdo->prepare(
             "UPDATE app_inspection_photos
              SET clavecatas = :clave,
                  notes = :notes,
+                 inspection_types = :types,
                  updated_at = NOW()
              WHERE id = :id
              RETURNING *"
@@ -219,6 +252,7 @@ try {
         $upd->execute([
             "clave" => $clave,
             "notes" => $notes,
+            "types" => $typesCsv,
             "id" => $id,
         ]);
         $row = $upd->fetch();

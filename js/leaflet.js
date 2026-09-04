@@ -316,6 +316,19 @@ safeOn($locateBtn, "click", () => {
   $locateBtn.classList.toggle("locationIsActive");
 });
 
+window.mxliLastGps = window.mxliLastGps || null;
+window.mxliLastGpsAt = window.mxliLastGpsAt || 0;
+map2d.on("locationfound", function (e) {
+  if (!e || !e.latlng) return;
+  window.mxliLastGps = { lat: e.latlng.lat, lng: e.latlng.lng };
+  window.mxliLastGpsAt = Date.now();
+  try {
+    window.dispatchEvent(
+      new CustomEvent("mxli:gps", { detail: window.mxliLastGps })
+    );
+  } catch (err) {}
+});
+
 var zoomOptions = {
   zoomInText: "+",
   zoomOutText: "-",
@@ -577,44 +590,24 @@ async function fetchFeatureInfoFromApi(capaLayers, version, point, size) {
   return data;
 }
 
-function canUseFeatureInfo() {
-  if (getCapasConsultablesActivas().length > 0) return true;
-  if (
-    typeof window.isInspeccionesCapaActive === "function" &&
-    window.isInspeccionesCapaActive()
-  ) {
-    return true;
-  }
-  return false;
-}
-
 async function getFeatureInfo(evt) {
-  if (
-    typeof window.mxliFindInspectionFeature === "function" &&
-    typeof window.isInspeccionesCapaActive === "function" &&
-    window.isInspeccionesCapaActive()
-  ) {
-    const insp = window.mxliFindInspectionFeature(evt.latlng);
+  // Prefer inspection photo points (top layer) before WMS GetFeatureInfo.
+  if (typeof mxliFindInspectionFeature === "function" && evt && evt.latlng) {
+    const insp = mxliFindInspectionFeature(evt.latlng);
     if (insp) {
       return {
         properties: insp,
-        sourceLayer: "inspecciones_fotos",
         isInspection: true,
+        sourceLayer: "inspecciones_fotos",
+        layer_type: "inspeccion_foto",
       };
     }
   }
 
   const capas = getCapasConsultablesActivas();
   if (capas.length === 0) {
-    if (
-      typeof window.isInspeccionesCapaActive === "function" &&
-      window.isInspeccionesCapaActive()
-    ) {
-      alert("No hay una inspección fotográfica en este punto.");
-      return null;
-    }
     alert(
-      "Active Predios, Colonias, Inspecciones fotográficas u otra capa consultable."
+      "Active Predios, Predios Baldíos, Usos de Suelo Actual, Colonias o Usos de Suelo 2040 para consultar informacion."
     );
     return null;
   }
@@ -799,17 +792,35 @@ function createDataTable(data) {
   const homoclave = clave.substring(0, 2);
   const manzana = props.manzana || clave.substring(2, 5);
   const lote = props.lote || clave.substring(5, 8);
-  const superficie = formatAreaM2(props.superficie || 0);
+  const superficieRaw = props.superficie || 0;
+  const superficie = formatAreaM2(superficieRaw);
 
   const div = document.createElement("div");
   div.className = "mxli-feature-popup";
+  const canPadron =
+    typeof window.mxliCanViewPadron === "function"
+      ? window.mxliCanViewPadron()
+      : typeof window.mxliCan === "function" && window.mxliCan("map.padron");
+
+  if (canPadron && typeof mxliPredioPadronBodyHtml === "function") {
+    div.innerHTML =
+      '<div class="mxli-feature-popup__head">Información del predio</div>' +
+      '<div class="mxli-feature-popup__body">' +
+      mxliPredioPadronBodyHtml(clave, superficieRaw) +
+      "</div>";
+    if (typeof mxliFillPadronBlock === "function") {
+      mxliFillPadronBlock(div, clave);
+    }
+    return div;
+  }
+
   div.innerHTML = `
     <div class="mxli-feature-popup__head">Información del predio</div>
     <div class="mxli-feature-popup__body">
-      <div><b>Clave Catastral:</b> ${clave}</div>
-      <div><b>Homoclave:</b> ${homoclave}</div>
-      <div><b>Manzana:</b> ${manzana}</div>
-      <div><b>Lote:</b> ${lote}</div>
+      <div><b>Clave Catastral:</b> ${escapeHtml(clave)}</div>
+      <div><b>Homoclave:</b> ${escapeHtml(homoclave)}</div>
+      <div><b>Manzana:</b> ${escapeHtml(manzana)}</div>
+      <div><b>Lote:</b> ${escapeHtml(lote)}</div>
       <div><b>Sup. Cart:</b> ${superficie} m²</div>
     </div>
   `;
@@ -818,7 +829,7 @@ function createDataTable(data) {
 }
 
 const FEATURE_LABELS = {
-  clavecatas: "Clave Catastral",
+  clavecatas: "Clave",
   nombre: "Nombre",
   colonia: "Colonia",
   NOMBRE: "Nombre",
@@ -956,11 +967,10 @@ function createZonaHomogeneaPopup(info) {
 }
 
 function createFeaturePopup(data) {
-  if (
-    typeof window.isInspectionFeatureInfo === "function" &&
-    window.isInspectionFeatureInfo(data)
-  ) {
-    return window.createInspectionPopup(data);
+  if (typeof isInspectionFeatureInfo === "function" && isInspectionFeatureInfo(data)) {
+    if (typeof createInspectionPopup === "function") {
+      return createInspectionPopup(data);
+    }
   }
 
   if (isUsoPredioFeatureInfo(data)) {
@@ -1012,8 +1022,8 @@ function createFeaturePopup(data) {
 function mxliPopupOptions() {
   const mobile = window.matchMedia("(max-width: 900px)").matches;
   return mobile
-    ? { maxWidth: 260, minWidth: 160, maxHeight: 160, autoPanPadding: [48, 72] }
-    : { maxWidth: 320, minWidth: 200, maxHeight: 350 };
+    ? { maxWidth: 360, minWidth: 240, maxHeight: 380, autoPanPadding: [40, 80] }
+    : { maxWidth: 360, minWidth: 240, maxHeight: 360 };
 }
 
 var popup = L.popup(mxliPopupOptions());
@@ -1029,41 +1039,62 @@ safeOn($panMapBtn, "click", () => {
     .querySelector("#getFeatureInfoBtn")
     .classList.contains("btnIsActive");
   if (state) {
-    map2d.off("click");
+    map2d.off("click", mxliInfoToolMapClick);
     map2d.dragging.enable();
     L.DomUtil.removeClass(map2d._container, "crosshair-cursor-enabled");
     document.querySelector("#panMapBtn").classList.add("btnIsActive");
     document
       .querySelector("#getFeatureInfoBtn")
       .classList.remove("btnIsActive");
+    if (typeof window.mxliRebindInspectMapClick === "function") {
+      window.mxliRebindInspectMapClick();
+    }
   }
 });
 
+async function mxliInfoToolMapClick(e) {
+  let featureInfo = await getFeatureInfo(e);
+  if (featureInfo) {
+    let table = createFeaturePopup(featureInfo);
+    var opts =
+      typeof isInspectionFeatureInfo === "function" && isInspectionFeatureInfo(featureInfo)
+        ? { minWidth: 280, maxWidth: 360, maxHeight: 380, className: "mxli-inspect-leaflet-popup", autoPanPadding: [40, 80] }
+        : mxliPopupOptions();
+    popup.options.minWidth = opts.minWidth;
+    popup.options.maxWidth = opts.maxWidth;
+    if (opts.maxHeight) popup.options.maxHeight = opts.maxHeight;
+    popup.options.className = opts.className || "";
+    if (opts.autoPanPadding) popup.options.autoPanPadding = opts.autoPanPadding;
+    popup.setLatLng(e.latlng).setContent(table).openOn(map2d);
+  }
+}
+
 function desactivarInformacion(state) {
   if (state) {
-    map2d.off("click");
+    map2d.off("click", mxliInfoToolMapClick);
     map2d.dragging.enable();
     L.DomUtil.removeClass(map2d._container, "crosshair-cursor-enabled");
     document.querySelector("#panMapBtn").classList.add("btnIsActive");
+    if (typeof window.mxliRebindInspectMapClick === "function") {
+      window.mxliRebindInspectMapClick();
+    }
   } else {
     L.DomUtil.addClass(map2d._container, "crosshair-cursor-enabled");
     document.querySelector("#panMapBtn").classList.remove("btnIsActive");
     map2d.dragging.disable();
-    map2d.on("click", async (e) => {
-      let featureInfo = await getFeatureInfo(e);
-      if (featureInfo) {
-        let table = createFeaturePopup(featureInfo);
-        popup.setLatLng(e.latlng).setContent(table).openOn(map2d);
-      }
-    });
+    map2d.off("click", mxliInfoToolMapClick);
+    map2d.on("click", mxliInfoToolMapClick);
   }
 }
 
 safeOn($getFeatureInfoBtn, "click", (e) => {
   e.stopPropagation();
-  if (!canUseFeatureInfo()) {
+  var hasWms = getCapasConsultablesActivas().length > 0;
+  var hasInspect =
+    typeof isInspeccionesCapaActive === "function" && isInspeccionesCapaActive();
+  if (!hasWms && !hasInspect) {
     alert(
-      "Active Predios, Colonias, Inspecciones fotográficas u otra capa consultable."
+      "Active Predios, Predios Baldíos, Usos de Suelo Actual, Colonias, Usos de Suelo 2040 o Inspecciones para consultar informacion."
     );
     return false;
   }

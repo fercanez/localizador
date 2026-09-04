@@ -126,6 +126,29 @@ $wmsCapasGeoservidor = array_values(array_filter(
                     <div class="lista-capas wms-layer-panel">
                         <h4 class="wms-layer-panel__heading">CAPAS WMS</h4>
                         <div id="wms-layer-list" class="wms-layer-list">
+                            <?php if ($showInspeccionesCapa): ?>
+                                <div class="wms-layer-card wms-layer-card--inspect"
+                                    data-layer-id="inspecciones_fotos_chkbox"
+                                    data-layer-var="inspecciones_fotos"
+                                    data-title="Inspecciones fotográficas"
+                                    data-opacity="100">
+                                    <div class="wms-layer-card__header">
+                                        <label class="wms-layer-card__check" for="inspecciones_fotos_chkbox">
+                                            <input type="checkbox"
+                                                id="inspecciones_fotos_chkbox"
+                                                name="inspecciones_fotos_chkbox"
+                                                onchange="toggleLayer('inspecciones_fotos_chkbox', inspecciones_fotos)">
+                                        </label>
+                                        <span class="wms-layer-card__color"
+                                            style="background: #9b2f55"></span>
+                                        <span class="wms-layer-card__title">Inspecciones fotográficas</span>
+                                    </div>
+                                    <p class="wms-layer-card__hint">Puntos de tomas con GPS. Cada inspector tiene un color distinto. Toque un punto o use la herramienta <strong>i</strong> para ver la ficha.</p>
+                                    <div id="inspect-users-legend" class="inspect-users-legend" hidden></div>
+                                </div>
+                            <?php endif; ?>
+
+
                             <?php foreach ($wmsCapasGeoservidor as $capa): ?>
                                 <div class="wms-layer-card"
                                     data-layer-id="<?= htmlspecialchars($capa["id"], ENT_QUOTES, "UTF-8") ?>"
@@ -176,27 +199,6 @@ $wmsCapasGeoservidor = array_values(array_filter(
                                 </div>
                             <?php endforeach; ?>
 
-                            <?php if ($showInspeccionesCapa): ?>
-                                <div class="wms-layer-card wms-layer-card--inspect"
-                                    data-layer-id="inspecciones_fotos_chkbox"
-                                    data-layer-var="inspecciones_fotos"
-                                    data-title="Inspecciones fotográficas"
-                                    data-opacity="100">
-                                    <div class="wms-layer-card__header">
-                                        <label class="wms-layer-card__check" for="inspecciones_fotos_chkbox">
-                                            <input type="checkbox"
-                                                id="inspecciones_fotos_chkbox"
-                                                name="inspecciones_fotos_chkbox"
-                                                onchange="toggleLayer('inspecciones_fotos_chkbox', inspecciones_fotos)">
-                                        </label>
-                                        <span class="wms-layer-card__color"
-                                            style="background: #9b2f55"></span>
-                                        <span class="wms-layer-card__title">Inspecciones fotográficas</span>
-                                    </div>
-                                    <p class="wms-layer-card__hint">Puntos de tomas con GPS. Cada inspector tiene un color distinto. Use la herramienta <strong>i</strong> para ver la ficha.</p>
-                                    <div id="inspect-users-legend" class="inspect-users-legend" hidden></div>
-                                </div>
-                            <?php endif; ?>
                         </div>
                     </div>
                     </li>

@@ -74,7 +74,7 @@
       }
 
       .buscador-predio-input {
-        width:165px;
+        width:220px;
         height:34px;
         border:1px solid #aaa;
         border-radius:6px;
@@ -211,10 +211,19 @@
     if (mount.dataset.ready === "1") return;
     mount.dataset.ready = "1";
 
+    const canPadron =
+      typeof window.mxliCanViewPadron === "function"
+        ? window.mxliCanViewPadron()
+        : typeof window.mxliCan === "function" && window.mxliCan("map.padron");
+    const label = canPadron
+      ? "Buscar predio o propietario:"
+      : "Buscar predio:";
+    const placeholder = canPadron ? "CLAVE O NOMBRE" : "CLAVE CATASTRAL";
+
     mount.innerHTML = `
       <div id="buscadorPredioBox" class="buscador-predio-box" style="position:relative">
-        <label for="buscarPredioClave" class="buscador-predio-label">Buscar Clave Catastral:</label>
-        <input id="buscarPredioClave" class="buscador-predio-input" type="text" placeholder="CLAVE CATASTRAL" />
+        <label for="buscarPredioClave" class="buscador-predio-label">${label}</label>
+        <input id="buscarPredioClave" class="buscador-predio-input" type="text" placeholder="${placeholder}" />
         <button id="btnBuscarPredioClave" class="buscador-predio-btn" type="button">Buscar</button>
         <button id="btnToggleMedidasPredio" class="buscador-predio-btn buscador-predio-btn-medidas is-on" type="button" title="Mostrar u ocultar medidas">Medidas</button>
         <div id="buscadorPredioResults" class="buscador-predio-results" hidden>
@@ -279,12 +288,14 @@
 
     let t = null;
     input.addEventListener("input", function () {
-      this.value = limpiarClave(this.value);
+      this.value = normalizarBusqueda(this.value);
       const value = this.value;
       if (t) clearTimeout(t);
       t = setTimeout(function () {
-        if (esPrefijoListado(value)) {
-          buscarListadoPorPrefijo(value);
+        if (pareceNombre(value) && canViewPadron()) {
+          buscarPadronPorNombre(value);
+        } else if (esPrefijoListado(limpiarClave(value))) {
+          buscarListadoPorPrefijo(limpiarClave(value));
         } else {
           ocultarResultados();
         }
@@ -292,23 +303,13 @@
     });
 
     btn.addEventListener("click", function () {
-      const value = limpiarClave(input.value);
-      if (esPrefijoListado(value)) {
-        buscarListadoPorPrefijo(value);
-        return;
-      }
-      buscarPredioPorClave(value);
+      ejecutarBusqueda(input.value);
     });
 
     input.addEventListener("keydown", function (e) {
       if (e.key !== "Enter") return;
       e.preventDefault();
-      const value = limpiarClave(input.value);
-      if (esPrefijoListado(value)) {
-        buscarListadoPorPrefijo(value);
-        return;
-      }
-      buscarPredioPorClave(value);
+      ejecutarBusqueda(input.value);
     });
 
     // Cerrar resultados al hacer clic fuera
@@ -320,6 +321,46 @@
       if (input.contains(target)) return;
       ocultarResultados();
     });
+  }
+
+  function canViewPadron() {
+    if (typeof window.mxliCanViewPadron === "function") {
+      return window.mxliCanViewPadron();
+    }
+    return typeof window.mxliCan === "function" && window.mxliCan("map.padron");
+  }
+
+  function pareceNombre(valor) {
+    const v = String(valor || "").trim();
+    if (v.length < 3) return false;
+    if (/\d/.test(v)) return false;
+    return /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(v);
+  }
+
+  function normalizarBusqueda(valor) {
+    let v = String(valor || "").toUpperCase();
+    if (pareceNombre(v) || /\s/.test(v)) {
+      return v.replace(/\s+/g, " ").trim();
+    }
+    return v.replace(/\s+/g, "").trim();
+  }
+
+  function ejecutarBusqueda(valorOriginal) {
+    const crudo = String(valorOriginal || "").trim();
+    if (pareceNombre(crudo)) {
+      if (!canViewPadron()) {
+        window.alert("Su rol no tiene permiso para buscar por propietario.");
+        return;
+      }
+      buscarPadronPorNombre(normalizarBusqueda(crudo));
+      return;
+    }
+    const value = limpiarClave(crudo);
+    if (esPrefijoListado(value)) {
+      buscarListadoPorPrefijo(value);
+      return;
+    }
+    buscarPredioPorClave(value);
   }
 
   function esPrefijoListado(valor) {
@@ -404,8 +445,11 @@
 
     list.innerHTML = "";
     const total = (claves || []).length;
-    const etiqueta = etiquetaPrefijoBusqueda(prefix);
-    let titulo = etiqueta + ": " + total + " predio(s)";
+    const esPadron =
+      String(prefix || "").indexOf("Propietario") === 0 ||
+      (total > 0 && claves[0] && typeof claves[0] === "object");
+    const etiqueta = esPadron ? prefix : etiquetaPrefijoBusqueda(prefix);
+    let titulo = etiqueta + ": " + total + (esPadron ? " coincidencia(s)" : " predio(s)");
     if (meta && meta.truncated) {
       titulo +=
         " (mostrando " +
@@ -421,18 +465,57 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "buscador-predio-results__item";
-      btn.textContent = clave;
-      btn.addEventListener("click", function () {
-        ocultarResultados();
-        const input = document.getElementById("buscarPredioClave");
-        if (input) input.value = clave;
-        buscarPredioPorClave(clave);
-      });
+      if (clave && typeof clave === "object") {
+        btn.textContent =
+          (clave.clave || "") +
+          (clave.propietario ? " — " + clave.propietario : "");
+        const claveTxt = clave.clave;
+        btn.addEventListener("click", function () {
+          ocultarResultados();
+          const input = document.getElementById("buscarPredioClave");
+          if (input) input.value = claveTxt;
+          buscarPredioPorClave(claveTxt);
+        });
+      } else {
+        btn.textContent = clave;
+        btn.addEventListener("click", function () {
+          ocultarResultados();
+          const input = document.getElementById("buscarPredioClave");
+          if (input) input.value = clave;
+          buscarPredioPorClave(clave);
+        });
+      }
       li.appendChild(btn);
       list.appendChild(li);
     });
 
     box.hidden = total === 0;
+  }
+
+  async function buscarPadronPorNombre(nombre) {
+    if (!canViewPadron()) {
+      window.alert("Su rol no tiene permiso para buscar por propietario.");
+      return;
+    }
+    const box = document.getElementById("buscadorPredioResults");
+    const title = document.getElementById("buscadorPredioResultsTitle");
+    if (box) box.hidden = false;
+    if (title) title.textContent = "Buscando propietario…";
+
+    try {
+      const res = await fetch(
+        "api/padron.php?nombre=" + encodeURIComponent(nombre)
+      );
+      const data = await res.json();
+      if (!res.ok || !data || data.ok === false) {
+        throw new Error((data && data.error) || "Error al buscar propietario.");
+      }
+      const rows = data.resultados || [];
+      renderResultados("Propietario " + nombre, rows, null);
+    } catch (err) {
+      renderResultados(nombre, [], null);
+      if (title) title.textContent = String(err && err.message ? err.message : "Error");
+    }
   }
 
   async function buscarListadoPorPrefijo(prefix) {
@@ -553,30 +636,39 @@
     const homoclave = clave.substring(0, 2);
     const manzana = p.manzana || clave.substring(2, 5);
     const lote = p.lote || clave.substring(5, 8);
-    const superficie = Number(p.superficie || 0).toLocaleString("es-MX", {
+    const superficieRaw = p.superficie || 0;
+    const superficie = Number(superficieRaw).toLocaleString("es-MX", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
+
+    let bodyHtml;
+    if (canViewPadron() && typeof mxliPredioPadronBodyHtml === "function") {
+      bodyHtml = mxliPredioPadronBodyHtml(clave, superficieRaw);
+    } else {
+      bodyHtml =
+        "<div><b>Clave Catastral:</b> " +
+        clave +
+        "</div>" +
+        "<div><b>Homoclave:</b> " +
+        homoclave +
+        "</div>" +
+        "<div><b>Manzana:</b> " +
+        manzana +
+        "</div>" +
+        "<div><b>Lote:</b> " +
+        lote +
+        "</div>" +
+        "<div><b>Sup. Cart:</b> " +
+        superficie +
+        " m²</div>";
+    }
 
     const html =
       '<div class="mxli-feature-popup">' +
       '<div class="mxli-feature-popup__head">Información del predio</div>' +
       '<div class="mxli-feature-popup__body">' +
-      "<div><b>Clave Catastral:</b> " +
-      clave +
-      "</div>" +
-      "<div><b>Homoclave:</b> " +
-      homoclave +
-      "</div>" +
-      "<div><b>Manzana:</b> " +
-      manzana +
-      "</div>" +
-      "<div><b>Lote:</b> " +
-      lote +
-      "</div>" +
-      "<div><b>Sup. Cart:</b> " +
-      superficie +
-      " m²</div>" +
+      bodyHtml +
       "</div></div>";
     const popupOpts =
       typeof mxliPopupOptions === "function"
@@ -585,6 +677,10 @@
           ? { maxWidth: 260, minWidth: 160, maxHeight: 160, autoPanPadding: [48, 72] }
           : { maxHeight: 350, minWidth: 230 };
     L.popup(popupOpts).setLatLng(latlng).setContent(html).openOn(map2d);
+    if (canViewPadron() && typeof mxliFillPadronBlock === "function") {
+      const popupEl = document.querySelector(".leaflet-popup-content");
+      mxliFillPadronBlock(popupEl || document, clave);
+    }
   }
   function obtenerRingPrincipal(geom) {
     if (geom.type === "Polygon") return cerrarRing(geom.coordinates[0]);

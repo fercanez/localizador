@@ -5,10 +5,18 @@
   var tbody = document.getElementById("inspect-grid");
   var listMsg = document.getElementById("inspect-list-msg");
   var filterInput = document.getElementById("filter-clave");
+  var filterInspector = document.getElementById("filter-inspector");
   var dialog = document.getElementById("inspect-edit-dialog");
   var editForm = document.getElementById("inspect-edit-form");
   var itemsCache = [];
+  var filteredCache = [];
   var filterTimer = null;
+  var TYPE_LABELS = window.MXLI_INSPECT_TYPE_LABELS || {
+    lic_construccion: "Lic. Construcción",
+    imagen_urbana: "Imagen Urbana",
+    uso_suelo: "Uso de Suelo",
+    otro: "Otro",
+  };
 
   function showMsg(el, text, ok) {
     if (!el) return;
@@ -53,6 +61,52 @@
     return Number(item.lat).toFixed(5) + ", " + Number(item.lng).toFixed(5);
   }
 
+  function selectedFilterTypes() {
+    var keys = [];
+    document.querySelectorAll('#filter-types input[type="checkbox"]:checked').forEach(function (inp) {
+      if (inp.value) keys.push(inp.value);
+    });
+    return keys;
+  }
+
+  function selectedEditTypes() {
+    var keys = [];
+    document.querySelectorAll('#edit-inspect-types input[type="checkbox"][name="inspection_types"]:checked').forEach(function (inp) {
+      if (inp.value) keys.push(inp.value);
+    });
+    return keys.join(",");
+  }
+
+  function setEditTypes(csv) {
+    var selected = {};
+    String(csv || "")
+      .split(",")
+      .forEach(function (k) {
+        k = String(k || "").trim();
+        if (k) selected[k] = true;
+      });
+    document.querySelectorAll('#edit-inspect-types input[type="checkbox"][name="inspection_types"]').forEach(function (inp) {
+      inp.checked = !!selected[inp.value];
+    });
+  }
+
+  function typesChipsHtml(item) {
+    var types = item.types || [];
+    if ((!types || !types.length) && item.inspection_types) {
+      types = String(item.inspection_types).split(",").filter(Boolean);
+    }
+    if (!types.length) return "—";
+    return types
+      .map(function (k) {
+        return (
+          '<span class="inspect-type-chip">' +
+          escapeHtml(TYPE_LABELS[k] || k) +
+          "</span>"
+        );
+      })
+      .join("");
+  }
+
   function api(url, options) {
     return fetch(url, options).then(function (res) {
       return res.json().then(function (data) {
@@ -64,17 +118,56 @@
     });
   }
 
+  function applyClientFilters(items) {
+    var out = items || [];
+    var inspector = filterInspector ? String(filterInspector.value || "") : "";
+    var typeKeys = selectedFilterTypes();
+    if (inspector) {
+      out = out.filter(function (it) {
+        return String(it.created_by_name || "") === inspector;
+      });
+    }
+    if (typeKeys.length) {
+      out = out.filter(function (it) {
+        var csv = "," + String(it.inspection_types || "") + ",";
+        return typeKeys.some(function (k) {
+          return csv.indexOf("," + k + ",") >= 0;
+        });
+      });
+    }
+    return out;
+  }
+
+  function refreshInspectorOptions(items) {
+    if (!filterInspector) return;
+    var current = filterInspector.value;
+    var names = {};
+    (items || []).forEach(function (it) {
+      var n = String(it.created_by_name || "").trim();
+      if (n) names[n] = true;
+    });
+    var sorted = Object.keys(names).sort();
+    filterInspector.innerHTML = '<option value="">Todos los inspectores</option>';
+    sorted.forEach(function (n) {
+      var opt = document.createElement("option");
+      opt.value = n;
+      opt.textContent = n;
+      filterInspector.appendChild(opt);
+    });
+    if (current && names[current]) filterInspector.value = current;
+  }
+
   function renderItems(items) {
-    itemsCache = items || [];
+    filteredCache = items || [];
     tbody.innerHTML = "";
 
-    if (!itemsCache.length) {
+    if (!filteredCache.length) {
       tbody.innerHTML =
-        '<tr><td colspan="8" class="inspect-empty">No hay registros de inspección.</td></tr>';
+        '<tr><td colspan="9" class="inspect-empty">No hay registros de inspección.</td></tr>';
       return;
     }
 
-    itemsCache.forEach(function (item, index) {
+    filteredCache.forEach(function (item, index) {
       var tr = document.createElement("tr");
       tr.innerHTML =
         '<td class="inspect-table__num">' +
@@ -88,18 +181,21 @@
         item.id +
         '" title="Ver foto ampliada"></td>' +
         '<td class="inspect-table__clave">' +
-        escapeHtml(item.clavecatas) +
+        escapeHtml(String(item.clavecatas || "").toUpperCase()) +
+        "</td>" +
+        '<td class="inspect-table__types">' +
+        typesChipsHtml(item) +
         "</td>" +
         "<td>" +
         escapeHtml(formatDate(item.captured_at)) +
         "</td>" +
         "<td>" +
-        escapeHtml(item.created_by_name || "—") +
+        escapeHtml(String(item.created_by_name || "—").toUpperCase()) +
         "</td>" +
         '<td class="inspect-table__notes" title="' +
         escapeHtml(item.notes || "") +
         '">' +
-        escapeHtml(item.notes || "—") +
+        escapeHtml(String(item.notes || "—").toUpperCase()) +
         "</td>" +
         '<td class="inspect-table__gps">' +
         escapeHtml(formatGps(item)) +
@@ -124,10 +220,15 @@
   function loadItems() {
     showMsg(listMsg, "", true);
     var clave = String(filterInput.value || "").trim().replace(/\s+/g, "").toUpperCase();
-    var url = API + (clave ? "?clave=" + encodeURIComponent(clave) + "&limit=200" : "?limit=200");
+    var typeKeys = selectedFilterTypes();
+    var url = API + "?limit=2000";
+    if (clave) url += "&clave=" + encodeURIComponent(clave);
+    if (typeKeys.length === 1) url += "&tipo=" + encodeURIComponent(typeKeys[0]);
     return api(url)
       .then(function (data) {
-        renderItems(data.items || []);
+        itemsCache = data.items || [];
+        refreshInspectorOptions(itemsCache);
+        renderItems(applyClientFilters(itemsCache));
       })
       .catch(function (err) {
         showMsg(listMsg, err.message, false);
@@ -143,20 +244,21 @@
   }
 
   function exportCsv() {
-    if (!itemsCache.length) {
+    if (!filteredCache.length) {
       showMsg(listMsg, "No hay registros para exportar.", false);
       return;
     }
 
     var rows = [
-      ["#", "Clave catastral", "Fecha", "Inspector", "Notas", "Latitud", "Longitud", "URL foto"].join(","),
+      ["#", "Clave", "Tipos", "Fecha", "Inspector", "Notas", "Latitud", "Longitud", "URL foto"].join(","),
     ];
 
-    itemsCache.forEach(function (item, index) {
+    filteredCache.forEach(function (item, index) {
       rows.push(
         [
           index + 1,
           item.clavecatas,
+          item.types_label || item.inspection_types || "",
           formatDate(item.captured_at),
           item.created_by_name || "",
           item.notes || "",
@@ -189,7 +291,7 @@
 
     if (target.dataset.zoom) {
       var zoomId = Number(target.dataset.zoom);
-      var zoomItem = itemsCache.find(function (x) {
+      var zoomItem = filteredCache.find(function (x) {
         return Number(x.id) === zoomId;
       });
       if (!zoomItem) return;
@@ -199,7 +301,7 @@
 
     if (target.dataset.edit) {
       var id = Number(target.dataset.edit);
-      var item = itemsCache.find(function (x) {
+      var item = filteredCache.find(function (x) {
         return Number(x.id) === id;
       });
       if (!item) return;
@@ -207,6 +309,7 @@
       document.getElementById("edit-inspect-clave").value = item.clavecatas;
       document.getElementById("edit-inspect-notes").value = item.notes || "";
       document.getElementById("edit-inspect-preview").src = photoSrc(item.photo_url);
+      setEditTypes(item.inspection_types || "");
       dialog.showModal();
       return;
     }
@@ -231,6 +334,12 @@
     if (submitter && submitter.value === "cancel") return;
     event.preventDefault();
 
+    var typesCsv = selectedEditTypes();
+    if (!typesCsv) {
+      showMsg(listMsg, "Seleccione al menos un tipo de inspección.", false);
+      return;
+    }
+
     api(API, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -240,6 +349,7 @@
         notes: String(document.getElementById("edit-inspect-notes").value || "")
           .trim()
           .toUpperCase(),
+        inspection_types: typesCsv,
       }),
     })
       .then(function () {
@@ -258,7 +368,7 @@
     if (!box || !img) return;
     img.src = src;
     img.alt = "Foto " + (clave || "");
-    if (cap) cap.textContent = clave || "";
+    if (cap) cap.textContent = String(clave || "").toUpperCase();
     if (typeof box.showModal === "function") {
       box.showModal();
     } else {
@@ -295,6 +405,10 @@
     });
   }
 
+  document.querySelectorAll('#filter-types input[type="checkbox"]').forEach(function (inp) {
+    inp.addEventListener("change", loadItems);
+  });
+
   document.getElementById("btn-refresh-inspect").addEventListener("click", loadItems);
   document.getElementById("btn-export-csv").addEventListener("click", exportCsv);
 
@@ -302,6 +416,11 @@
     if (filterTimer) clearTimeout(filterTimer);
     filterTimer = setTimeout(loadItems, 300);
   });
+  if (filterInspector) {
+    filterInspector.addEventListener("change", function () {
+      renderItems(applyClientFilters(itemsCache));
+    });
+  }
 
   loadItems();
 })();

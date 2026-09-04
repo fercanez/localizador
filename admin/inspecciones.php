@@ -12,6 +12,7 @@ if (!mxli_can("map.inspect") && !mxli_can_inspection_manage()) {
 
 $me = mxli_current_user();
 $canManageAll = mxli_can_inspection_manage();
+$typeLabels = mxli_inspection_type_labels();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -21,7 +22,8 @@ $canManageAll = mxli_can_inspection_manage();
   <title>Inspecciones fotográficas | Catastro Mexicali</title>
   <link rel="stylesheet" href="../css/auth-app.css">
   <link rel="stylesheet" href="../css/admin-users.css">
-  <link rel="stylesheet" href="../css/admin-inspecciones.css?v=5">
+  <link rel="stylesheet" href="../css/admin-inspecciones.css?v=7">
+  <link rel="stylesheet" href="../css/inspeccion-fotos.css?v=5">
 </head>
 <body class="admin-body">
   <header class="admin-header">
@@ -39,6 +41,20 @@ $canManageAll = mxli_can_inspection_manage();
         <h2>Registros</h2>
         <div class="inspect-admin-filters">
           <input type="text" id="filter-clave" placeholder="Filtrar por clave…" maxlength="32">
+          <?php if ($canManageAll): ?>
+          <select id="filter-inspector">
+            <option value="">Todos los inspectores</option>
+          </select>
+          <?php endif; ?>
+          <div class="inspect-type-filter" id="filter-types" aria-label="Filtrar por tipo">
+            <?php foreach ($typeLabels as $key => $label): ?>
+              <label class="inspect-type-toggle">
+                <input type="checkbox" name="filter_types" value="<?= htmlspecialchars($key, ENT_QUOTES, "UTF-8") ?>">
+                <span class="inspect-type-dot" aria-hidden="true"></span>
+                <span class="inspect-type-text"><?= htmlspecialchars($label, ENT_QUOTES, "UTF-8") ?></span>
+              </label>
+            <?php endforeach; ?>
+          </div>
           <button type="button" id="btn-refresh-inspect" class="admin-secondary">Actualizar</button>
           <button type="button" id="btn-export-csv" class="admin-secondary">Exportar Excel (CSV)</button>
         </div>
@@ -49,7 +65,8 @@ $canManageAll = mxli_can_inspection_manage();
             <tr>
               <th>#</th>
               <th>Foto</th>
-              <th>Clave catastral</th>
+              <th>Clave</th>
+              <th>Tipos</th>
               <th>Fecha</th>
               <th>Inspector</th>
               <th>Notas</th>
@@ -69,9 +86,21 @@ $canManageAll = mxli_can_inspection_manage();
       <h3>Editar inspección</h3>
       <input type="hidden" id="edit-inspect-id">
       <img id="edit-inspect-preview" class="inspect-edit-preview" alt="Foto" title="Ver foto ampliada">
-      <label>Clave catastral
+      <label>Clave
         <input type="text" id="edit-inspect-clave" maxlength="32" required>
       </label>
+      <div class="inspect-type-field">
+        <span class="inspect-type-field__label">Tipo de inspección</span>
+        <div class="inspect-type-toggles" id="edit-inspect-types">
+          <?php foreach ($typeLabels as $key => $label): ?>
+            <label class="inspect-type-toggle">
+              <input type="checkbox" name="inspection_types" value="<?= htmlspecialchars($key, ENT_QUOTES, "UTF-8") ?>">
+              <span class="inspect-type-dot" aria-hidden="true"></span>
+              <span class="inspect-type-text"><?= htmlspecialchars($label, ENT_QUOTES, "UTF-8") ?></span>
+            </label>
+          <?php endforeach; ?>
+        </div>
+      </div>
       <label>Notas
         <textarea id="edit-inspect-notes" rows="3"></textarea>
       </label>
@@ -88,6 +117,10 @@ $canManageAll = mxli_can_inspection_manage();
     <p id="inspect-lightbox-caption" class="inspect-lightbox__caption"></p>
   </dialog>
 
-  <script src="../js/admin-inspecciones.js?v=5"></script>
+  <script>
+    window.MXLI_INSPECT_CAN_MANAGE = <?= $canManageAll ? "true" : "false" ?>;
+    window.MXLI_INSPECT_TYPE_LABELS = <?= json_encode($typeLabels, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+  </script>
+  <script src="../js/admin-inspecciones.js?v=7"></script>
 </body>
 </html>

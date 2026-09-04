@@ -8,6 +8,60 @@ function mxli_inspections_upload_root(): string
     return dirname(__DIR__) . "/uploads/inspections";
 }
 
+function mxli_inspection_type_labels(): array
+{
+    return [
+        "lic_construccion" => "Lic. Construcción",
+        "imagen_urbana" => "Imagen Urbana",
+        "uso_suelo" => "Uso de Suelo",
+        "otro" => "Otro",
+    ];
+}
+
+function mxli_normalize_inspection_types(mixed $value): string
+{
+    $allowed = array_keys(mxli_inspection_type_labels());
+    $parts = [];
+    if (is_array($value)) {
+        foreach ($value as $v) {
+            $parts[] = (string)$v;
+        }
+    } else {
+        $raw = trim((string)$value);
+        if ($raw !== "") {
+            $parts = preg_split('/\s*,\s*/', $raw) ?: [];
+        }
+    }
+    $out = [];
+    foreach ($parts as $p) {
+        $key = strtolower(trim((string)$p));
+        $key = preg_replace('/[^a-z0-9_]/', '', $key) ?? "";
+        if ($key !== "" && in_array($key, $allowed, true) && !in_array($key, $out, true)) {
+            $out[] = $key;
+        }
+    }
+    return implode(",", $out);
+}
+
+function mxli_inspection_types_list(string $csv): array
+{
+    $n = mxli_normalize_inspection_types($csv);
+    if ($n === "") {
+        return [];
+    }
+    return explode(",", $n);
+}
+
+function mxli_inspection_types_display(string $csv): string
+{
+    $labels = mxli_inspection_type_labels();
+    $parts = [];
+    foreach (mxli_inspection_types_list($csv) as $key) {
+        $parts[] = $labels[$key] ?? $key;
+    }
+    return implode(" · ", $parts);
+}
+
 function mxli_ensure_inspections_table(PDO $pdo): void
 {
     static $done = false;
@@ -31,6 +85,7 @@ function mxli_ensure_inspections_table(PDO $pdo): void
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_inspection_photos_clave ON app_inspection_photos (clavecatas)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_inspection_photos_user ON app_inspection_photos (created_by)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_inspection_photos_date ON app_inspection_photos (captured_at DESC)");
+    $pdo->exec("ALTER TABLE app_inspection_photos ADD COLUMN IF NOT EXISTS inspection_types VARCHAR(120) NOT NULL DEFAULT ''");
 
     $root = mxli_inspections_upload_root();
     if (!is_dir($root)) {
@@ -43,15 +98,6 @@ function mxli_ensure_inspections_table(PDO $pdo): void
 function mxli_normalize_inspection_clave(mixed $value): string
 {
     return strtoupper(preg_replace('/\s+/', '', (string)$value));
-}
-
-function mxli_normalize_inspection_notes(mixed $value): string
-{
-    $text = trim((string)$value);
-    if ($text === "") {
-        return "";
-    }
-    return function_exists("mb_strtoupper") ? mb_strtoupper($text, "UTF-8") : strtoupper($text);
 }
 
 function mxli_can_inspection_manage(?array $user = null): bool
@@ -81,31 +127,36 @@ function mxli_can_access_inspection_row(array $row, ?array $user = null): bool
     return $ownerId > 0 && $ownerId === (int)($user["id"] ?? 0);
 }
 
-function mxli_inspections_web_base(): string
-{
-    $script = str_replace("\\", "/", (string)($_SERVER["SCRIPT_NAME"] ?? ""));
-    if (preg_match('#^(.*?)/(?:api|admin)/#', $script, $m)) {
-        return rtrim($m[1], "/");
-    }
-    $dir = rtrim(str_replace("\\", "/", dirname($script)), "/");
-    return $dir === "/" ? "" : $dir;
-}
-
 function mxli_public_inspection_row(array $row, ?array $user = null): array
 {
     $id = (int)$row["id"];
-    $base = mxli_inspections_web_base();
+    $latRaw = $row["lat"] ?? null;
+    $lngRaw = $row["lng"] ?? null;
+    $lat = is_numeric($latRaw) ? (float)$latRaw : null;
+    $lng = is_numeric($lngRaw) ? (float)$lngRaw : null;
+    if ($lat !== null && ($lat < -90 || $lat > 90)) {
+        $lat = null;
+    }
+    if ($lng !== null && ($lng < -180 || $lng > 180)) {
+        $lng = null;
+    }
+
+    $typesCsv = mxli_normalize_inspection_types($row["inspection_types"] ?? "");
+
     return [
         "id" => $id,
         "clavecatas" => (string)$row["clavecatas"],
         "notes" => (string)($row["notes"] ?? ""),
-        "lat" => isset($row["lat"]) ? (float)$row["lat"] : null,
-        "lng" => isset($row["lng"]) ? (float)$row["lng"] : null,
+        "inspection_types" => $typesCsv,
+        "types" => mxli_inspection_types_list($typesCsv),
+        "types_label" => mxli_inspection_types_display($typesCsv),
+        "lat" => $lat,
+        "lng" => $lng,
         "captured_at" => $row["captured_at"] ?? null,
         "updated_at" => $row["updated_at"] ?? null,
         "created_by" => isset($row["created_by"]) ? (int)$row["created_by"] : null,
         "created_by_name" => (string)($row["created_by_name"] ?? $row["username"] ?? ""),
-        "photo_url" => $base . "/api/inspection-photo.php?id=" . $id,
+        "photo_url" => "api/inspection-photo.php?id=" . $id,
     ];
 }
 

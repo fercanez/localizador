@@ -64,6 +64,21 @@
     if (typeof group.bringToFront === "function") {
       group.bringToFront();
     }
+
+    // Keep inspection points above WMS tiles (map + interaction)
+    if (typeof window.inspecciones_fotos !== "undefined" && window.inspecciones_fotos) {
+      if (typeof window.inspecciones_fotos.bringToFront === "function") {
+        window.inspecciones_fotos.bringToFront();
+      }
+    }
+    if (typeof window.mxliBringInspectionsToTop === "function") {
+      // only raise map layers; avoid re-entrancy on DOM order ? call bring only
+      try {
+        if (window.inspecciones_fotos && typeof map2d !== "undefined" && map2d.hasLayer(window.inspecciones_fotos)) {
+          window.inspecciones_fotos.bringToFront();
+        }
+      } catch (e) {}
+    }
   };
 
   window.syncWmsLayerCardState = function (chkId, isActive) {
