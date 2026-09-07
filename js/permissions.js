@@ -28,13 +28,7 @@
       hide(document.getElementById("shp-upload"));
     }
 
-    if (
-      !can("map.inspect") &&
-      !can("map.inspect.catastro") &&
-      !can("inspections.manage") &&
-      !can("inspections.catastro.manage") &&
-      !can("users.manage")
-    ) {
+    if (!can("map.inspect")) {
       hide(document.getElementById("inspectPhotoBtn"));
     }
 
@@ -64,10 +58,6 @@
 
     if (!can("map.inspect") && !can("inspections.manage")) {
       document.querySelectorAll('a[href="admin/inspecciones.php"]').forEach(hide);
-    }
-
-    if (!can("map.inspect.catastro") && !can("inspections.catastro.manage")) {
-      document.querySelectorAll('a[href="admin/inspecciones-catastro.php"]').forEach(hide);
     }
 
     document.querySelectorAll("[data-gs-layer]").forEach(function (card) {

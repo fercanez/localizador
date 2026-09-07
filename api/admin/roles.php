@@ -38,6 +38,30 @@ function mxli_ensure_roles_table(PDO $pdo): void
         )"
     );
     $pdo->exec("ALTER TABLE app_users DROP CONSTRAINT IF EXISTS app_users_role_check");
+    $pdo->exec(
+        "DO \$\$
+         DECLARE r record;
+         BEGIN
+           FOR r IN
+             SELECT c.conname
+             FROM pg_constraint c
+             JOIN pg_attribute a
+               ON a.attrelid = c.conrelid
+              AND a.attnum = ANY (c.conkey)
+             WHERE c.conrelid = 'app_users'::regclass
+               AND c.contype = 'c'
+               AND a.attname = 'role'
+           LOOP
+             EXECUTE format('ALTER TABLE app_users DROP CONSTRAINT IF EXISTS %I', r.conname);
+           END LOOP;
+         END
+         \$\$"
+    );
+    $pdo->exec(
+        "ALTER TABLE app_users
+         ALTER COLUMN role TYPE VARCHAR(80)
+         USING trim(both FROM role::text)"
+    );
     $done = true;
 }
 

@@ -1,13 +1,16 @@
 .publicMap {
   width: 100%;
   height: calc(100vh - 8.5rem);
+  min-height: 320px;
 }
 
 #map2d {
   width: 100% !important;
   height: 100% !important;
-  z-index: 0;
-  display: block;
+  min-height: 320px !important;
+  z-index: 10;
+  display: block !important;
+  visibility: visible !important;
 }
 
 #map25d {

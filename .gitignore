@@ -1,3 +1,6 @@
+# Padron catastral (PII; no versionar)
+/data/
+
 # Secretos / entorno local
 includes/config.local.php
 .env

@@ -46,18 +46,12 @@
       "map.search": "Buscar",
       "map.info": "Info",
       "map.padron": "Padrón",
-      "map.expediente": "Expediente",
-      "map.expediente.download": "Descargar exp.",
-      "map.expediente.print": "Imprimir exp.",
-      "map.expediente.nowatermark": "Sin marca agua",
       "map.print": "Imprimir",
       "map.locate": "GPS",
       "map.measure": "Medir",
       "map.upload": "Subir",
-      "map.inspect": "Inspección Control Urbano",
-      "map.inspect.catastro": "Inspección Catastro",
-      "inspections.manage": "Gestionar insp. Control Urbano",
-      "inspections.catastro.manage": "Gestionar insp. Catastro",
+      "map.inspect": "Inspeccionar",
+      "inspections.manage": "Gestionar inspecciones",
       "users.manage": "Usuarios",
     };
     return (list || [])
@@ -175,6 +169,27 @@
     return list.length ? list : ["*"];
   }
 
+  function setSlugDisplay(slug, isCreate) {
+    var el = document.getElementById("role-slug-display");
+    if (!el) return;
+    if (isCreate) {
+      el.value = "";
+      el.placeholder = "Se genera al guardar (ej. gobierno_mpal)";
+      return;
+    }
+    el.value = slug || "";
+    el.placeholder = "";
+  }
+
+  /** Detecta nombre visible que parece slug técnico (p. ej. gobierno_mpal). */
+  function nameLooksLikeSlug(name, slug) {
+    var n = String(name || "").trim();
+    var s = String(slug || "").trim();
+    if (!n) return false;
+    if (s && n.toLowerCase() === s.toLowerCase()) return true;
+    return /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(n);
+  }
+
   function openCreate() {
     document.getElementById("role-mode").value = "create";
     document.getElementById("role-dialog-title").textContent = "Nuevo rol";
@@ -182,6 +197,7 @@
     document.getElementById("role-name").value = "";
     document.getElementById("role-description").value = "";
     document.getElementById("role-name").disabled = false;
+    setSlugDisplay("", true);
     setToolChecks(
       ["map.view", "map.search", "map.info", "map.print", "map.locate", "map.measure"],
       false
@@ -199,9 +215,21 @@
     document.getElementById("role-mode").value = "edit";
     document.getElementById("role-dialog-title").textContent = "Editar rol";
     document.getElementById("role-slug").value = role.slug;
+    // name = etiqueta visible; slug va en campo aparte (no mezclar)
     document.getElementById("role-name").value = role.name;
     document.getElementById("role-description").value = role.description || "";
     document.getElementById("role-name").disabled = isAdmin;
+    setSlugDisplay(role.slug, false);
+    if (nameLooksLikeSlug(role.name, role.slug) && !isAdmin) {
+      // Ayuda cuando en BD quedó name = slug por error de creación
+      window.setTimeout(function () {
+        var nameEl = document.getElementById("role-name");
+        if (nameEl && nameEl.value === role.name) {
+          nameEl.focus();
+          nameEl.select();
+        }
+      }, 50);
+    }
     setToolChecks(role.permissions, isAdmin);
     setLayerChecks(role.allowed_layers, isAdmin);
     dialog.showModal();
@@ -291,6 +319,16 @@
       var name = document.getElementById("role-name").value.trim();
       var description = document.getElementById("role-description").value.trim();
       var isAdmin = slug === "admin";
+
+      if (mode === "edit" && nameLooksLikeSlug(name, slug) && name.toLowerCase() === slug.toLowerCase()) {
+        var okSlugName = window.confirm(
+          "El nombre visible es igual al identificador («" +
+            slug +
+            "»).\n\n¿Guardar así de todos modos?\n\nRecomendado: use un nombre legible, p. ej. «Gobierno Mpal»."
+        );
+        if (!okSlugName) return;
+      }
+
       var payload = {
         name: name,
         description: description,
@@ -329,4 +367,4 @@
   document.addEventListener("mxli:roles-tab-shown", loadRoles);
   loadRoles();
 })();
-
+

@@ -36,7 +36,7 @@ $expiredNotice = isset($_GET["expired"]);
 
     <form id="auth-login-form" class="auth-form" autocomplete="on">
       <h2>Iniciar sesión</h2>
-      <p class="auth-hint">Ingrese con su usuario asignado por el administrador. El registro público está deshabilitado.</p>
+      <p class="auth-hint">Ingrese con su usuario asignado por el administrador.</p>
       <?php if ($expiredNotice): ?>
         <p class="auth-error" style="display:block">Su acceso ha vencido. Contacte al administrador.</p>
       <?php endif; ?>

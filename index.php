@@ -88,6 +88,7 @@ html, body {
   top: 86px !important;
 }
 
+/* height:auto + fixed colapsaba el mapa a 0px (área blanca sin error JS) */
 #map2d {
   position: fixed !important;
   top: 86px !important;
@@ -95,11 +96,18 @@ html, body {
   right: 0 !important;
   bottom: 0 !important;
   width: 100% !important;
-  height: auto !important;
+  height: calc(100vh - 86px) !important;
+  min-height: calc(100vh - 86px) !important;
+  z-index: 10 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .leaflet-container {
   width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
 }
 
 .mapMenu,
@@ -209,6 +217,8 @@ html, body {
 
   #map2d {
     top: 72px !important;
+    height: calc(100vh - 72px) !important;
+    min-height: calc(100vh - 72px) !important;
   }
 
   .mapMenu,
@@ -237,10 +247,7 @@ html, body {
       <a href="admin/usuarios.php">Usuarios</a>
     <?php endif; ?>
     <?php if (mxli_can("map.inspect") || mxli_can_inspection_manage()): ?>
-      <a href="admin/inspecciones.php">Control Urbano</a>
-    <?php endif; ?>
-    <?php if (mxli_can("map.inspect.catastro") || mxli_can_inspection_manage_catastro()): ?>
-      <a href="admin/inspecciones-catastro.php">Catastro</a>
+      <a href="admin/inspecciones.php">Inspecciones</a>
     <?php endif; ?>
     <a href="logout.php">Salir</a>
   </div>
@@ -280,19 +287,16 @@ window.mxliCanLayer = function (layerKey) {
 };
 </script>
 
-<script src="js/listaCapas.js?v=78"></script>
-<script src="js/padronPredio.js?v=10"></script>
-<script src="js/expedienteBtn.js?v=3"></script>
-<script src="js/mapStatePersist.js?v=2"></script>
-<script src="js/leaflet.js?v=89"></script>
-<script src="js/layerControls.js?v=72"></script>
-<script src="js/wmsLayerPanel.js?v=74"></script>
-<script src="js/simbologiaPanel.js?v=72"></script>
-<script src="js/buscadorPredios.js?v=89"></script>
-<script src="js/inspeccionesCapa.js?v=11"></script>
-<script src="js/inspeccionFotos.js?v=11"></script>
-<script src="js/mapTopToolbar.js?v=72"></script>
-<script src="js/permissions.js?v=76"></script>
+<script src="js/listaCapas.js?v=90"></script>
+<script src="js/padronPredio.js?v=90"></script>
+<script src="js/leaflet.js?v=90"></script>
+<script src="js/layerControls.js?v=90"></script>
+<script src="js/wmsLayerPanel.js?v=90"></script>
+<script src="js/simbologiaPanel.js?v=90"></script>
+<script src="js/buscadorPredios.js?v=90"></script>
+<script src="js/inspeccionFotos.js?v=90"></script>
+<script src="js/mapTopToolbar.js?v=90"></script>
+<script src="js/permissions.js?v=90"></script>
 
 <script>
 <?php include "js/menuBtn.js"; ?>
@@ -337,11 +341,17 @@ function hideSideElements() {
 <?php include "js/toggleModal.js"; ?>
 <?php include "js/sortableList.js"; ?>
 
-setTimeout(function () {
-  if (typeof map2d !== "undefined") {
-    map2d.invalidateSize();
-  }
-}, 800);
+function mxliFixMapSize() {
+  try {
+    var m = window.map2d || (typeof map2d !== "undefined" ? map2d : null);
+    if (m && m.invalidateSize) m.invalidateSize(true);
+  } catch (e) {}
+}
+setTimeout(mxliFixMapSize, 200);
+setTimeout(mxliFixMapSize, 800);
+setTimeout(mxliFixMapSize, 2000);
+window.addEventListener("load", mxliFixMapSize);
+window.addEventListener("resize", mxliFixMapSize);
 </script>
 
 </body>

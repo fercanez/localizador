@@ -1,6 +1,6 @@
 @import "toggleSwitch.css";
 @import "plusminusToggle.css";
-@import "sidePanels/acordeonCapas.css";
+/* acordeonCapas.css se carga por <link> en head.php (evita @import anidado + caché vieja) */
 
 .mapMenu {
   background: transparent;

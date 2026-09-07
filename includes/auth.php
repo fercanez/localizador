@@ -98,7 +98,7 @@ function mxli_fetch_role(string $slug): ?array
         ];
         return $cache[$slug];
     } catch (Throwable $e) {
-        $cache[$slug] = null;
+        // No cachear fallos transitorios de BD como "rol inexistente"
         return null;
     }
 }
@@ -166,35 +166,78 @@ function mxli_valid_roles(): array
 function mxli_normalize_role_slug(string $role): string
 {
     $role = strtolower(trim($role));
-    $role = preg_replace('/[^a-z0-9_\-]/', '', $role) ?? "";
+    // Alinear con slugify: espacios/acentos residuales → guion bajo (no eliminar).
+    // Antes "Gobierno Mpal" → "gobiernompal" y no coincidía con slug "gobierno_mpal".
+    $role = preg_replace('/[^a-z0-9_\-]+/', '_', $role) ?? "";
+    $role = trim($role, "_-");
+    $role = preg_replace('/_+/', '_', $role) ?? "";
     if ($role === "user") {
         return "consulta";
     }
     return $role !== "" ? $role : "consulta";
 }
 
+/**
+ * Resuelve entrada de admin (slug o nombre visible) al slug canónico en app_roles.
+ * Null si no existe. Usar en create/update de usuarios (no degradar a consulta).
+ */
+function mxli_resolve_role_slug(string $roleOrName): ?string
+{
+    $raw = trim($roleOrName);
+    if ($raw === "") {
+        return null;
+    }
+
+    $candidates = [];
+    $normalized = mxli_normalize_role_slug($raw);
+    if ($normalized !== "") {
+        $candidates[] = $normalized;
+    }
+    $slugified = mxli_slugify_role_name($raw);
+    if ($slugified !== "" && !in_array($slugified, $candidates, true)) {
+        $candidates[] = $slugified;
+    }
+
+    foreach ($candidates as $cand) {
+        if (mxli_fetch_role($cand) !== null) {
+            return $cand;
+        }
+    }
+
+    foreach (mxli_list_roles() as $role) {
+        if (strcasecmp((string)$role["slug"], $raw) === 0) {
+            return (string)$role["slug"];
+        }
+        if (strcasecmp((string)$role["name"], $raw) === 0) {
+            return (string)$role["slug"];
+        }
+        if ($slugified !== "" && mxli_slugify_role_name((string)$role["name"]) === $slugified) {
+            return (string)$role["slug"];
+        }
+    }
+
+    return null;
+}
+
 function mxli_normalize_role(string $role): string
 {
-    $role = mxli_normalize_role_slug($role);
-    if (in_array($role, mxli_valid_roles(), true)) {
-        return $role;
+    $resolved = mxli_resolve_role_slug($role);
+    if ($resolved !== null) {
+        return $resolved;
     }
-    // Rol custom en sesión aún no listable / fallback
-    if (mxli_fetch_role($role) !== null) {
-        return $role;
-    }
+    // Fallback solo para sesiones / datos legados ilegibles
     return "consulta";
 }
 
 function mxli_role_label(string $role): string
 {
-    $role = mxli_normalize_role_slug($role);
-    $fetched = mxli_fetch_role($role);
+    $resolved = mxli_resolve_role_slug($role) ?? mxli_normalize_role_slug($role);
+    $fetched = mxli_fetch_role($resolved);
     if ($fetched) {
         return (string)$fetched["name"];
     }
     $labels = mxli_role_labels();
-    return $labels[$role] ?? $role;
+    return $labels[$resolved] ?? $resolved;
 }
 
 function mxli_to_bool(mixed $value): bool
@@ -249,10 +292,6 @@ function mxli_permissions_for_role(string $role): array
         if ($role === "admin" && !in_array("users.manage", $perms, true)) {
             $perms[] = "users.manage";
         }
-        // Administrador siempre puede consultar nombres del padrón
-        if ($role === "admin" && !in_array("map.padron", $perms, true)) {
-            $perms[] = "map.padron";
-        }
         if (!in_array("map.view", $perms, true)) {
             array_unshift($perms, "map.view");
         }
@@ -306,10 +345,6 @@ function mxli_user_permissions(?array $user = null): array
     }
     $perms = mxli_permissions_for_role((string)($user["role"] ?? "consulta"));
     if (mxli_to_bool($user["can_view_padron"] ?? false) && !in_array("map.padron", $perms, true)) {
-        $perms[] = "map.padron";
-    }
-    // Quien administra usuarios también puede consultar nombres de registro
-    if (in_array("users.manage", $perms, true) && !in_array("map.padron", $perms, true)) {
         $perms[] = "map.padron";
     }
     return array_values($perms);

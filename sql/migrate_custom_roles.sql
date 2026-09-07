@@ -15,8 +15,29 @@ CREATE TABLE IF NOT EXISTS app_roles (
 
 CREATE INDEX IF NOT EXISTS idx_app_roles_system ON app_roles (is_system);
 
--- Quitar CHECK rígido de roles fijos en app_users
+-- Quitar CHECK rígido de roles fijos en app_users (cualquier nombre)
 ALTER TABLE app_users DROP CONSTRAINT IF EXISTS app_users_role_check;
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT c.conname
+    FROM pg_constraint c
+    JOIN pg_attribute a
+      ON a.attrelid = c.conrelid
+     AND a.attnum = ANY (c.conkey)
+    WHERE c.conrelid = 'app_users'::regclass
+      AND c.contype = 'c'
+      AND a.attname = 'role'
+  LOOP
+    EXECUTE format('ALTER TABLE app_users DROP CONSTRAINT IF EXISTS %I', r.conname);
+  END LOOP;
+END $$;
+ALTER TABLE app_users
+  ALTER COLUMN role TYPE VARCHAR(80)
+  USING trim(both FROM role::text);
+ALTER TABLE app_users ALTER COLUMN role SET DEFAULT 'consulta';
 
 COMMENT ON TABLE app_roles IS 'Roles configurables (permisos + capas visibles)';
 COMMENT ON COLUMN app_roles.allowed_layers IS 'Keys de capa o ["*"] = todas';
+COMMENT ON COLUMN app_users.role IS 'Slug de app_roles (no el nombre visible)';

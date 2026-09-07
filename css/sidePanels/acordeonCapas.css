@@ -1,5 +1,5 @@
-@import "capasActivas.css";
-@import "wmsLayerPanel.css";
+/* Imports movidos a <link> en includes/head.php — un @import al final
+   hacía que Chrome ignorara reglas y rompiera capas/layout. */
 
 /* Style the buttons that are used to open and close the accordion panel */
 .accordion-capas {
@@ -158,5 +158,3 @@
   /* margin-inline-start: 1rem; */
   /* padding-inline-end: 1.375rem; */
 }
-
-@import "simbologia.css";

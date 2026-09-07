@@ -48,9 +48,9 @@
     <!-- Plugin para cargar archivos kml y kmz -->
     <script src="https://unpkg.com/leaflet-kmz@latest/dist/leaflet-kmz.js"></script>
 
-    <!-- Plugin para dibujar elementos -->
-    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
-    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
+    <!-- Plugin para dibujar elementos (versión fija: @latest puede romper el mapa) -->
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.14.2/dist/leaflet-geoman.css" />
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.14.2/dist/leaflet-geoman.min.js"></script>
 
     <!-- Plugin para mostar medidas -->
     <link rel="stylesheet" href="./resources/leaflet-measure-path/leaflet-measure-path.css" />
@@ -58,6 +58,13 @@
 
     <!-- Plugin para imprimir mapa -->
     <script src="./resources/leaflet-browser-print/leaflet.browser.print.js"></script>
-  <link rel="stylesheet" href="./css/index.css?v=76">
-  <link rel="stylesheet" href="./css/inspeccion-fotos.css?v=13">
+  <!-- CSS críticos del mapa en <link> (no @import anidados: Chrome puede ignorarlos) -->
+  <link rel="stylesheet" href="./css/index.css?v=90">
+  <link rel="stylesheet" href="./css/publicMap.css?v=90">
+  <link rel="stylesheet" href="./css/mapMenu.css?v=90">
+  <link rel="stylesheet" href="./css/sidePanels/acordeonCapas.css?v=90">
+  <link rel="stylesheet" href="./css/sidePanels/capasActivas.css?v=90">
+  <link rel="stylesheet" href="./css/sidePanels/wmsLayerPanel.css?v=90">
+  <link rel="stylesheet" href="./css/sidePanels/simbologia.css?v=90">
+  <link rel="stylesheet" href="./css/inspeccion-fotos.css?v=90">
 </head>

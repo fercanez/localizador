@@ -28,6 +28,30 @@ try {
     );
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_app_roles_system ON app_roles (is_system)");
     $pdo->exec("ALTER TABLE app_users DROP CONSTRAINT IF EXISTS app_users_role_check");
+    $pdo->exec(
+        "DO \$\$
+         DECLARE r record;
+         BEGIN
+           FOR r IN
+             SELECT c.conname
+             FROM pg_constraint c
+             JOIN pg_attribute a
+               ON a.attrelid = c.conrelid
+              AND a.attnum = ANY (c.conkey)
+             WHERE c.conrelid = 'app_users'::regclass
+               AND c.contype = 'c'
+               AND a.attname = 'role'
+           LOOP
+             EXECUTE format('ALTER TABLE app_users DROP CONSTRAINT IF EXISTS %I', r.conname);
+           END LOOP;
+         END
+         \$\$"
+    );
+    $pdo->exec(
+        "ALTER TABLE app_users
+         ALTER COLUMN role TYPE VARCHAR(80)
+         USING trim(both FROM role::text)"
+    );
     $pdo->exec("UPDATE app_users SET role = 'consulta' WHERE role = 'user' OR role IS NULL OR role = ''");
 
     $insert = $pdo->prepare(
