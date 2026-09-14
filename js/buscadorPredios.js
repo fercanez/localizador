@@ -16,8 +16,28 @@
   let predioMedidasLayer = null;
   let ultimoRingCotas = null;
   let medidasVisibles = true;
+  let claveFiscalActual = "";
+  let resultadosAdeudoGen = 0;
   const COTA_COLOR = "#c62828";
   const PREDIO_COLOR = "#0057ff";
+  const PREDIO_FILL = "#00a2ff";
+  const FISCAL_OK_COLOR = "#15803d";
+  const FISCAL_OK_FILL = "#16a34a";
+  const FISCAL_DEBT_COLOR = "#c62828";
+  const FISCAL_DEBT_FILL = "#dc2626";
+  const FISCAL_ASEO_COLOR = "#c2410c";
+  const FISCAL_ASEO_FILL = "#ea580c";
+
+  var initTries = 0;
+  var INIT_MAX = 40;
+
+  function getMap() {
+    if (window.map2d) return window.map2d;
+    try {
+      if (typeof map2d !== "undefined" && map2d) return map2d;
+    } catch (e) {}
+    return null;
+  }
 
   function init() {
     if (typeof window.mxliCan === "function" && !window.mxliCan("map.search")) {
@@ -26,16 +46,27 @@
     if (typeof window.mxliCanLayer === "function" && !window.mxliCanLayer("predios_mexicali_2025")) {
       return;
     }
-    if (typeof L === "undefined" || typeof map2d === "undefined") {
-      setTimeout(init, 500);
+    var map = getMap();
+    if (typeof L === "undefined" || !map) {
+      if (initTries++ < INIT_MAX) setTimeout(init, 400);
       return;
     }
 
     insertarEstilos();
-    predioMedidasLayer = L.layerGroup().addTo(map2d);
+    predioMedidasLayer = L.layerGroup().addTo(map);
     crearBuscadorPredio();
 
-    map2d.on("zoomend", function () {
+    window.addEventListener("mxli-predial-adeudo", function (ev) {
+      var data = ev && ev.detail;
+      if (!data) return;
+      var est =
+        typeof window.mxliPredialEstatus === "function"
+          ? window.mxliPredialEstatus(data)
+          : "";
+      pintarPredioFiscal(est, data.clave_catastral);
+    });
+
+    map.on("zoomend", function () {
       if (ultimoRingCotas && medidasVisibles) {
         dibujarCotasProfesionales(ultimoRingCotas);
       }
@@ -74,8 +105,7 @@
       }
 
       .buscador-predio-input {
-        width:min(320px, 42vw);
-        min-width:200px;
+        width:220px;
         height:34px;
         border:1px solid #aaa;
         border-radius:6px;
@@ -178,6 +208,53 @@
         background:#f7f0f2;
       }
 
+      .buscador-predio-results__fiscal {
+        font-size:10px;
+        font-weight:800;
+        letter-spacing:.02em;
+        margin-top:2px;
+        color:#6a5560;
+      }
+
+      .buscador-predio-results__item--ok {
+        background:#e8f8ec;
+      }
+
+      .buscador-predio-results__item--ok:hover {
+        background:#d4f0db;
+      }
+
+      .buscador-predio-results__item--debt {
+        background:#fde8e8;
+      }
+
+      .buscador-predio-results__item--debt:hover {
+        background:#f8d0d0;
+      }
+
+      .buscador-predio-results__item--aseo {
+        background:#ffedd5;
+      }
+
+      .buscador-predio-results__item--aseo:hover {
+        background:#fed7aa;
+      }
+
+      .buscador-predio-results__item-main--ok,
+      .buscador-predio-results__item--ok .buscador-predio-results__fiscal {
+        color:#145a32;
+      }
+
+      .buscador-predio-results__item-main--debt,
+      .buscador-predio-results__item--debt .buscador-predio-results__fiscal {
+        color:#8b1a1a;
+      }
+
+      .buscador-predio-results__item-main--aseo,
+      .buscador-predio-results__item--aseo .buscador-predio-results__fiscal {
+        color:#9a3412;
+      }
+
       .predio-medida-label,
       .predio-vertice-label {
         background:transparent;
@@ -233,17 +310,13 @@
       ? "Buscar predio, dirección o propietario:"
       : "Buscar predio o dirección:";
     const placeholder = canPadron
-      ? "CLAVE, CALLE Y NÚMERO O NOMBRE DE REGISTRO"
+      ? "CLAVE, CALLE Y NÚMERO O NOMBRE"
       : "CLAVE O CALLE Y NÚMERO";
 
     mount.innerHTML = `
       <div id="buscadorPredioBox" class="buscador-predio-box" style="position:relative">
         <label for="buscarPredioClave" class="buscador-predio-label">${label}</label>
-        <input id="buscarPredioClave" class="buscador-predio-input" type="text" placeholder="${placeholder}" title="${
-          canPadron
-            ? "Ejemplos: ST312014 · AV REFORMA 120 · GARCIA LOPEZ"
-            : "Ejemplos: ST312014 · AV REFORMA 120 · CALLE JUAREZ 45"
-        }" />
+        <input id="buscarPredioClave" class="buscador-predio-input" type="text" placeholder="${placeholder}" />
         <button id="btnBuscarPredioClave" class="buscador-predio-btn" type="button">Buscar</button>
         <button id="btnToggleMedidasPredio" class="buscador-predio-btn buscador-predio-btn-medidas is-on" type="button" title="Mostrar u ocultar medidas">Medidas</button>
         <div id="buscadorPredioResults" class="buscador-predio-results" hidden>
@@ -359,8 +432,9 @@
       return window.mxliCanViewPadron();
     }
     if (window.MXLI_USER && window.MXLI_USER.can_view_padron) return true;
-    return typeof window.mxliCan === "function" && (
-      window.mxliCan("map.padron") || window.mxliCan("users.manage")
+    return (
+      typeof window.mxliCan === "function" &&
+      (window.mxliCan("map.padron") || window.mxliCan("users.manage"))
     );
   }
 
@@ -375,9 +449,9 @@
   function pareceDireccion(valor) {
     const v = String(valor || "").trim();
     if (v.length < 3) return false;
-    // Prefijos típicos de vialidad
+    // Prefijos típicos de vialidad / colonia
     if (
-      /^(CALLE|AV\.?|AVENIDA|BLVD\.?|BOULEVARD|PRIV\.?|PRIVADA|ANDADOR|CERRADA|CIRCUITO|CALZ\.?|CALZADA|CARR\.?|CARRETERA|PROL\.?|PROLONGACION|PROLONGACIÓN)\b/i.test(
+      /^(CALLE|AV\.?|AVENIDA|BLVD\.?|BOULEVARD|PRIV\.?|PRIVADA|ANDADOR|CERRADA|CIRCUITO|CALZ\.?|CALZADA|CARR\.?|CARRETERA|PROL\.?|PROLONGACION|PROLONGACIÓN|COL\.?|COLONIA)\b/i.test(
         v
       )
     ) {
@@ -519,6 +593,7 @@
     if (list) list.innerHTML = "";
     if (title) title.textContent = "";
     if (box) box.hidden = true;
+    resultadosAdeudoGen += 1;
   }
 
   function renderResultados(prefix, claves, meta) {
@@ -552,6 +627,7 @@
       btn.className = "buscador-predio-results__item";
       if (clave && typeof clave === "object") {
         const claveTxt = clave.clave || "";
+        btn.setAttribute("data-clave", claveTxt);
         const domicilio =
           clave.domicilio ||
           [clave.calle, clave.numero_oficial, clave.letra]
@@ -584,6 +660,7 @@
         });
       } else {
         btn.textContent = clave;
+        btn.setAttribute("data-clave", String(clave || ""));
         btn.addEventListener("click", function () {
           ocultarResultados();
           const input = document.getElementById("buscarPredioClave");
@@ -596,6 +673,62 @@
     });
 
     box.hidden = total === 0;
+    if (esPadron) {
+      consultarAdeudosDeResultados(claves || []);
+    }
+  }
+
+  function consultarAdeudosDeResultados(claves) {
+    const gen = ++resultadosAdeudoGen;
+    const list = document.getElementById("buscadorPredioResultsList");
+    if (!list || typeof window.mxliConsultarPredialAdeudo !== "function") return;
+    if (!claves.length || claves.length > 40) return;
+
+    const botones = {};
+    Array.prototype.forEach.call(list.querySelectorAll(".buscador-predio-results__item"), function (btn) {
+      const clave = String(btn.getAttribute("data-clave") || "").toUpperCase();
+      if (clave) botones[clave] = btn;
+      if (typeof window.mxliPintarResultadoPredial === "function") {
+        window.mxliPintarResultadoPredial(btn, { estatus_consulta: "pendiente" });
+      }
+    });
+
+    Object.keys(botones).forEach(function (clave) {
+      window.mxliConsultarPredialAdeudo(clave).then(function (data) {
+        if (gen !== resultadosAdeudoGen) return;
+        const btn = botones[clave];
+        if (btn && typeof window.mxliPintarResultadoPredial === "function") {
+          window.mxliPintarResultadoPredial(btn, data);
+        }
+      });
+    });
+  }
+
+  function pintarPredioFiscal(estatus, clave) {
+    const key = String(clave || "").trim().toUpperCase();
+    if (key && claveFiscalActual && key !== claveFiscalActual) return;
+    let color = PREDIO_COLOR;
+    let fill = PREDIO_FILL;
+    if (estatus === "con_adeudo") {
+      color = FISCAL_DEBT_COLOR;
+      fill = FISCAL_DEBT_FILL;
+    } else if (estatus === "adeudo_aseo") {
+      color = FISCAL_ASEO_COLOR;
+      fill = FISCAL_ASEO_FILL;
+    } else if (estatus === "sin_adeudo") {
+      color = FISCAL_OK_COLOR;
+      fill = FISCAL_OK_FILL;
+    }
+    if (predioRellenoLayer && predioRellenoLayer.setStyle) {
+      predioRellenoLayer.setStyle({
+        color: color,
+        fillColor: fill,
+        fillOpacity: estatus === "con_adeudo" || estatus === "sin_adeudo" || estatus === "adeudo_aseo" ? 0.18 : 0.10,
+      });
+    }
+    if (predioBuscadoLayer && predioBuscadoLayer.setStyle) {
+      predioBuscadoLayer.setStyle({ color: color });
+    }
   }
 
   async function buscarPadronPorDireccion(direccion) {
@@ -618,11 +751,12 @@
       const res = await fetch(
         "api/padron-address.php?direccion=" +
           encodeURIComponent(q) +
-          "&limit=40"
+          "&limit=40",
+        { credentials: "same-origin", cache: "no-store" }
       );
       const data = await res.json();
       if (!res.ok || !data || data.ok === false) {
-        throw new Error((data && data.error) || "Error al buscar dirección.");
+        throw new Error((data && (data.detail || data.error)) || "Error al buscar dirección.");
       }
       const rows = data.resultados || [];
       renderResultados("Dirección " + q, rows, null);
@@ -648,11 +782,12 @@
 
     try {
       const res = await fetch(
-        "api/padron.php?nombre=" + encodeURIComponent(nombre)
+        "api/padron.php?nombre=" + encodeURIComponent(nombre),
+        { credentials: "same-origin", cache: "no-store" }
       );
       const data = await res.json();
       if (!res.ok || !data || data.ok === false) {
-        throw new Error((data && data.error) || "Error al buscar propietario.");
+        throw new Error((data && (data.detail || data.error)) || "Error al buscar propietario.");
       }
       const rows = data.resultados || [];
       renderResultados("Propietario " + nombre, rows, null);
@@ -716,7 +851,7 @@
     predioRellenoLayer = L.polygon(latlngs, {
       color: PREDIO_COLOR,
       weight: 0,
-      fillColor: "#00a2ff",
+      fillColor: PREDIO_FILL,
       fillOpacity: 0.10,
       interactive: false,
     }).addTo(map2d);
@@ -744,21 +879,42 @@
   }
 
   function encenderCapaPredios() {
+    if (typeof window.encenderCapaPrediosMapa === "function") {
+      window.encenderCapaPrediosMapa();
+      return;
+    }
     if (typeof window.mxliCanLayer === "function" && !window.mxliCanLayer("predios_mexicali_2025")) {
       return;
     }
-    if (typeof predios !== "undefined" && !map2d.hasLayer(predios)) {
-      if (typeof group !== "undefined" && group.addLayer) group.addLayer(predios);
-      else predios.addTo(map2d);
+    if (typeof predios === "undefined") return;
 
-      const chk = document.getElementById("predios_chkbox");
-      if (chk) chk.checked = true;
+    const chk = document.getElementById("predios_chkbox");
+    const yaVisible =
+      (typeof group !== "undefined" && group.hasLayer && group.hasLayer(predios)) ||
+      (map2d && map2d.hasLayer && map2d.hasLayer(predios));
 
+    if (yaVisible) {
       if (typeof actualizarCapaActivaConsulta === "function") {
         actualizarCapaActivaConsulta();
       } else {
         window.capaActiva = predios;
       }
+      return;
+    }
+
+    if (chk && typeof toggleLayer === "function") {
+      chk.checked = true;
+      toggleLayer("predios_chkbox", predios);
+      return;
+    }
+
+    if (typeof group !== "undefined" && group.addLayer) group.addLayer(predios);
+    else predios.addTo(map2d);
+    if (chk) chk.checked = true;
+    if (typeof actualizarCapaActivaConsulta === "function") {
+      actualizarCapaActivaConsulta();
+    } else {
+      window.capaActiva = predios;
     }
   }
 
@@ -770,6 +926,7 @@
     predioBuscadoLayer = null;
     predioRellenoLayer = null;
     ultimoRingCotas = null;
+    claveFiscalActual = "";
     map2d.closePopup();
     actualizarBotonMedidas();
   }
@@ -777,6 +934,7 @@
   function abrirPopupPredio(feature, latlng) {
     const p = feature.properties || {};
     const clave = p.clavecatas || "";
+    claveFiscalActual = String(clave || "").trim().toUpperCase();
     const homoclave = clave.substring(0, 2);
     const manzana = p.manzana || clave.substring(2, 5);
     const lote = p.lote || clave.substring(5, 8);
@@ -790,9 +948,26 @@
     if (canViewPadron() && typeof mxliPredioPadronBodyHtml === "function") {
       bodyHtml = mxliPredioPadronBodyHtml(clave, superficieRaw);
     } else {
+      const claveU = String(clave || "").trim().toUpperCase();
+      const expedienteHtml =
+        typeof window.mxliExpedienteLinkHtml === "function"
+          ? window.mxliExpedienteLinkHtml(claveU)
+          : typeof window.mxliCan === "function" && window.mxliCan("map.expediente")
+            ? '<a href="#" class="mxli-expediente-link" data-expediente-clave="' +
+              claveU +
+              '" role="button"><span class="mxli-expediente-link__text">Ver Expediente</span></a>'
+            : "";
+      const badgeHtml =
+        typeof window.mxliPredialBadgeHtml === "function"
+          ? window.mxliPredialBadgeHtml(null, true)
+          : "";
       bodyHtml =
-        "<div><b>Clave Catastral:</b> " +
+        '<div data-mxli-predial="' + claveU + '">' +
+        '<div class="mxli-predial-clave-line"><b>Clave Catastral:</b> ' +
         clave +
+        "</div>" +
+        '<div class="mxli-predial-badge-host">' +
+        badgeHtml +
         "</div>" +
         "<div><b>Homoclave:</b> " +
         homoclave +
@@ -805,25 +980,46 @@
         "</div>" +
         "<div><b>Sup. Cart:</b> " +
         superficie +
-        " m²</div>";
+        " m²</div>" +
+        expedienteHtml +
+        "</div>";
     }
 
-    const html =
-      '<div class="mxli-feature-popup">' +
+    // Usar nodo DOM (no string): así popup.update() no reinstala placeholders "…".
+    const wrap = document.createElement("div");
+    wrap.className = "mxli-feature-popup";
+    wrap.innerHTML =
       '<div class="mxli-feature-popup__head">Información del predio</div>' +
       '<div class="mxli-feature-popup__body">' +
       bodyHtml +
-      "</div></div>";
+      "</div>";
     const popupOpts =
       typeof mxliPopupOptions === "function"
         ? mxliPopupOptions()
         : window.matchMedia("(max-width: 900px)").matches
-          ? { maxWidth: 260, minWidth: 160, maxHeight: 160, autoPanPadding: [48, 72] }
-          : { maxHeight: 350, minWidth: 230 };
-    L.popup(popupOpts).setLatLng(latlng).setContent(html).openOn(map2d);
+          ? {
+              maxWidth: 320,
+              minWidth: 260,
+              maxHeight: 320,
+              autoPanPadding: [48, 72],
+              className: "mxli-predio-leaflet-popup",
+            }
+          : {
+              maxWidth: 420,
+              maxHeight: 440,
+              minWidth: 300,
+              className: "mxli-predio-leaflet-popup",
+            };
+    L.popup(popupOpts).setLatLng(latlng).setContent(wrap).openOn(map2d);
     if (canViewPadron() && typeof mxliFillPadronBlock === "function") {
-      const popupEl = document.querySelector(".leaflet-popup-content");
-      mxliFillPadronBlock(popupEl || document, clave);
+      // Rellenar tras montar el popup en el mapa (mismo nodo vivo).
+      setTimeout(function () {
+        mxliFillPadronBlock(wrap, clave);
+      }, 0);
+    } else if (typeof window.mxliFillPredialAdeudo === "function") {
+      setTimeout(function () {
+        window.mxliFillPredialAdeudo(wrap, clave);
+      }, 0);
     }
   }
   function obtenerRingPrincipal(geom) {
@@ -1174,5 +1370,6 @@
     buscar: buscarPredioPorClave,
     limpiar: limpiarResultadoAnterior,
     toggleMedidas: setMedidasVisibles,
+    pintarFiscal: pintarPredioFiscal,
   };
 })();

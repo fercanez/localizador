@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Catálogo canónico de capas WMS (keys ACL = "layer").
+ * Catálogo canónico de capas (keys ACL). Las virtuales no son WMS de GeoServer.
  */
 function mxli_layer_catalog(): array
 {
@@ -15,6 +15,16 @@ function mxli_layer_catalog(): array
             "workspace" => "geonode",
             "datastore" => "geonode",
             "color" => "#e67e22",
+        ],
+        [
+            "key" => "predios_adeudo",
+            "title" => "Adeudo predial (deudores)",
+            "id" => "predios_adeudo_chkbox",
+            "var" => "predios_adeudo",
+            "workspace" => "",
+            "datastore" => "",
+            "color" => "#dc2626",
+            "virtual" => true,
         ],
         [
             "key" => "predios_baldios",
@@ -96,6 +106,24 @@ function mxli_layer_catalog(): array
             "workspace" => "geonode",
             "datastore" => "geonode",
             "color" => "#6d4c41",
+        ],
+        [
+            "key" => "drenes_conagua",
+            "title" => "Drenes CONAGUA",
+            "id" => "drenes_conagua_chkbox",
+            "var" => "drenes_conagua",
+            "workspace" => "geonode",
+            "datastore" => "geonode",
+            "color" => "#1a7f9e",
+        ],
+        [
+            "key" => "canales_conagua",
+            "title" => "Canales CONAGUA",
+            "id" => "canales_conagua_chkbox",
+            "var" => "canales_conagua",
+            "workspace" => "geonode",
+            "datastore" => "geonode",
+            "color" => "#1565c0",
         ],
     ];
 }

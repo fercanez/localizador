@@ -50,6 +50,16 @@
     display: none !important;
   }
 
+  .header-user-role {
+    display: none !important;
+  }
+
+  .header-user-identity {
+    border-right: none !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
   .header-user-box a {
     padding: 0.15rem 0.35rem !important;
     font-size: 0.62rem !important;
@@ -82,6 +92,9 @@
 
   #map2d {
     top: 42px !important;
+    height: calc(100vh - 42px) !important;
+    height: calc(100dvh - 42px) !important;
+    min-height: calc(100vh - 42px) !important;
   }
 
   .mapMenu,
@@ -319,180 +332,152 @@
     padding: 0.25rem !important;
   }
 
-  /* Popup información — más ancho, etiquetas cortas, valores UPPER más chicos */
+  /* Popup información — ancho usable; tabla apilada sin colapso a 1 letra */
   .leaflet-popup,
-  .leaflet-container .leaflet-popup {
-    max-width: min(94vw, 360px) !important;
-    width: min(94vw, 360px) !important;
+  .leaflet-popup.mxli-predio-leaflet-popup {
+    min-width: min(90vw, 280px) !important;
+    max-width: min(92vw, 340px) !important;
   }
 
   .leaflet-popup-content-wrapper,
-  .leaflet-container .leaflet-popup-content-wrapper {
-    max-width: min(94vw, 360px) !important;
-    width: min(94vw, 360px) !important;
+  .leaflet-popup.mxli-predio-leaflet-popup .leaflet-popup-content-wrapper {
+    min-width: min(90vw, 280px) !important;
+    max-width: min(92vw, 340px) !important;
     border-radius: 6px !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28) !important;
   }
 
   .leaflet-popup-content,
-  .leaflet-container .leaflet-popup-content {
-    margin: 6px 8px !important;
-    width: auto !important;
+  .leaflet-popup.mxli-predio-leaflet-popup .leaflet-popup-content {
+    margin: 8px 10px !important;
+    min-width: min(84vw, 260px) !important;
     max-width: 100% !important;
-    min-height: 0 !important;
-    max-height: min(55dvh, 380px) !important;
+    max-height: min(55vh, 360px) !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
-    font-size: 11px !important;
-    line-height: 1.25 !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+    box-sizing: border-box !important;
   }
 
   .leaflet-popup-tip-container {
     margin-top: -1px !important;
   }
 
-  .leaflet-container a.leaflet-popup-close-button,
-  .leaflet-popup a.leaflet-popup-close-button,
-  .leaflet-popup.mxli-inspect-leaflet-popup a.leaflet-popup-close-button {
-    top: 4px !important;
+  .leaflet-container a.leaflet-popup-close-button {
+    top: 2px !important;
     right: 4px !important;
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 16px !important;
     padding: 0 !important;
-    border: 2px solid #9b2f55 !important;
-    border-radius: 999px !important;
-    background: #ffffff !important;
-    color: #9b2f55 !important;
-    font-size: 24px !important;
-    font-weight: 700 !important;
-    line-height: 28px !important;
-    text-align: center !important;
-    opacity: 1 !important;
-    box-shadow: 0 1px 5px rgba(111, 47, 61, 0.3) !important;
-  }
-  .leaflet-container a.leaflet-popup-close-button:hover,
-  .leaflet-container a.leaflet-popup-close-button:active {
-    color: #6f2f3d !important;
-    border-color: #6f2f3d !important;
-    background: #fff5f8 !important;
+    line-height: 22px !important;
   }
 
-  .mxli-feature-popup,
-  .leaflet-popup-content .mxli-feature-popup {
-    font-size: 11px !important;
-    line-height: 1.25 !important;
+  .mxli-feature-popup {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    width: 100% !important;
     max-width: 100% !important;
   }
 
-  .mxli-feature-popup__head,
-  .leaflet-popup-content .mxli-feature-popup__head {
-    padding: 3px 22px 3px 6px !important;
-    margin: -2px -2px 4px -2px !important;
+  .mxli-feature-popup__head {
+    padding: 5px 26px 5px 8px !important;
+    margin: -2px -2px 6px -2px !important;
     font-size: 11px !important;
-    line-height: 1.2 !important;
+    line-height: 1.25 !important;
     font-weight: 700 !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
   }
 
   .mxli-feature-popup__body {
-    gap: 0.12rem !important;
+    gap: 0.2rem !important;
   }
 
   .mxli-feature-popup__body div {
-    font-size: 11px !important;
-    line-height: 1.25 !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
-  .leaflet-popup-content .mxli-padron-table,
-  .mxli-feature-popup .mxli-padron-table,
+  .mxli-padron-block {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
   .mxli-padron-table {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
     width: 100% !important;
-    table-layout: fixed !important;
-    border-collapse: collapse !important;
-    font-size: 11px !important;
-    line-height: 1.25 !important;
+    table-layout: auto !important;
   }
 
-  .leaflet-popup-content .mxli-padron-table tr,
-  .mxli-feature-popup .mxli-padron-table tr,
-  .mxli-padron-table tr {
-    display: block !important;
-    width: 100% !important;
-    margin: 0 0 5px !important;
-    border-bottom: 1px solid #eadfe3 !important;
-  }
-
-  .leaflet-popup-content .mxli-padron-table td,
-  .mxli-feature-popup .mxli-padron-table td,
+  .mxli-padron-table,
+  .mxli-padron-table tbody,
+  .mxli-padron-table tr,
   .mxli-padron-table td {
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    word-break: break-word !important;
-    overflow-wrap: anywhere !important;
-    border: none !important;
-    padding: 2px 4px !important;
   }
 
-  .leaflet-popup-content .mxli-padron-table td:first-child,
-  .leaflet-popup-content .mxli-padron-table .mxli-padron-label,
-  .mxli-feature-popup .mxli-padron-table .mxli-padron-label,
-  .mxli-padron-table td:first-child,
+  .mxli-padron-table tr {
+    margin-bottom: 0.35rem;
+    border: 1px solid #b9a4ab;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .mxli-padron-table td {
+    padding: 5px 8px !important;
+    border: none !important;
+    border-bottom: 1px solid #e8dde1 !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+
+  .mxli-padron-table tr td:last-child {
+    border-bottom: none !important;
+  }
+
   .mxli-padron-table .mxli-padron-label {
     width: 100% !important;
-    max-width: 100% !important;
-    background: transparent !important;
-    color: #6f2f3d !important;
-    font-size: 10px !important;
+    font-size: 11px !important;
     font-weight: 600 !important;
-    letter-spacing: 0 !important;
-    text-transform: none !important;
-    white-space: normal !important;
     word-break: normal !important;
     overflow-wrap: break-word !important;
-    padding: 2px 4px 0 !important;
   }
 
-  .leaflet-popup-content .mxli-padron-table td:last-child,
-  .leaflet-popup-content .mxli-padron-table .mxli-padron-value,
-  .mxli-feature-popup .mxli-padron-table .mxli-padron-value,
-  .mxli-padron-table td:last-child,
   .mxli-padron-table .mxli-padron-value {
     width: 100% !important;
-    max-width: 100% !important;
-    padding: 1px 4px 5px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    background: transparent !important;
-    text-transform: uppercase !important;
+    overflow-wrap: anywhere !important;
     word-break: break-word !important;
   }
 
-  .mxli-padron-table .mxli-padron-value b {
-    font-size: inherit !important;
+  .mxli-predial-badge {
+    font-size: 0.72rem !important;
+    max-width: 100%;
+    white-space: normal;
   }
 
-  /* inspect popup width override */
-  .leaflet-popup.mxli-inspect-leaflet-popup,
-  .leaflet-container .leaflet-popup.mxli-inspect-leaflet-popup {
-    min-width: min(92vw, 300px) !important;
-    max-width: min(94vw, 360px) !important;
-    width: auto !important;
-  }
-  .leaflet-popup.mxli-inspect-leaflet-popup .leaflet-popup-content-wrapper,
-  .leaflet-popup.mxli-inspect-leaflet-popup .leaflet-popup-content {
-    min-width: min(92vw, 280px) !important;
-    max-width: min(94vw, 360px) !important;
-    width: auto !important;
-  }
-  .leaflet-popup-content .mxli-inspect-popup {
-    min-width: min(92vw, 280px) !important;
-    max-width: 100% !important;
+  .mxli-expediente-link {
     width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
+  .mxli-expediente-link__text {
+    font-size: 0.95rem !important;
+    overflow-wrap: break-word;
+  }
 }
 
 @media (max-width: 420px) {

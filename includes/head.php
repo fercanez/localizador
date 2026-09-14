@@ -59,12 +59,13 @@
     <!-- Plugin para imprimir mapa -->
     <script src="./resources/leaflet-browser-print/leaflet.browser.print.js"></script>
   <!-- CSS críticos del mapa en <link> (no @import anidados: Chrome puede ignorarlos) -->
-  <link rel="stylesheet" href="./css/index.css?v=90">
-  <link rel="stylesheet" href="./css/publicMap.css?v=90">
-  <link rel="stylesheet" href="./css/mapMenu.css?v=90">
-  <link rel="stylesheet" href="./css/sidePanels/acordeonCapas.css?v=90">
-  <link rel="stylesheet" href="./css/sidePanels/capasActivas.css?v=90">
-  <link rel="stylesheet" href="./css/sidePanels/wmsLayerPanel.css?v=90">
-  <link rel="stylesheet" href="./css/sidePanels/simbologia.css?v=90">
-  <link rel="stylesheet" href="./css/inspeccion-fotos.css?v=90">
+  <link rel="stylesheet" href="./css/index.css?v=104">
+  <link rel="stylesheet" href="./css/mobile-map.css?v=103">
+  <link rel="stylesheet" href="./css/publicMap.css?v=99">
+  <link rel="stylesheet" href="./css/mapMenu.css?v=99">
+  <link rel="stylesheet" href="./css/sidePanels/acordeonCapas.css?v=99">
+  <link rel="stylesheet" href="./css/sidePanels/capasActivas.css?v=99">
+  <link rel="stylesheet" href="./css/sidePanels/wmsLayerPanel.css?v=99">
+  <link rel="stylesheet" href="./css/sidePanels/simbologia.css?v=99">
+  <link rel="stylesheet" href="./css/inspeccion-fotos.css?v=99">
 </head>

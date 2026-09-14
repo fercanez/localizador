@@ -145,6 +145,15 @@ html, body {
   font-size: 0.85rem;
 }
 
+.header-user-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-right: 0.15rem;
+  padding-right: 0.55rem;
+  border-right: 1px solid rgba(255,255,255,0.28);
+}
+
 .header-user-box a {
   color: #fff;
   text-decoration: none;
@@ -157,6 +166,15 @@ html, body {
 
 .header-user-box a:hover {
   background: rgba(255,255,255,0.24);
+}
+
+.header-user-box a.header-logout {
+  background: rgba(214,170,47,0.22);
+  border-color: rgba(214,170,47,0.55);
+}
+
+.header-user-box a.header-logout:hover {
+  background: rgba(214,170,47,0.38);
 }
 
 .header-user-role {
@@ -189,6 +207,11 @@ html, body {
   .header-catastro-texto .ciudad { font-size: 10px; }
   .header-user-name { display: none; }
   .header-user-role { display: none; }
+  .header-user-identity {
+    border-right: none;
+    padding-right: 0;
+    margin-right: 0;
+  }
   .header-user-box a {
     padding: 0.28rem 0.5rem;
     font-size: 0.75rem;
@@ -241,15 +264,20 @@ html, body {
     </div>
   </div>
   <div class="header-user-box">
-    <span class="header-user-name"><?= htmlspecialchars($mxliUser["username"] ?? "", ENT_QUOTES, "UTF-8") ?></span>
-    <span class="header-user-role"><?= htmlspecialchars($mxliUser["role_label"] ?? mxli_role_label($mxliUser["role"] ?? "consulta"), ENT_QUOTES, "UTF-8") ?></span>
+    <div class="header-user-identity">
+      <span class="header-user-name"><?= htmlspecialchars($mxliUser["username"] ?? "", ENT_QUOTES, "UTF-8") ?></span>
+      <span class="header-user-role"><?= htmlspecialchars($mxliUser["role_label"] ?? mxli_role_label($mxliUser["role"] ?? "consulta"), ENT_QUOTES, "UTF-8") ?></span>
+      <a class="header-logout" href="logout.php">Salir</a>
+    </div>
     <?php if (mxli_can("users.manage")): ?>
       <a href="admin/usuarios.php">Usuarios</a>
     <?php endif; ?>
     <?php if (mxli_can("map.inspect") || mxli_can_inspection_manage()): ?>
-      <a href="admin/inspecciones.php">Inspecciones</a>
+      <a href="admin/inspecciones.php">Insp. Control Urbano</a>
     <?php endif; ?>
-    <a href="logout.php">Salir</a>
+    <?php if (mxli_can("map.inspect.catastro") || mxli_can_inspection_manage_catastro()): ?>
+      <a href="admin/inspecciones-catastro.php">Insp. Catastro</a>
+    <?php endif; ?>
   </div>
 </header>
 
@@ -287,16 +315,21 @@ window.mxliCanLayer = function (layerKey) {
 };
 </script>
 
-<script src="js/listaCapas.js?v=90"></script>
-<script src="js/padronPredio.js?v=90"></script>
-<script src="js/leaflet.js?v=90"></script>
-<script src="js/layerControls.js?v=90"></script>
-<script src="js/wmsLayerPanel.js?v=90"></script>
-<script src="js/simbologiaPanel.js?v=90"></script>
-<script src="js/buscadorPredios.js?v=90"></script>
-<script src="js/inspeccionFotos.js?v=90"></script>
-<script src="js/mapTopToolbar.js?v=90"></script>
-<script src="js/permissions.js?v=90"></script>
+<script src="js/listaCapas.js?v=103"></script>
+<script src="js/predialAdeudo.js?v=110"></script>
+<script src="js/padronPredio.js?v=103"></script>
+<script src="js/expedienteBtn.js?v=103"></script>
+<script src="js/leaflet.js?v=103"></script>
+<script src="js/layerControls.js?v=103"></script>
+<script src="js/wmsLayerPanel.js?v=103"></script>
+<script src="js/simbologiaPanel.js?v=103"></script>
+<script src="js/buscadorPredios.js?v=108"></script>
+<script src="js/predialCapa.js?v=110"></script>
+<script src="js/inspeccionFotos.js?v=102"></script>
+<script src="js/inspeccionesCapa.js?v=102"></script>
+<script src="js/mapTopToolbar.js?v=102"></script>
+<script src="js/permissions.js?v=102"></script>
+<script src="js/sessionGuard.js?v=102"></script>
 
 <script>
 <?php include "js/menuBtn.js"; ?>

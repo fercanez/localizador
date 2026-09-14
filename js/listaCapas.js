@@ -184,20 +184,57 @@ overlayMaps["Zonas Homogéneas 2017-2026"] = zonas_homogeneas;
 overlayMaps["geonode:zonas_homogeneas_2017_2026_prop"] = zonas_homogeneas;
 
 // -----------------------------
-// AVALÚOS RÚSTICOS MEXICALI
+// DRENES CONAGUA
+// GeoNode sirve esta capa en /gs/ows (GetMap en /geoserver/geonode/wms responde 500)
 // -----------------------------
-var avaluos_rusticos = L.tileLayer.wms(WMS_GEOMEXICALI, Object.assign({
-  layers: "geonode:avaluos_rusticos_mexicali",
-  title: "Avalúos Rústicos Mexicali",
+var drenes_conagua = L.tileLayer.wms(WMS_GS_OWS, Object.assign({
+  layers: "geonode:drenes_conagua",
+  title: "Drenes CONAGUA",
   format: "image/png",
   transparent: true,
   version: "1.1.1",
   attribution: "MXLI",
-  zIndex: 730,
+  zIndex: 880,
 }, WMS_ZOOM));
 
-avaluos_rusticos.id = "avaluos_rusticos_mexicali";
-overlayMaps["avaluos_rusticos"] = avaluos_rusticos;
-overlayMaps["avaluos_rusticos_mexicali"] = avaluos_rusticos;
-overlayMaps["Avalúos Rústicos Mexicali"] = avaluos_rusticos;
-overlayMaps["geonode:avaluos_rusticos_mexicali"] = avaluos_rusticos;
+drenes_conagua.id = "drenes_conagua";
+overlayMaps["drenes_conagua"] = drenes_conagua;
+overlayMaps["Drenes CONAGUA"] = drenes_conagua;
+overlayMaps["geonode:drenes_conagua"] = drenes_conagua;
+
+// -----------------------------
+// CANALES CONAGUA
+// Mismo endpoint /gs/ows que drenes (no usar /geoserver/geonode/wms)
+// -----------------------------
+var canales_conagua = L.tileLayer.wms(WMS_GS_OWS, Object.assign({
+  layers: "geonode:canales_conagua",
+  title: "Canales CONAGUA",
+  format: "image/png",
+  transparent: true,
+  version: "1.1.1",
+  attribution: "MXLI",
+  zIndex: 885,
+}, WMS_ZOOM));
+
+canales_conagua.id = "canales_conagua";
+overlayMaps["canales_conagua"] = canales_conagua;
+overlayMaps["Canales CONAGUA"] = canales_conagua;
+overlayMaps["geonode:canales_conagua"] = canales_conagua;
+
+// -----------------------------
+// ADEUDO PREDIAL (capa temporal, se llena al acercar)
+// -----------------------------
+var predios_adeudo = L.geoJSON(null, {
+  title: "Adeudo predial",
+  interactive: true,
+  style: {
+    color: "#94a3b8",
+    weight: 1.2,
+    fillColor: "#cbd5e1",
+    fillOpacity: 0.28,
+  },
+});
+predios_adeudo.id = "predios_adeudo";
+predios_adeudo.options.title = "Adeudo predial";
+overlayMaps["Adeudo predial"] = predios_adeudo;
+overlayMaps["predios_adeudo"] = predios_adeudo;

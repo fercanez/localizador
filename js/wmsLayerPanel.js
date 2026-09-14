@@ -66,7 +66,7 @@
     }
 
     // Keep inspection camera markers above WMS tiles (map + interaction)
-    ["inspecciones_fotos", "inspecciones_catastro"].forEach(function (id) {
+    ["inspecciones_fotos", "inspecciones_catastro", "predios_adeudo"].forEach(function (id) {
       try {
         var lyr = window[id];
         if (
