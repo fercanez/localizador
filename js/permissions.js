@@ -70,6 +70,11 @@
       document.querySelectorAll('a[href="admin/inspecciones-catastro.php"]').forEach(hide);
     }
 
+    if (!can("map.planos")) {
+      hide(document.getElementById("consultaPlanosBtn"));
+      hide(document.getElementById("consultaPlanosHeaderBtn"));
+    }
+
     document.querySelectorAll("[data-gs-layer]").forEach(function (card) {
       var key = card.getAttribute("data-gs-layer") || "";
       if (key && !canLayer(key)) {

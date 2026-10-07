@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Catálogo canónico de capas WMS (keys ACL = "layer").
+ * Catálogo canónico de capas (keys ACL). Las virtuales no son WMS de GeoServer.
  */
 function mxli_layer_catalog(): array
 {
@@ -15,6 +15,16 @@ function mxli_layer_catalog(): array
             "workspace" => "geonode",
             "datastore" => "geonode",
             "color" => "#e67e22",
+        ],
+        [
+            "key" => "predios_adeudo",
+            "title" => "Adeudo predial (deudores)",
+            "id" => "predios_adeudo_chkbox",
+            "var" => "predios_adeudo",
+            "workspace" => "",
+            "datastore" => "",
+            "color" => "#dc2626",
+            "virtual" => true,
         ],
         [
             "key" => "predios_baldios",
@@ -97,6 +107,24 @@ function mxli_layer_catalog(): array
             "datastore" => "geonode",
             "color" => "#6d4c41",
         ],
+        [
+            "key" => "drenes_conagua",
+            "title" => "Drenes CONAGUA",
+            "id" => "drenes_conagua_chkbox",
+            "var" => "drenes_conagua",
+            "workspace" => "geonode",
+            "datastore" => "geonode",
+            "color" => "#1a7f9e",
+        ],
+        [
+            "key" => "canales_conagua",
+            "title" => "Canales CONAGUA",
+            "id" => "canales_conagua_chkbox",
+            "var" => "canales_conagua",
+            "workspace" => "geonode",
+            "datastore" => "geonode",
+            "color" => "#1565c0",
+        ],
     ];
 }
 
@@ -116,6 +144,10 @@ function mxli_tool_permission_defs(): array
         "map.expediente.download" => "Descargar expediente",
         "map.expediente.print" => "Imprimir expediente",
         "map.expediente.nowatermark" => "Ver expediente sin marca de agua (o quitarla)",
+        "map.planos" => "Consultar planos (PDF / DWG) por homoclave",
+        "map.planos.download" => "Descargar planos",
+        "map.planos.print" => "Imprimir planos",
+        "map.planos.nowatermark" => "Ver planos sin marca de agua (o quitarla)",
         "map.print" => "Imprimir mapa",
         "map.locate" => "Geolocalización GPS",
         "map.measure" => "Medir / dibujar",
@@ -156,6 +188,18 @@ function mxli_default_role_seeds(): array
         "map.inspect.catastro",
     ];
     $inspectorCatastroLayers = ["predios_mexicali_2025", "colonias"];
+    $deslindadorTools = [
+        "map.view",
+        "map.search",
+        "map.info",
+        "map.planos",
+        "map.planos.download",
+        "map.planos.print",
+        "map.locate",
+        "map.print",
+        "map.measure",
+    ];
+    $deslindadorLayers = ["predios_mexicali_2025", "colonias"];
 
     return [
         [
@@ -197,6 +241,14 @@ function mxli_default_role_seeds(): array
             "is_system" => true,
             "permissions" => $inspectorCatastroTools,
             "allowed_layers" => $inspectorCatastroLayers,
+        ],
+        [
+            "slug" => "perito_deslindador",
+            "name" => "Perito deslindador",
+            "description" => "Consulta de predios y planos catastrales (PDF / DWG) por homoclave",
+            "is_system" => true,
+            "permissions" => $deslindadorTools,
+            "allowed_layers" => $deslindadorLayers,
         ],
     ];
 }

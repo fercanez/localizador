@@ -1,11 +1,6 @@
 <?php
 declare(strict_types=1);
 
-/**
- * Búsqueda por dirección (calle / número oficial) desde padron2026.
- * Requiere map.search. Nunca expone propietario salvo map.padron.
- */
-
 header("Content-Type: application/json; charset=UTF-8");
 header("Cache-Control: no-store, no-cache, must-revalidate");
 

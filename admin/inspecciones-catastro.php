@@ -28,17 +28,18 @@ $typeLabels = mxli_inspection_type_labels();
   <title>Inspecciones Catastro | Catastro Mexicali</title>
   <link rel="stylesheet" href="../css/auth-app.css">
   <link rel="stylesheet" href="../css/admin-users.css">
-  <link rel="stylesheet" href="../css/admin-inspecciones.css?v=9">
-  <link rel="stylesheet" href="../css/inspeccion-fotos.css?v=6">
+  <link rel="stylesheet" href="../css/admin-inspecciones.css?v=92">
+  <link rel="stylesheet" href="../css/inspeccion-fotos.css?v=92">
 </head>
 <body class="admin-body" data-area="catastro">
   <header class="admin-header">
     <div>
       <a class="admin-back" href="../index.php">← Volver al mapa</a>
       <h1>Inspecciones Catastro</h1>
-      <p><?= $canManageAll ? "Gestión de todos los registros" : "Mis registros de campo" ?> — <strong><?= htmlspecialchars($me["username"] ?? "", ENT_QUOTES, "UTF-8") ?></strong></p>
+      <p class="admin-user-line"><?= $canManageAll ? "Gestión de todos los registros" : "Mis registros de campo" ?> — <strong><?= htmlspecialchars($me["username"] ?? "", ENT_QUOTES, "UTF-8") ?></strong>
+        <a class="admin-logout" href="../logout.php">Salir</a>
+      </p>
     </div>
-    <a class="admin-logout" href="../logout.php">Cerrar sesión</a>
   </header>
 
   <main class="admin-main admin-main--single">
@@ -107,6 +108,7 @@ $typeLabels = mxli_inspection_type_labels();
     window.MXLI_INSPECT_CAN_MANAGE = <?= $canManageAll ? "true" : "false" ?>;
     window.MXLI_INSPECT_TYPE_LABELS = <?= json_encode($typeLabels, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>
-  <script src="../js/admin-inspecciones.js?v=9"></script>
+  <script src="../js/admin-inspecciones.js?v=92"></script>
+  <script src="../js/sessionGuard.js?v=99"></script>
 </body>
 </html>

@@ -80,3 +80,30 @@ function toggleLayer(chkBox, lyrName) {
     }
   }
 }
+
+function mxliAddCheckedWmsLayers() {
+  document.querySelectorAll(".wms-layer-card").forEach(function (card) {
+    var chk = card.querySelector('input[type="checkbox"]');
+    var layerVar = card.getAttribute("data-layer-var");
+    var gsLayer = card.getAttribute("data-gs-layer") || layerVar;
+    if (!chk || !chk.id || !chk.checked || !layerVar) return;
+    if (typeof window.mxliCanLayer === "function" && gsLayer && !window.mxliCanLayer(gsLayer)) {
+      return;
+    }
+    var layer = window[layerVar];
+    if (!layer || typeof group === "undefined" || !group) return;
+    if (typeof map2d !== "undefined" && map2d && map2d.hasLayer && map2d.hasLayer(layer)) {
+      return;
+    }
+    try {
+      toggleLayer(chk.id, layer);
+    } catch (e) {}
+  });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", mxliAddCheckedWmsLayers);
+} else {
+  mxliAddCheckedWmsLayers();
+}
+window.mxliAddCheckedWmsLayers = mxliAddCheckedWmsLayers;

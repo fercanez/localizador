@@ -5,11 +5,12 @@ function safeOn(element, eventName, handler) {
   }
 }
 
-// Inicialización del mapa
-let map2d = L.map("map2d", { zoomControl: false }).setView(
+// Inicialización del mapa (var + window para buscadorPredios / inspeccionFotos)
+var map2d = L.map("map2d", { zoomControl: false }).setView(
   [32.642617, -115.471843],
   13
 );
+window.map2d = map2d;
 
 // Capa para carga de KML
 var vector = {};
@@ -20,15 +21,20 @@ var customLayer = L.geoJson(null, {
     return { color: "#f00" };
   },
 });
-var customLayer;
 
-// Capa para carga de KMZ
-var kmz = L.kmzLayer().addTo(map2d);
-kmz.id = "KMZ Propio";
-
-var kml = L.kmzLayer().addTo(map2d);
-kml.id = "KMZ Propio";
-
+// Capas KMZ/KML: no tumbar el mapa si el plugin CDN falla
+var kmz = null;
+var kml = null;
+try {
+  if (typeof L.kmzLayer === "function") {
+    kmz = L.kmzLayer().addTo(map2d);
+    kmz.id = "KMZ Propio";
+    kml = L.kmzLayer().addTo(map2d);
+    kml.id = "KMZ Propio";
+  }
+} catch (errKmz) {
+  console.warn("KMZ plugin no disponible:", errKmz);
+}
 // Agregar escala al mapa
 L.control.scale().addTo(map2d);
 
@@ -202,6 +208,7 @@ Object.assign(baseMaps, {
 });
 
 var group = L.featureGroup([]).addTo(map2d);
+window.group = group;
 
 var overlays = {
   Grupos: group,
@@ -280,33 +287,39 @@ L.control.newtools = function (opts) {
 L.control.newtools({ position: "topright" }).addTo(map2d);
 // L.control.baselayertools({ position: "bottomright" }).addTo(map2d);
 
-L.control
-  .locate({
-    strings: {
-      title: "Geolocalizar mi ubicación",
-      popup: "Estás a {distance} {unit} de este punto",
-      outsideMapBoundsMsg: "Parece que estás fuera del área del mapa",
-    },
-    locateOptions: {
-      enableHighAccuracy: true,
-      setView: true,
-      maxZoom: 18,
-    },
-    position: "bottomright",
-    onLocationError: function (err) {
-      var msg = "No se pudo obtener tu ubicación.";
-      if (err && err.code === 1) {
-        msg =
-          "Permiso de ubicación denegado.\n\nEn el celular: Ajustes → Apps → Catastro Mexicali → Permisos → Ubicación → Permitir.";
-      } else if (err && err.code === 2) {
-        msg = "No se pudo determinar la ubicación. Activa el GPS e intenta de nuevo.";
-      } else if (err && err.code === 3) {
-        msg = "Tiempo de espera agotado al obtener la ubicación.";
-      }
-      window.alert(msg);
-    },
-  })
-  .addTo(map2d);
+try {
+  if (typeof L.control.locate === "function") {
+    L.control
+      .locate({
+        strings: {
+          title: "Geolocalizar mi ubicación",
+          popup: "Estás a {distance} {unit} de este punto",
+          outsideMapBoundsMsg: "Parece que estás fuera del área del mapa",
+        },
+        locateOptions: {
+          enableHighAccuracy: true,
+          setView: true,
+          maxZoom: 18,
+        },
+        position: "bottomright",
+        onLocationError: function (err) {
+          var msg = "No se pudo obtener tu ubicación.";
+          if (err && err.code === 1) {
+            msg =
+              "Permiso de ubicación denegado.\n\nEn el celular: Ajustes → Apps → Catastro Mexicali → Permisos → Ubicación → Permitir.";
+          } else if (err && err.code === 2) {
+            msg = "No se pudo determinar la ubicación. Activa el GPS e intenta de nuevo.";
+          } else if (err && err.code === 3) {
+            msg = "Tiempo de espera agotado al obtener la ubicación.";
+          }
+          window.alert(msg);
+        },
+      })
+      .addTo(map2d);
+  }
+} catch (errLocate) {
+  console.warn("Locate control no disponible:", errLocate);
+}
 
 let $locateBtn = document.getElementById("locateBtn");
 let $realLocateBtn = document.querySelector(".leaflet-bar-part-single");
@@ -314,19 +327,6 @@ let $realLocateBtn = document.querySelector(".leaflet-bar-part-single");
 safeOn($locateBtn, "click", () => {
   if ($realLocateBtn) $realLocateBtn.click();
   $locateBtn.classList.toggle("locationIsActive");
-});
-
-window.mxliLastGps = window.mxliLastGps || null;
-window.mxliLastGpsAt = window.mxliLastGpsAt || 0;
-map2d.on("locationfound", function (e) {
-  if (!e || !e.latlng) return;
-  window.mxliLastGps = { lat: e.latlng.lat, lng: e.latlng.lng };
-  window.mxliLastGpsAt = Date.now();
-  try {
-    window.dispatchEvent(
-      new CustomEvent("mxli:gps", { detail: window.mxliLastGps })
-    );
-  } catch (err) {}
 });
 
 var zoomOptions = {
@@ -485,7 +485,8 @@ const CAPAS_CONSULTABLES_WMS = [
   "geonode:colonias",
   "geonode:usos_prop_au40",
   "geonode:zonas_homogeneas_2017_2026_prop",
-  "geonode:avaluos_rusticos_mexicali",
+  "geonode:drenes_conagua",
+  "geonode:canales_conagua",
 ];
 
 function esCapaConsultable(capa) {
@@ -509,6 +510,8 @@ function esCapaConsultable(capa) {
   return true;
 }
 
+var CAPA_PREDIO_WMS = "geonode:predios_mexicali_2025";
+
 function getCapasConsultablesActivas() {
   const activas = [];
 
@@ -520,7 +523,13 @@ function getCapasConsultablesActivas() {
     }
   });
 
+  // Predios primero (consulta catastral "i"), luego por zIndex
   return activas.sort(function (a, b) {
+    const aPred =
+      a.wmsParams && a.wmsParams.layers === CAPA_PREDIO_WMS ? 1 : 0;
+    const bPred =
+      b.wmsParams && b.wmsParams.layers === CAPA_PREDIO_WMS ? 1 : 0;
+    if (aPred !== bPred) return bPred - aPred;
     return (b.options.zIndex || 0) - (a.options.zIndex || 0);
   });
 }
@@ -592,22 +601,6 @@ async function fetchFeatureInfoFromApi(capaLayers, version, point, size) {
 }
 
 async function getFeatureInfo(evt) {
-  // Prefer inspection photo points (top layer) before WMS GetFeatureInfo.
-  if (typeof mxliFindInspectionFeature === "function" && evt && evt.latlng) {
-    const insp = mxliFindInspectionFeature(evt.latlng);
-    if (insp) {
-      const area = (insp.inspection_area || "urbano") === "catastro" ? "catastro" : "urbano";
-      return {
-        properties: insp,
-        isInspection: true,
-        sourceLayer:
-          insp.sourceLayer ||
-          (area === "catastro" ? "inspecciones_catastro" : "inspecciones_fotos"),
-        layer_type: "inspeccion_foto",
-      };
-    }
-  }
-
   const capas = getCapasConsultablesActivas();
   if (capas.length === 0) {
     alert(
@@ -621,7 +614,7 @@ async function getFeatureInfo(evt) {
   const version = capas[0].wmsParams.version || "1.1.1";
 
   try {
-    // Consultar de arriba hacia abajo para respetar la capa visible superior.
+    // Predios primero (capaActiva); si no hay feature, seguir con el resto.
     for (let i = 0; i < capas.length; i++) {
       const capa = capas[i];
       const data = await fetchFeatureInfoFromApi(
@@ -812,37 +805,52 @@ function createDataTable(data) {
       '<div class="mxli-feature-popup__body">' +
       mxliPredioPadronBodyHtml(clave, superficieRaw) +
       "</div>";
+    // Diferir el fetch hasta que Leaflet monte el nodo en el popup.
     if (typeof mxliFillPadronBlock === "function") {
-      mxliFillPadronBlock(div, clave);
+      setTimeout(function () {
+        mxliFillPadronBlock(div, clave);
+      }, 0);
     }
     return div;
   }
 
+  const expedienteHtml =
+    typeof window.mxliExpedienteLinkHtml === "function"
+      ? window.mxliExpedienteLinkHtml(String(clave || "").toUpperCase())
+      : typeof window.mxliCan === "function" && window.mxliCan("map.expediente")
+        ? '<a href="#" class="mxli-expediente-link" data-expediente-clave="' +
+          escapeHtml(String(clave || "").toUpperCase()) +
+          '" role="button"><span class="mxli-expediente-link__text">Ver Expediente</span></a>'
+        : "";
+
+  div.setAttribute("data-mxli-predial", String(clave || "").toUpperCase());
   div.innerHTML = `
     <div class="mxli-feature-popup__head">Información del predio</div>
     <div class="mxli-feature-popup__body">
-      <div><b>Clave:</b> ${escapeHtml(clave)}</div>
+      <div class="mxli-predial-clave-line"><b>Clave Catastral:</b> ${escapeHtml(clave)}</div>
+      <div class="mxli-predial-badge-host">${
+        typeof window.mxliPredialBadgeHtml === "function"
+          ? window.mxliPredialBadgeHtml(null, true)
+          : ""
+      }</div>
       <div><b>Homoclave:</b> ${escapeHtml(homoclave)}</div>
       <div><b>Manzana:</b> ${escapeHtml(manzana)}</div>
       <div><b>Lote:</b> ${escapeHtml(lote)}</div>
-      <div><b>Sup. cart.:</b> ${superficie} m²</div>
-      ${
-        typeof window.mxliExpedienteLinkHtml === "function"
-          ? window.mxliExpedienteLinkHtml(String(clave || "").toUpperCase())
-          : typeof window.mxliCan === "function" && window.mxliCan("map.expediente")
-            ? '<a href="#" class="mxli-expediente-link" data-expediente-clave="' +
-              escapeHtml(String(clave || "").toUpperCase()) +
-              '" role="button"><span class="mxli-expediente-link__text">Ver Expediente</span></a>'
-            : ""
-      }
+      <div><b>Sup. Cart:</b> ${superficie} m²</div>
+      ${expedienteHtml}
     </div>
   `;
+  if (typeof window.mxliFillPredialAdeudo === "function") {
+    setTimeout(function () {
+      window.mxliFillPredialAdeudo(div, clave);
+    }, 0);
+  }
 
   return div;
 }
 
 const FEATURE_LABELS = {
-  clavecatas: "Clave",
+  clavecatas: "Clave Catastral",
   nombre: "Nombre",
   colonia: "Colonia",
   NOMBRE: "Nombre",
@@ -980,12 +988,6 @@ function createZonaHomogeneaPopup(info) {
 }
 
 function createFeaturePopup(data) {
-  if (typeof isInspectionFeatureInfo === "function" && isInspectionFeatureInfo(data)) {
-    if (typeof createInspectionPopup === "function") {
-      return createInspectionPopup(data);
-    }
-  }
-
   if (isUsoPredioFeatureInfo(data)) {
     return createUsoPredioPopup(data);
   }
@@ -1034,10 +1036,30 @@ function createFeaturePopup(data) {
 
 function mxliPopupOptions() {
   const mobile = window.matchMedia("(max-width: 900px)").matches;
-  return mobile
-    ? { maxWidth: 360, minWidth: 240, maxHeight: 380, autoPanPadding: [40, 80] }
-    : { maxWidth: 360, minWidth: 240, maxHeight: 360 };
+  const vw = Math.max(
+    document.documentElement.clientWidth || 0,
+    window.innerWidth || 0
+  );
+  if (mobile) {
+    const w = Math.min(340, Math.max(260, Math.floor(vw * 0.9)));
+    return {
+      maxWidth: w,
+      minWidth: Math.min(280, Math.max(240, w - 20)),
+      maxHeight: Math.min(360, Math.floor((window.innerHeight || 600) * 0.55)),
+      autoPanPadding: [40, 64],
+      className: "mxli-predio-leaflet-popup",
+      keepInView: true,
+    };
+  }
+  return {
+    maxWidth: Math.min(420, Math.max(320, Math.floor(vw * 0.4))),
+    minWidth: 300,
+    maxHeight: 440,
+    className: "mxli-predio-leaflet-popup",
+    keepInView: true,
+  };
 }
+window.mxliPopupOptions = mxliPopupOptions;
 
 var popup = L.popup(mxliPopupOptions());
 
@@ -1052,62 +1074,42 @@ safeOn($panMapBtn, "click", () => {
     .querySelector("#getFeatureInfoBtn")
     .classList.contains("btnIsActive");
   if (state) {
-    map2d.off("click", mxliInfoToolMapClick);
+    map2d.off("click");
     map2d.dragging.enable();
     L.DomUtil.removeClass(map2d._container, "crosshair-cursor-enabled");
     document.querySelector("#panMapBtn").classList.add("btnIsActive");
     document
       .querySelector("#getFeatureInfoBtn")
       .classList.remove("btnIsActive");
-    if (typeof window.mxliRebindInspectMapClick === "function") {
-      window.mxliRebindInspectMapClick();
-    }
   }
 });
 
-async function mxliInfoToolMapClick(e) {
-  let featureInfo = await getFeatureInfo(e);
-  if (featureInfo) {
-    let table = createFeaturePopup(featureInfo);
-    var opts =
-      typeof isInspectionFeatureInfo === "function" && isInspectionFeatureInfo(featureInfo)
-        ? { minWidth: 280, maxWidth: 360, maxHeight: 380, className: "mxli-inspect-leaflet-popup", autoPanPadding: [40, 80] }
-        : mxliPopupOptions();
-    popup.options.minWidth = opts.minWidth;
-    popup.options.maxWidth = opts.maxWidth;
-    if (opts.maxHeight) popup.options.maxHeight = opts.maxHeight;
-    popup.options.className = opts.className || "";
-    if (opts.autoPanPadding) popup.options.autoPanPadding = opts.autoPanPadding;
-    popup.setLatLng(e.latlng).setContent(table).openOn(map2d);
-  }
-}
-
 function desactivarInformacion(state) {
   if (state) {
-    map2d.off("click", mxliInfoToolMapClick);
+    map2d.off("click");
     map2d.dragging.enable();
     L.DomUtil.removeClass(map2d._container, "crosshair-cursor-enabled");
     document.querySelector("#panMapBtn").classList.add("btnIsActive");
-    if (typeof window.mxliRebindInspectMapClick === "function") {
-      window.mxliRebindInspectMapClick();
-    }
   } else {
     L.DomUtil.addClass(map2d._container, "crosshair-cursor-enabled");
     document.querySelector("#panMapBtn").classList.remove("btnIsActive");
     map2d.dragging.disable();
-    map2d.off("click", mxliInfoToolMapClick);
-    map2d.on("click", mxliInfoToolMapClick);
+    map2d.on("click", async (e) => {
+      let featureInfo = await getFeatureInfo(e);
+      if (featureInfo) {
+        let table = createFeaturePopup(featureInfo);
+        Object.assign(popup.options, mxliPopupOptions());
+        popup.setLatLng(e.latlng).setContent(table).openOn(map2d);
+      }
+    });
   }
 }
 
 safeOn($getFeatureInfoBtn, "click", (e) => {
   e.stopPropagation();
-  var hasWms = getCapasConsultablesActivas().length > 0;
-  var hasInspect =
-    typeof isInspeccionesCapaActive === "function" && isInspeccionesCapaActive();
-  if (!hasWms && !hasInspect) {
+  if (getCapasConsultablesActivas().length === 0) {
     alert(
-      "Active Predios, Predios Baldíos, Usos de Suelo Actual, Colonias, Usos de Suelo 2040 o Inspecciones para consultar informacion."
+      "Active Predios, Predios Baldíos, Usos de Suelo Actual, Colonias o Usos de Suelo 2040 para consultar informacion."
     );
     return false;
   }
@@ -1316,18 +1318,16 @@ for (let i = 1; i <= 9; i++) {
   }
 }
 
-let geomanGroup = L.layerGroup().addTo(map2d);
+var geomanGroup = L.layerGroup().addTo(map2d);
 
 const validGeometries = ["Circle", "Line", "Rectangle", "Polygon"];
-// let measurement = false;
 // creates new actions
 const actions = [
-  // uses the default 'cancel' action
   "cancel",
-  // creates a new action that has text, no click event
   {
     text: "Ocultar Medidas",
     onClick: () => {
+      if (!map2d.pm) return;
       let geomanLayers = map2d.pm.getGeomanLayers();
 
       geomanLayers.forEach((layer) => {
@@ -1349,11 +1349,10 @@ const actions = [
       measurement = false;
     },
   },
-  // creates a new action with text and a click event
   {
     text: "Ver Medidas",
     onClick: () => {
-      console.log("ver medidas");
+      if (!map2d.pm) return;
       let geomanLayers = map2d.pm.getGeomanLayers();
       geomanLayers.forEach((layer) => {
         if (validGeometries.includes(layer.pm._shape)) {
@@ -1376,54 +1375,58 @@ const actions = [
   },
 ];
 
-map2d.pm.addControls({
-  position: "topleft",
-  drawCircleMarker: false,
-  drawText: false,
-  rotateMode: true,
-});
-map2d.pm.setLang("es");
+// Geoman CDN (@latest) no debe tumbar el mapa si falla o cambia API
+try {
+  if (map2d.pm && typeof map2d.pm.addControls === "function") {
+    map2d.pm.addControls({
+      position: "topleft",
+      drawCircleMarker: false,
+      drawText: false,
+      rotateMode: true,
+    });
+    if (typeof map2d.pm.setLang === "function") map2d.pm.setLang("es");
 
-map2d.pm.Toolbar.copyDrawControl("drawText", {
-  name: "Texto",
-  block: "draw",
-  title: "Agregar texto",
-});
+    if (map2d.pm.Toolbar && typeof map2d.pm.Toolbar.copyDrawControl === "function") {
+      map2d.pm.Toolbar.copyDrawControl("drawText", {
+        name: "Texto",
+        block: "draw",
+        title: "Agregar texto",
+      });
+    }
 
-// map2d.pm.Toolbar.copyDrawControl("rotateMode", {
-//   name: "Rotar",
-//   block: "edit",
-//   title: "Rotar elemento",
-// });
+    if (map2d.pm.Toolbar && typeof map2d.pm.Toolbar.createCustomControl === "function") {
+      map2d.pm.Toolbar.createCustomControl({
+        name: "Medir",
+        block: "draw",
+        title: "Medir",
+        className: "icon-Regla",
+        actions: actions,
+      });
+    }
 
-map2d.pm.Toolbar.createCustomControl({
-  name: "Medir",
-  block: "draw",
-  title: "Medir",
-  className: "icon-Regla",
-  actions: actions,
-});
+    map2d.pm.setGlobalOptions({ layerGroup: geomanGroup });
 
-map2d.pm.setGlobalOptions({ layerGroup: geomanGroup });
+    $editToolsContainer = document.querySelector("#editToolsContainer");
+    $drawTools = document.querySelector(".leaflet-pm-draw");
+    $editTools = document.querySelector(".leaflet-pm-edit");
 
-$editToolsContainer = document.querySelector("#editToolsContainer");
-$drawTools = document.querySelector(".leaflet-pm-draw");
-$editTools = document.querySelector(".leaflet-pm-edit");
+    if ($editToolsContainer && $drawTools) $editToolsContainer.appendChild($drawTools);
+    if ($editToolsContainer && $editTools) $editToolsContainer.appendChild($editTools);
 
-if ($editToolsContainer && $drawTools) $editToolsContainer.appendChild($drawTools);
-if ($editToolsContainer && $editTools) $editToolsContainer.appendChild($editTools);
+    $editToolsDisplayBtn = document.querySelector("#editToolsDisplayBtn");
 
-$editToolsDisplayBtn = document.querySelector("#editToolsDisplayBtn");
+    safeOn($editToolsDisplayBtn, "click", () => {
+      $editToolsDisplayBtn.classList.toggle("btnIsActive");
+      $editToolsContainer.classList.toggle("displayEditTools");
+    });
 
-safeOn($editToolsDisplayBtn, "click", () => {
-  $editToolsDisplayBtn.classList.toggle("btnIsActive");
-  $editToolsContainer.classList.toggle("displayEditTools");
-});
-
-// Agregar título rotar al boton rotar
-let rotateTool = document.querySelector(".leaflet-pm-icon-rotate");
-if (rotateTool && rotateTool.parentElement && rotateTool.parentElement.parentElement) {
-  rotateTool.parentElement.parentElement.setAttribute("title", "Rotar polígonos");
+    let rotateTool = document.querySelector(".leaflet-pm-icon-rotate");
+    if (rotateTool && rotateTool.parentElement && rotateTool.parentElement.parentElement) {
+      rotateTool.parentElement.parentElement.setAttribute("title", "Rotar polígonos");
+    }
+  }
+} catch (errGeoman) {
+  console.warn("Geoman no disponible; mapa sigue activo:", errGeoman);
 }
 
 // var printTopol = L.control

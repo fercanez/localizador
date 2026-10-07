@@ -42,7 +42,23 @@ if (!empty($row["__expired"])) {
     ], 403);
 }
 
-mxli_set_session_user($row);
+$lockError = mxli_session_lock_error($row);
+if ($lockError !== null) {
+    mxli_json_response([
+        "ok" => false,
+        "error" => $lockError,
+        "session_active" => true,
+    ], 409);
+}
+
+try {
+    $row = mxli_start_user_session($row);
+} catch (Throwable $e) {
+    mxli_json_response([
+        "ok" => false,
+        "error" => "No se pudo iniciar la sesión. Intente de nuevo.",
+    ], 500);
+}
 
 mxli_json_response([
     "ok" => true,

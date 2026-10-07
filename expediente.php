@@ -30,7 +30,7 @@ $h = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES, "UTF-8");
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Expediente <?= $h($clave) ?></title>
-  <link rel="stylesheet" href="css/expediente-visor.css?v=7">
+  <link rel="stylesheet" href="css/expediente-visor.css?v=9">
 </head>
 <body class="<?= !empty($flags["activa"]) ? "wm-on" : "" ?><?= $embed ? " exp-embed" : "" ?>" oncontextmenu="return false;">
   <header class="exp-bar">
@@ -84,7 +84,7 @@ $h = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES, "UTF-8");
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="js/expedienteVisor.js?v=7"></script>
+  <script src="js/expedienteVisor.js?v=8"></script>
   <script>
   (function () {
     var back = document.getElementById("exp-back-btn");

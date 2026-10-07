@@ -11,8 +11,9 @@
   var baseScale = 1.25;
   var viewScale = 1;
   var MIN_SCALE = 0.35;
-  var MAX_SCALE = 3.5;
+  var MAX_SCALE = 8;
   var pageNatural = []; // {w,h} canvas pixel size per page wrap
+  var pan = { on: false, x: 0, y: 0, sl: 0, st: 0, id: null };
 
   function setBusy(on, text) {
     if (!busy) return;
@@ -59,6 +60,68 @@
   function setViewScale(next) {
     viewScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
     applyViewScale();
+  }
+
+  function zoomAtClient(clientX, clientY, nextScale) {
+    if (!scrollEl) {
+      setViewScale(nextScale);
+      return;
+    }
+    var rect = scrollEl.getBoundingClientRect();
+    var beforeX = scrollEl.scrollLeft + (clientX - rect.left);
+    var beforeY = scrollEl.scrollTop + (clientY - rect.top);
+    var prev = viewScale || 1;
+    setViewScale(nextScale);
+    var ratio = (viewScale || 1) / prev;
+    if (!isFinite(ratio) || ratio <= 0) return;
+    scrollEl.scrollLeft = beforeX * ratio - (clientX - rect.left);
+    scrollEl.scrollTop = beforeY * ratio - (clientY - rect.top);
+  }
+
+  function zoomCentered(nextScale) {
+    if (!scrollEl) {
+      setViewScale(nextScale);
+      return;
+    }
+    var rect = scrollEl.getBoundingClientRect();
+    zoomAtClient(rect.left + scrollEl.clientWidth / 2, rect.top + scrollEl.clientHeight / 2, nextScale);
+  }
+
+  function bindPanAndWheel() {
+    if (!scrollEl) return;
+    scrollEl.addEventListener("pointerdown", function (e) {
+      if (e.button != null && e.button !== 0) return;
+      if (e.target && e.target.closest && e.target.closest("button, a, input, .exp-bar")) return;
+      pan.on = true;
+      pan.id = e.pointerId;
+      pan.x = e.clientX;
+      pan.y = e.clientY;
+      pan.sl = scrollEl.scrollLeft;
+      pan.st = scrollEl.scrollTop;
+      scrollEl.classList.add("is-panning");
+      try {
+        scrollEl.setPointerCapture(e.pointerId);
+      } catch (err) {}
+      e.preventDefault();
+    });
+    scrollEl.addEventListener("pointermove", function (e) {
+      if (!pan.on || (pan.id != null && e.pointerId !== pan.id)) return;
+      scrollEl.scrollLeft = pan.sl - (e.clientX - pan.x);
+      scrollEl.scrollTop = pan.st - (e.clientY - pan.y);
+    });
+    function endPan(e) {
+      if (pan.id != null && e && e.pointerId != null && e.pointerId !== pan.id) return;
+      pan.on = false;
+      pan.id = null;
+      scrollEl.classList.remove("is-panning");
+    }
+    scrollEl.addEventListener("pointerup", endPan);
+    scrollEl.addEventListener("pointercancel", endPan);
+    scrollEl.addEventListener("wheel", function (e) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      zoomAtClient(e.clientX, e.clientY, viewScale * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
+    }, { passive: false });
   }
 
   function fitWidth() {
@@ -323,12 +386,12 @@
 
   if (zoomOut) {
     zoomOut.addEventListener("click", function () {
-      setViewScale(viewScale / 1.2);
+      zoomCentered(viewScale / 1.2);
     });
   }
   if (zoomIn) {
     zoomIn.addEventListener("click", function () {
-      setViewScale(viewScale * 1.2);
+      zoomCentered(viewScale * 1.2);
     });
   }
   if (zoomFitW) {
@@ -390,9 +453,10 @@
         e.preventDefault();
       }
     }
-    if (key === "+" || key === "=") setViewScale(viewScale * 1.2);
-    if (key === "-") setViewScale(viewScale / 1.2);
+    if (key === "+" || key === "=") zoomCentered(viewScale * 1.2);
+    if (key === "-") zoomCentered(viewScale / 1.2);
   });
 
+  bindPanAndWheel();
   loadPdf();
 })();

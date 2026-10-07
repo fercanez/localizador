@@ -43,6 +43,7 @@ $wmsCapasGeoservidor = [
         "datastore" => "geonode",
         "title" => "Colonias",
         "color" => "#8e44ad",
+        "default_on" => true,
     ],
     [
         "id" => "predios_con_uso_chkbox",
@@ -97,6 +98,24 @@ $wmsCapasGeoservidor = [
         "datastore" => "geonode",
         "title" => "Avalúos Rústicos Mexicali",
         "color" => "#6d4c41",
+    ],
+    [
+        "id" => "drenes_conagua_chkbox",
+        "var" => "drenes_conagua",
+        "layer" => "drenes_conagua",
+        "workspace" => "geonode",
+        "datastore" => "geonode",
+        "title" => "Drenes CONAGUA",
+        "color" => "#1a7f9e",
+    ],
+    [
+        "id" => "canales_conagua_chkbox",
+        "var" => "canales_conagua",
+        "layer" => "canales_conagua",
+        "workspace" => "geonode",
+        "datastore" => "geonode",
+        "title" => "Canales CONAGUA",
+        "color" => "#1565c0",
     ],
 ];
 
@@ -186,6 +205,40 @@ $wmsCapasGeoservidor = array_values(array_filter(
                                 </div>
                             <?php endif; ?>
 
+                            <?php if (function_exists("mxli_can_layer") && mxli_can_layer("predios_adeudo")): ?>
+                                <div class="wms-layer-card wms-layer-card--adeudo"
+                                    id="predios_adeudo_card"
+                                    data-layer-id="predios_adeudo_chkbox"
+                                    data-layer-var="predios_adeudo"
+                                    data-gs-layer="predios_mexicali_2025"
+                                    data-title="Adeudo predial"
+                                    data-opacity="100">
+                                    <div class="wms-layer-card__header">
+                                        <label class="wms-layer-card__check" for="predios_adeudo_chkbox">
+                                            <input type="checkbox"
+                                                id="predios_adeudo_chkbox"
+                                                name="predios_adeudo_chkbox"
+                                                onchange="if (window.MxliPredialCapa) MxliPredialCapa.sync();">
+                                        </label>
+                                        <span class="wms-layer-card__color mxli-adeudo-swatch" aria-hidden="true"></span>
+                                        <span class="wms-layer-card__title">Adeudo predial</span>
+                                    </div>
+                                    <p class="wms-layer-card__hint">
+                                        Capa temporal: verde sin adeudo, naranja aseo público, rojo adeudo predial
+                                        (portal del Ayuntamiento). Pinta hasta 100 predios desde el centro del mapa hacia afuera
+                                        (zoom 17+) y se limpia al alejar.
+                                    </p>
+                                    <div class="mxli-adeudo-legend" aria-hidden="true">
+                                        <span class="mxli-adeudo-legend__item mxli-adeudo-legend__item--ok">Sin adeudo</span>
+                                        <span class="mxli-adeudo-legend__item mxli-adeudo-legend__item--aseo">Aseo público</span>
+                                        <span class="mxli-adeudo-legend__item mxli-adeudo-legend__item--debt">Adeudo predial</span>
+                                    </div>
+                                    <p id="predios_adeudo_status" class="wms-layer-card__hint mxli-adeudo-status">
+                                        Encienda la capa y acerque el mapa (zoom 17+).
+                                    </p>
+                                </div>
+                            <?php endif; ?>
+
 
                             <?php foreach ($wmsCapasGeoservidor as $capa): ?>
                                 <div class="wms-layer-card"
@@ -197,12 +250,14 @@ $wmsCapasGeoservidor = array_values(array_filter(
                                     data-title="<?= htmlspecialchars($capa["title"], ENT_QUOTES, "UTF-8") ?>"
                                     data-legend-width="<?= (int)$capa["legend_width"] ?>"
                                     data-legend-height="<?= (int)$capa["legend_height"] ?>"
-                                    data-opacity="100">
+                                    data-opacity="100"
+                                    <?= !empty($capa["default_on"]) ? 'data-default-on="1"' : "" ?>>
                                     <div class="wms-layer-card__header">
                                         <label class="wms-layer-card__check" for="<?= htmlspecialchars($capa["id"], ENT_QUOTES, "UTF-8") ?>">
                                             <input type="checkbox"
                                                 id="<?= htmlspecialchars($capa["id"], ENT_QUOTES, "UTF-8") ?>"
                                                 name="<?= htmlspecialchars($capa["id"], ENT_QUOTES, "UTF-8") ?>"
+                                                <?= !empty($capa["default_on"]) ? "checked" : "" ?>
                                                 onchange="toggleLayer('<?= htmlspecialchars($capa["id"], ENT_QUOTES, "UTF-8") ?>', <?= htmlspecialchars($capa["var"], ENT_QUOTES, "UTF-8") ?>)">
                                         </label>
                                         <span class="wms-layer-card__color"

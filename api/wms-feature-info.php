@@ -139,14 +139,19 @@ function mxli_query_feature_info(
 ): ?array {
     $query = mxli_build_feature_info_query($layers, $version, $bbox, $width, $height, $x, $y);
 
+    $lastEmpty = null;
     foreach ($endpoints as $endpoint) {
         $result = mxli_fetch_feature_info($endpoint, $query);
-        if ($result !== null) {
+        if ($result === null) {
+            continue;
+        }
+        if (mxli_feature_count($result) > 0) {
             return $result;
         }
+        $lastEmpty = $result;
     }
 
-    return null;
+    return $lastEmpty;
 }
 
 $endpoints = mxli_feature_info_endpoints($geoserverBase, $gsOws);

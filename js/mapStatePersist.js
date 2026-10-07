@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "mxli_map_view_state_v1";
+  var STORAGE_KEY = "mxli_map_view_state_v2";
   // Vista de inicio del localizador (igual que leaflet.js)
   var HOME_CENTER = [32.642617, -115.471843];
   var HOME_ZOOM = 13;
@@ -86,19 +86,27 @@
     }
   }
 
-  /** Arranque: vista de inicio + Colonias ON + Predios OFF */
+  /** Arranque: Predios ON (consulta) + Colonias ON (solo visible, no identify). */
   function applyStartupDefaults() {
     setHomeView();
 
-    // Predios apagada hasta que el usuario la solicite (o busque un predio)
-    setLayerChecked("predios_chkbox", "predios", false);
-    // Colonias prendida
+    setLayerChecked("predios_chkbox", "predios", true);
     setLayerChecked("colonias_chkbox", "colonias", true);
 
     if (typeof applyWmsLayerStack === "function") {
       try {
         applyWmsLayerStack();
       } catch (e) {}
+    }
+
+    if (typeof window.mxliSetIdentifyLayer === "function") {
+      window.mxliSetIdentifyLayer("predios_mexicali_2025");
+    }
+    if (typeof actualizarCapaActivaConsulta === "function") {
+      actualizarCapaActivaConsulta();
+    }
+    if (typeof window.mxliActivarConsultaPrediosPorDefecto === "function") {
+      window.mxliActivarConsultaPrediosPorDefecto();
     }
   }
 
@@ -169,6 +177,7 @@
   function boot() {
     // Limpiar restauración antigua de vista (evita quedar en la última consulta)
     try {
+      sessionStorage.removeItem("mxli_map_view_state_v1");
       sessionStorage.removeItem(STORAGE_KEY);
     } catch (e) {}
 
@@ -178,9 +187,13 @@
       var ready =
         typeof map2d !== "undefined" &&
         map2d &&
+        typeof group !== "undefined" &&
+        group &&
         typeof toggleLayer === "function" &&
         typeof window.colonias !== "undefined" &&
-        document.getElementById("colonias_chkbox");
+        typeof window.predios !== "undefined" &&
+        document.getElementById("colonias_chkbox") &&
+        document.getElementById("predios_chkbox");
       if (ready) {
         applyStartupDefaults();
         return;

@@ -2,6 +2,8 @@
 include "includes/init.php";
 require_once __DIR__ . "/includes/auth.php";
 require_once __DIR__ . "/includes/inspections.php";
+require_once __DIR__ . "/includes/planos.php";
+mxli_planos_grant_roles();
 mxli_require_login();
 $mxliUser = mxli_current_user();
 ?>
@@ -88,6 +90,7 @@ html, body {
   top: 86px !important;
 }
 
+/* height:auto + fixed colapsaba el mapa a 0px (área blanca sin error JS) */
 #map2d {
   position: fixed !important;
   top: 86px !important;
@@ -95,11 +98,18 @@ html, body {
   right: 0 !important;
   bottom: 0 !important;
   width: 100% !important;
-  height: auto !important;
+  height: calc(100vh - 86px) !important;
+  min-height: calc(100vh - 86px) !important;
+  z-index: 10 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .leaflet-container {
   width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
 }
 
 .mapMenu,
@@ -137,6 +147,15 @@ html, body {
   font-size: 0.85rem;
 }
 
+.header-user-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-right: 0.15rem;
+  padding-right: 0.55rem;
+  border-right: 1px solid rgba(255,255,255,0.28);
+}
+
 .header-user-box a {
   color: #fff;
   text-decoration: none;
@@ -149,6 +168,15 @@ html, body {
 
 .header-user-box a:hover {
   background: rgba(255,255,255,0.24);
+}
+
+.header-user-box a.header-logout {
+  background: rgba(214,170,47,0.22);
+  border-color: rgba(214,170,47,0.55);
+}
+
+.header-user-box a.header-logout:hover {
+  background: rgba(214,170,47,0.38);
 }
 
 .header-user-role {
@@ -181,6 +209,11 @@ html, body {
   .header-catastro-texto .ciudad { font-size: 10px; }
   .header-user-name { display: none; }
   .header-user-role { display: none; }
+  .header-user-identity {
+    border-right: none;
+    padding-right: 0;
+    margin-right: 0;
+  }
   .header-user-box a {
     padding: 0.28rem 0.5rem;
     font-size: 0.75rem;
@@ -209,6 +242,8 @@ html, body {
 
   #map2d {
     top: 72px !important;
+    height: calc(100vh - 72px) !important;
+    min-height: calc(100vh - 72px) !important;
   }
 
   .mapMenu,
@@ -231,18 +266,23 @@ html, body {
     </div>
   </div>
   <div class="header-user-box">
-    <span class="header-user-name"><?= htmlspecialchars($mxliUser["username"] ?? "", ENT_QUOTES, "UTF-8") ?></span>
-    <span class="header-user-role"><?= htmlspecialchars($mxliUser["role_label"] ?? mxli_role_label($mxliUser["role"] ?? "consulta"), ENT_QUOTES, "UTF-8") ?></span>
+    <div class="header-user-identity">
+      <span class="header-user-name"><?= htmlspecialchars($mxliUser["username"] ?? "", ENT_QUOTES, "UTF-8") ?></span>
+      <span class="header-user-role"><?= htmlspecialchars($mxliUser["role_label"] ?? mxli_role_label($mxliUser["role"] ?? "consulta"), ENT_QUOTES, "UTF-8") ?></span>
+      <a class="header-logout" href="logout.php">Salir</a>
+    </div>
     <?php if (mxli_can("users.manage")): ?>
       <a href="admin/usuarios.php">Usuarios</a>
     <?php endif; ?>
     <?php if (mxli_can("map.inspect") || mxli_can_inspection_manage()): ?>
-      <a href="admin/inspecciones.php">Control Urbano</a>
+      <a href="admin/inspecciones.php">Insp. Control Urbano</a>
     <?php endif; ?>
     <?php if (mxli_can("map.inspect.catastro") || mxli_can_inspection_manage_catastro()): ?>
-      <a href="admin/inspecciones-catastro.php">Catastro</a>
+      <a href="admin/inspecciones-catastro.php">Insp. Catastro</a>
     <?php endif; ?>
-    <a href="logout.php">Salir</a>
+    <?php if (mxli_can("map.planos")): ?>
+      <button type="button" class="header-planos-btn" id="consultaPlanosHeaderBtn">Planos</button>
+    <?php endif; ?>
   </div>
 </header>
 
@@ -280,19 +320,22 @@ window.mxliCanLayer = function (layerKey) {
 };
 </script>
 
-<script src="js/listaCapas.js?v=78"></script>
-<script src="js/padronPredio.js?v=10"></script>
-<script src="js/expedienteBtn.js?v=3"></script>
-<script src="js/mapStatePersist.js?v=2"></script>
-<script src="js/leaflet.js?v=89"></script>
-<script src="js/layerControls.js?v=72"></script>
-<script src="js/wmsLayerPanel.js?v=74"></script>
-<script src="js/simbologiaPanel.js?v=72"></script>
-<script src="js/buscadorPredios.js?v=89"></script>
-<script src="js/inspeccionesCapa.js?v=11"></script>
-<script src="js/inspeccionFotos.js?v=11"></script>
-<script src="js/mapTopToolbar.js?v=72"></script>
-<script src="js/permissions.js?v=76"></script>
+<script src="js/listaCapas.js?v=103"></script>
+<script src="js/predialAdeudo.js?v=110"></script>
+<script src="js/padronPredio.js?v=103"></script>
+<script src="js/expedienteBtn.js?v=103"></script>
+<script src="js/leaflet.js?v=103"></script>
+<script src="js/layerControls.js?v=103"></script>
+<script src="js/wmsLayerPanel.js?v=103"></script>
+<script src="js/simbologiaPanel.js?v=103"></script>
+<script src="js/buscadorPredios.js?v=108"></script>
+<script src="js/predialCapa.js?v=110"></script>
+<script src="js/inspeccionFotos.js?v=102"></script>
+<script src="js/inspeccionesCapa.js?v=102"></script>
+<script src="js/consultaPlanos.js?v=102"></script>
+<script src="js/mapTopToolbar.js?v=102"></script>
+<script src="js/permissions.js?v=103"></script>
+<script src="js/sessionGuard.js?v=102"></script>
 
 <script>
 <?php include "js/menuBtn.js"; ?>
@@ -337,11 +380,17 @@ function hideSideElements() {
 <?php include "js/toggleModal.js"; ?>
 <?php include "js/sortableList.js"; ?>
 
-setTimeout(function () {
-  if (typeof map2d !== "undefined") {
-    map2d.invalidateSize();
-  }
-}, 800);
+function mxliFixMapSize() {
+  try {
+    var m = window.map2d || (typeof map2d !== "undefined" ? map2d : null);
+    if (m && m.invalidateSize) m.invalidateSize(true);
+  } catch (e) {}
+}
+setTimeout(mxliFixMapSize, 200);
+setTimeout(mxliFixMapSize, 800);
+setTimeout(mxliFixMapSize, 2000);
+window.addEventListener("load", mxliFixMapSize);
+window.addEventListener("resize", mxliFixMapSize);
 </script>
 
 </body>

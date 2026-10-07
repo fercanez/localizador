@@ -6,6 +6,10 @@ return [
         "title" => "Predios",
         "abstract" => "Capa de predios catastrales del municipio de Mexicali.",
     ],
+    "predios_adeudo" => [
+        "title" => "Adeudo predial (deudores)",
+        "abstract" => "Capa temporal de adeudo predial y aseo público consultada en el portal del Ayuntamiento.",
+    ],
     "predios_baldios" => [
         "title" => "Predios Baldíos",
         "abstract" => "Predios baldíos del municipio de Mexicali.",
@@ -71,8 +75,12 @@ return [
         "title" => "Zonas Homogéneas 2017-2026",
         "abstract" => "Zonas homogéneas catastrales propuestas con valores unitarios 2017-2026.",
     ],
-    "avaluos_rusticos_mexicali" => [
-        "title" => "Avalúos Rústicos Mexicali",
-        "abstract" => "Avalúos rústicos del municipio de Mexicali.",
+    "drenes_conagua" => [
+        "title" => "Drenes CONAGUA",
+        "abstract" => "Red de drenes de la Comisión Nacional del Agua (CONAGUA).",
+    ],
+    "canales_conagua" => [
+        "title" => "Canales CONAGUA",
+        "abstract" => "Red de canales de la Comisión Nacional del Agua (CONAGUA).",
     ],
 ];

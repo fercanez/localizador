@@ -7,6 +7,7 @@ header("Cache-Control: no-store, no-cache, must-revalidate");
 require_once dirname(__DIR__) . "/includes/init.php";
 require_once dirname(__DIR__) . "/includes/auth.php";
 require_once dirname(__DIR__) . "/includes/padron.php";
+require_once dirname(__DIR__) . "/includes/padron-log.php";
 
 if (!mxli_is_logged_in()) {
     mxli_json_response(["ok" => false, "error" => "Debe iniciar sesión."], 401);
@@ -22,6 +23,12 @@ $nombre = trim((string)($_GET["nombre"] ?? ""));
 try {
     if ($clave !== "") {
         $row = mxli_padron_lookup_by_clave($clave);
+        mxli_padron_log_consulta([
+            "tipo" => "clave",
+            "clave" => $clave,
+            "found" => $row !== null,
+            "result_count" => $row !== null ? 1 : 0,
+        ]);
         $payload = [
             "ok" => true,
             "found" => $row !== null,
@@ -42,6 +49,12 @@ try {
 
     if ($nombre !== "") {
         $rows = mxli_padron_search_by_nombre($nombre);
+        mxli_padron_log_consulta([
+            "tipo" => "nombre",
+            "query_text" => $nombre,
+            "found" => $rows !== [],
+            "result_count" => count($rows),
+        ]);
         mxli_json_response([
             "ok" => true,
             "resultados" => $rows,

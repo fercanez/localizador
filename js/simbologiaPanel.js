@@ -304,6 +304,9 @@
     if (symItem) symItem.classList.add("is-selected");
 
     window.capaSimbologiaSeleccionada = layer;
+    if (typeof window.mxliSetIdentifyLayer === "function") {
+      window.mxliSetIdentifyLayer(layer);
+    }
     refreshActiveSimbology();
   };
 

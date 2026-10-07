@@ -141,6 +141,7 @@
     lic_construccion: "Lic. Construcción",
     imagen_urbana: "Imagen Urbana",
     uso_suelo: "Uso de Suelo",
+    casetas_de_fraccs: "Casetas de Fraccs.",
     otro: "Otro",
   };
 

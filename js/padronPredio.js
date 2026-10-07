@@ -2,18 +2,12 @@
   "use strict";
 
   function canViewPadron() {
-    return typeof window.mxliCan === "function" && window.mxliCan("map.padron");
-  }
-
-  /** true si el usuario puede buscar/ver nombre de registro (padrón). */
-  function canSearchByOwnerName() {
-    if (canViewPadron()) return true;
     if (window.MXLI_USER && window.MXLI_USER.can_view_padron) return true;
-    return typeof window.mxliCan === "function" && window.mxliCan("users.manage");
+    return (
+      typeof window.mxliCan === "function" &&
+      (window.mxliCan("map.padron") || window.mxliCan("users.manage"))
+    );
   }
-
-  window.mxliCanViewPadron = canViewPadron;
-  window.mxliCanSearchByOwnerName = canSearchByOwnerName;
 
   function escapeHtml(value) {
     return String(value == null ? "" : value)
@@ -49,19 +43,33 @@
     );
   }
 
-  /** Fila: etiqueta corta Title Case | valor UPPERCASE negrita. */
+  /** Fila de tabla Excel: etiqueta (sin negrita) | valor (negrita); todo mayúsculas. */
   function tableRowHtml(field, label, valueText) {
+    if (field === "estado_predial") {
+      var badge =
+        typeof window.mxliPredialBadgeHtml === "function"
+          ? window.mxliPredialBadgeHtml(null, true)
+          : escapeHtml("Consultando…");
+      return (
+        '<tr data-field="estado_predial">' +
+        '<td class="mxli-padron-label">ESTADO PREDIAL</td>' +
+        '<td class="mxli-padron-value">' +
+        badge +
+        "</td></tr>"
+      );
+    }
     var val = toUpperDisplay(valueText);
     if (!val) val = "—";
-    var attrs = field
-      ? ' data-field="' + escapeHtml(field) + '"'
-      : "";
+    var rowClass = field === "clave" ? " mxli-padron-clave-row" : "";
+    var attrs =
+      (field ? ' data-field="' + escapeHtml(field) + '"' : "") +
+      (rowClass ? ' class="' + rowClass.trim() + '"' : "");
     return (
       "<tr" +
       attrs +
       ">" +
       '<td class="mxli-padron-label">' +
-      escapeHtml(label) +
+      escapeHtml(toUpperDisplay(label)) +
       "</td>" +
       '<td class="mxli-padron-value"><b>' +
       escapeHtml(val) +
@@ -78,7 +86,7 @@
     var labelCell = node.querySelector(".mxli-padron-label");
     var valueCell = node.querySelector(".mxli-padron-value");
     if (labelCell) {
-      labelCell.textContent = label;
+      labelCell.textContent = toUpperDisplay(label);
     }
     if (valueCell) {
       valueCell.innerHTML = "<b>" + escapeHtml(val) + "</b>";
@@ -86,7 +94,7 @@
     }
     // Compatibilidad si el DOM aún tiene el formato viejo.
     node.innerHTML =
-      escapeHtml(label) +
+      escapeHtml(toUpperDisplay(label)) +
       ": <b>" +
       escapeHtml(val) +
       "</b>";
@@ -112,12 +120,12 @@
 
   function applyPadronFields(el, padron) {
     if (!padron) {
-      setField(el, "propietario", "Registrado", "Sin registro en padrón 2026");
+      setField(el, "propietario", "Registrado a", "Sin datos en padrón");
       setField(el, "colonia", "Colonia", "—");
       setField(el, "calle", "Calle", "—");
-      setField(el, "numof", "Número", "—");
-      setField(el, "sup_doc", "Sup. doc.", "—");
-      setField(el, "uso_predial", "Uso", "—");
+      setField(el, "numof", "Número oficial", "—");
+      setField(el, "sup_doc", "Sup. Documental", "—");
+      setField(el, "uso_predial", "Uso Predial", "—");
       return;
     }
     var propietario = pickPadronValue(padron, [
@@ -156,22 +164,21 @@
       "descripcion",
       "DESCRIPCION",
     ]);
-    setField(el, "propietario", "Registrado", propietario || "—");
+    setField(el, "propietario", "Registrado a", propietario || "—");
     setField(el, "colonia", "Colonia", colonia || "—");
     setField(el, "calle", "Calle", calle || "—");
-    setField(el, "numof", "Número", numof || "—");
+    setField(el, "numof", "Número oficial", numof || "—");
     var supDoc = formatAreaM2(supRaw);
     setField(
       el,
       "sup_doc",
-      "Sup. doc.",
+      "Sup. Documental",
       supDoc || (supRaw ? String(supRaw) + " M²" : "—")
     );
-    setField(el, "uso_predial", "Uso", usoPredial || "—");
+    setField(el, "uso_predial", "Uso Predial", usoPredial || "—");
   }
 
   window.mxliCanViewPadron = canViewPadron;
-  window.mxliCanSearchByOwnerName = canSearchByOwnerName;
 
   function expedienteLinkHtml(claveU) {
     if (typeof window.mxliCan !== "function" || !window.mxliCan("map.expediente")) {
@@ -216,14 +223,15 @@
       '">' +
       '<table class="mxli-padron-table" role="presentation">' +
       "<tbody>" +
-      tableRowHtml(null, "Clave", claveU || "—") +
-      tableRowHtml("propietario", "Registrado", "…") +
+      tableRowHtml("clave", "Clave Catastral", claveU || "—") +
+      tableRowHtml("estado_predial", "Estado predial", "Consultando…") +
+      tableRowHtml("propietario", "Registrado a", "…") +
       tableRowHtml("colonia", "Colonia", "…") +
       tableRowHtml("calle", "Calle", "…") +
-      tableRowHtml("numof", "Número", "…") +
-      tableRowHtml("sup_doc", "Sup. doc.", "…") +
-      tableRowHtml(null, "Sup. cart.", cart) +
-      tableRowHtml("uso_predial", "Uso", "…") +
+      tableRowHtml("numof", "Número oficial", "…") +
+      tableRowHtml("sup_doc", "Sup. Documental", "…") +
+      tableRowHtml(null, "Sup. Cartografica", cart) +
+      tableRowHtml("uso_predial", "Uso Predial", "…") +
       "</tbody>" +
       "</table>" +
       expedienteLinkHtml(claveU) +
@@ -239,49 +247,196 @@
     return window.mxliPredioPadronBodyHtml(clave, "");
   };
 
+  /**
+   * Recalcula tamaño/pan del popup SIN reinyectar _content.
+   * Si _content es string, popup.update() hace innerHTML = string original
+   * y borra los campos ya rellenados (dejaba "…" para siempre).
+   */
+  function refreshOpenPopupSize() {
+    try {
+      var map = window.map2d;
+      var popup = map && map._popup;
+      if (!popup) return;
+      // Si el contenido era HTML string, anclar al nodo vivo ya actualizado.
+      if (
+        typeof popup._content === "string" &&
+        popup._contentNode &&
+        popup._contentNode.firstChild
+      ) {
+        popup._content = popup._contentNode.firstChild;
+      }
+      if (typeof popup._updateLayout === "function") {
+        popup._updateLayout();
+        if (typeof popup._updatePosition === "function") {
+          popup._updatePosition();
+        }
+        if (typeof popup._adjustPan === "function") {
+          popup._adjustPan();
+        }
+        return;
+      }
+      if (typeof popup.update === "function") {
+        popup.update();
+      }
+    } catch (e) {}
+  }
+
+  function showPadronError(el, message) {
+    setField(el, "propietario", "Registrado a", message || "No disponible");
+    setField(el, "colonia", "Colonia", "—");
+    setField(el, "calle", "Calle", "—");
+    setField(el, "numof", "Número oficial", "—");
+    setField(el, "sup_doc", "Sup. Documental", "—");
+    setField(el, "uso_predial", "Uso Predial", "—");
+    refreshOpenPopupSize();
+  }
+
+  function apiPadronUrl(clave) {
+    var base = "";
+    try {
+      var scripts = document.getElementsByTagName("script");
+      for (var i = scripts.length - 1; i >= 0; i--) {
+        var src = scripts[i].src || "";
+        var m = src.match(/^(.*\/)?js\/padronPredio\.js/i);
+        if (m) {
+          base = src.replace(/js\/padronPredio\.js.*$/i, "");
+          break;
+        }
+      }
+    } catch (e) {}
+    return (base || "") + "api/padron.php?clave=" + encodeURIComponent(clave);
+  }
+
   window.mxliFillPadronBlock = function (root, clave) {
     if (!canViewPadron()) {
+      var deniedRoot = null;
+      if (root && root.querySelector) {
+        deniedRoot = root.querySelector("[data-mxli-padron]") || root;
+      }
+      if (!deniedRoot) {
+        deniedRoot = document.querySelector(".leaflet-popup-content [data-mxli-padron]");
+      }
+      if (deniedRoot && deniedRoot.querySelector) {
+        showPadronError(deniedRoot, "Sin permiso para consultar el padrón");
+      }
       return;
     }
-    var el =
-      root && root.querySelector
-        ? root.querySelector("[data-mxli-padron]")
-        : document.querySelector('[data-mxli-padron="' + clave + '"]');
-    if (!el) return;
+    var el = null;
+    if (root && root.getAttribute && root.getAttribute("data-mxli-padron")) {
+      el = root;
+    } else if (root && root.querySelector) {
+      el = root.querySelector("[data-mxli-padron]");
+    }
+    if (!el) {
+      el = document.querySelector(
+        '[data-mxli-padron="' + String(clave || "").toUpperCase() + '"]'
+      );
+    }
+    if (!el) {
+      el = document.querySelector(".leaflet-popup-content [data-mxli-padron]");
+    }
+    if (!el) {
+      // Leaflet a veces monta el contenido un tick después
+      setTimeout(function () {
+        var again =
+          document.querySelector(".leaflet-popup-content [data-mxli-padron]") ||
+          document.querySelector(
+            '[data-mxli-padron="' + String(clave || "").toUpperCase() + '"]'
+          );
+        if (again) {
+          window.mxliFillPadronBlock(again, clave);
+        }
+      }, 80);
+      return;
+    }
     var key = toUpperDisplay(clave || el.getAttribute("data-mxli-padron") || "");
     if (!key) {
       applyPadronFields(el, null);
+      refreshOpenPopupSize();
       return;
     }
 
-    fetch("api/padron.php?clave=" + encodeURIComponent(key))
+    // Evitar peticiones duplicadas al mismo bloque
+    var reqId = String(Date.now()) + "-" + key;
+    el.setAttribute("data-mxli-padron-req", reqId);
+
+    if (typeof window.mxliFillPredialAdeudo === "function") {
+      window.mxliFillPredialAdeudo(el, key);
+    }
+
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = null;
+    if (ctrl) {
+      timer = setTimeout(function () {
+        try {
+          ctrl.abort();
+        } catch (e) {}
+      }, 20000);
+    }
+
+    fetch(apiPadronUrl(key), {
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: ctrl ? ctrl.signal : undefined,
+    })
       .then(function (res) {
-        return res.json().then(function (data) {
+        return res.text().then(function (text) {
+          var data = null;
+          try {
+            data = text ? JSON.parse(text) : null;
+          } catch (parseErr) {
+            data = {
+              ok: false,
+              error: "Respuesta inválida del padrón",
+              detail: String(text || "").slice(0, 180),
+            };
+          }
           return { res: res, data: data };
         });
       })
       .then(function (payload) {
+        if (timer) clearTimeout(timer);
+        if (el.getAttribute("data-mxli-padron-req") !== reqId) return;
+        // Asegurar que un update posterior no reinstale el HTML string vacío.
+        refreshOpenPopupSize();
         var data = payload.data;
-        if (!payload.res.ok || !data || data.ok === false) {
-          var err =
-            (data && (data.detail || data.error)) || "No disponible";
-          setField(el, "propietario", "Registrado", err);
-          setField(el, "colonia", "Colonia", "—");
-          setField(el, "calle", "Calle", "—");
-          setField(el, "numof", "Número", "—");
-          setField(el, "sup_doc", "Sup. doc.", "—");
-          setField(el, "uso_predial", "Uso", "—");
+        if (payload.res.status === 401) {
+          showPadronError(el, "Sesión expirada; vuelva a iniciar sesión");
           return;
         }
-        applyPadronFields(el, data.found ? data.padron : null);
+        if (payload.res.status === 403) {
+          showPadronError(
+            el,
+            (data && (data.detail || data.error)) ||
+              "Sin permiso para consultar el padrón"
+          );
+          return;
+        }
+        if (!payload.res.ok || !data || data.ok === false) {
+          showPadronError(
+            el,
+            (data && (data.detail || data.error)) || "No disponible"
+          );
+          return;
+        }
+        if (!data.found || !data.padron) {
+          applyPadronFields(el, null);
+          // Mensaje más claro que el genérico de applyPadronFields
+          setField(el, "propietario", "Registrado a", "Sin datos en padrón");
+          refreshOpenPopupSize();
+          return;
+        }
+        applyPadronFields(el, data.padron);
+        refreshOpenPopupSize();
       })
-      .catch(function () {
-        setField(el, "propietario", "Registrado", "No disponible");
-        setField(el, "colonia", "Colonia", "—");
-        setField(el, "calle", "Calle", "—");
-        setField(el, "numof", "Número", "—");
-        setField(el, "sup_doc", "Sup. doc.", "—");
-        setField(el, "uso_predial", "Uso", "—");
+      .catch(function (err) {
+        if (timer) clearTimeout(timer);
+        if (el.getAttribute("data-mxli-padron-req") !== reqId) return;
+        var msg =
+          err && err.name === "AbortError"
+            ? "Tiempo agotado al consultar padrón"
+            : "No disponible";
+        showPadronError(el, msg);
       });
   };
 })(window);
