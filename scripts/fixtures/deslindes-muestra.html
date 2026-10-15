@@ -1,0 +1,62 @@
+<!-- Muestra SINTÉTICA de Deslindes.aspx (DevExpress) armada a partir de la captura
+     del portal; sirve para probar el parser. Reemplazar por el HTML real cuando
+     se tenga sesión: php scripts/test_deslindes.php scripts/fixtures/deslindes-muestra.html -->
+<!DOCTYPE html>
+<html><head><title>Catastro</title></head>
+<body>
+<form name="form1" method="post" action="./Deslindes.aspx" id="form1">
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUKMTIzNDU2Nzg5MGRk" />
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A1B2C3D4" />
+<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAAOabc" />
+<div class="dxmLite" id="ASPxMenu1">
+  <ul><li><a href="Consulta.aspx">Consulta catastral</a></li>
+  <li><a href="Deslindes.aspx">Deslindes</a></li>
+  <li><a href="ConsultaPlanos.aspx">Consulta planos</a></li>
+  <li><a href="CambioContrasena.aspx">Cambio de contrase&#241;a</a></li>
+  <li id="ASPxMenu1_DXI4_"><a onclick="__doPostBack('ASPxMenu1','4')">Cerrar sesi&#243;n</a></li></ul>
+</div>
+<label class="dxeBase" id="ASPxLabel1" for="txtTramite_I" style="font-weight:bold;">No. de Tr&#225;mite</label>
+<table class="dxeTextBoxSys dxeTextBox" id="txtTramite"><tr><td class="dxic">
+<input class="dxeEditArea dxeEditAreaSys" id="txtTramite_I" name="txtTramite" type="text" value="575617" />
+</td></tr></table>
+<div class="dxbButton dxbButtonSys" id="btnConsultar"><div class="dxb"><span class="dx-vam">Consultar</span></div></div>
+<script id="dxss_1" type="text/javascript">
+var dxo = new ASPxClientButton('btnConsultar');
+dxo.autoPostBackFunction = function(postBackArg) { WebForm_DoPostBackWithOptions(new WebForm_PostBackOptions("btnConsultar",  postBackArg, true, "", "", false, true)); };
+</script>
+<table class="dxgvControl" id="ASPxGridView1"><tr><td>
+<table class="dxgvTable" id="ASPxGridView1_DXMainTable">
+<tr id="ASPxGridView1_DXHeadersRow0">
+ <td id="ASPxGridView1_col0" class="dxgvHeader" style="border-top-width:0px;"><table><tr><td>FOLIO</td><td style="width:1px;"><img class="dxGridView_gvHeaderFilter" src="x.png" alt="[Filtro]" /></td></tr></table></td>
+ <td id="ASPxGridView1_col1" class="dxgvHeader"><table><tr><td>CLAVECATASTRAL</td></tr></table></td>
+ <td id="ASPxGridView1_col2" class="dxgvHeader"><table><tr><td>ESTATUS</td></tr></table></td>
+ <td id="ASPxGridView1_col3" class="dxgvHeader"><table><tr><td>FECHA</td></tr></table></td>
+ <td id="ASPxGridView1_col4" class="dxgvHeader"><table><tr><td>TRAMITADOR</td></tr></table></td>
+ <td id="ASPxGridView1_col5" class="dxgvHeader"><table><tr><td>PERITO</td></tr></table></td>
+ <td id="ASPxGridView1_col6" class="dxgvHeader"><table><tr><td>FECHA_TERMINO</td></tr></table></td>
+</tr>
+<tr id="ASPxGridView1_DXFilterRow" class="dxgvFilterRow">
+ <td class="dxgv"><input id="ASPxGridView1_DXFREditorcol0_I" name="ASPxGridView1$DXFREditorcol0" type="text" value="" /></td>
+ <td class="dxgv"><input id="ASPxGridView1_DXFREditorcol1_I" name="ASPxGridView1$DXFREditorcol1" type="text" value="" /></td>
+ <td class="dxgv"><input id="ASPxGridView1_DXFREditorcol2_I" name="ASPxGridView1$DXFREditorcol2" type="text" value="" /></td>
+ <td class="dxgv"><input id="ASPxGridView1_DXFREditorcol3_I" name="ASPxGridView1$DXFREditorcol3" type="text" value="" /><input type="hidden" name="ASPxGridView1$DXFREditorcol3$DDD$C" value="" /></td>
+ <td class="dxgv"><input id="ASPxGridView1_DXFREditorcol4_I" name="ASPxGridView1$DXFREditorcol4" type="text" value="" /></td>
+ <td class="dxgv"><input id="ASPxGridView1_DXFREditorcol5_I" name="ASPxGridView1$DXFREditorcol5" type="text" value="" /></td>
+ <td class="dxgv"><input id="ASPxGridView1_DXFREditorcol6_I" name="ASPxGridView1$DXFREditorcol6" type="text" value="" /></td>
+</tr>
+<tr id="ASPxGridView1_DXDataRow0" class="dxgvDataRow">
+ <td class="dxgv" align="right">575617</td>
+ <td class="dxgv">LO006001</td>
+ <td class="dxgv">ENTREGA DE TRAMITE</td>
+ <td class="dxgv">19/01/2016</td>
+ <td class="dxgv">TRAMITADOR DE PRUEBA</td>
+ <td class="dxgv">PERITO DE PRUEBA</td>
+ <td class="dxgv">22/02/2016</td>
+</tr>
+</table>
+</td></tr></table>
+<input type="hidden" name="ASPxGridView1" id="ASPxGridView1_CallbackState" value="BwQHAQIERGF0YQ" />
+</form>
+</body></html>

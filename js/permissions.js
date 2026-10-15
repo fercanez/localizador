@@ -75,6 +75,11 @@
       hide(document.getElementById("consultaPlanosHeaderBtn"));
     }
 
+    if (!can("map.deslindes")) {
+      hide(document.getElementById("consultaDeslindesBtn"));
+      hide(document.getElementById("consultaDeslindesHeaderBtn"));
+    }
+
     document.querySelectorAll("[data-gs-layer]").forEach(function (card) {
       var key = card.getAttribute("data-gs-layer") || "";
       if (key && !canLayer(key)) {

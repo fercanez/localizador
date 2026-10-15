@@ -1,0 +1,73 @@
+/* Trámites de deslinde por ventanilla (reutiliza .planos-* de consulta-planos.css) */
+/* dialog:modal usa inset:0; con height:auto se estira a toda la pantalla */
+.planos-dialog.deslindes-dialog {
+  width: min(1100px, 96vw);
+  height: fit-content;
+  max-height: 86vh;
+}
+
+.deslindes-dialog .planos-shell {
+  height: auto;
+  max-height: 86vh;
+}
+
+.deslindes-list {
+  flex: 0 1 auto;
+  min-height: 120px;
+  max-height: calc(86vh - 170px);
+}
+
+.deslindes-table td {
+  white-space: nowrap;
+}
+
+.deslindes-table td:nth-child(5),
+.deslindes-table td:nth-child(6) {
+  white-space: normal;
+  min-width: 160px;
+}
+
+.deslindes-clave {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: #1d4ed8;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.deslindes-clave:hover {
+  color: #7d3445;
+}
+
+.deslindes-estatus {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  background: #efe4e7;
+  color: #5e2633;
+}
+
+.planos-search button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.control-icon--deslindes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-icon--deslindes svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}

@@ -283,6 +283,9 @@ html, body {
     <?php if (mxli_can("map.planos")): ?>
       <button type="button" class="header-planos-btn" id="consultaPlanosHeaderBtn">Planos</button>
     <?php endif; ?>
+    <?php if (mxli_can("map.deslindes")): ?>
+      <button type="button" class="header-planos-btn" id="consultaDeslindesHeaderBtn">Deslindes</button>
+    <?php endif; ?>
   </div>
 </header>
 
@@ -333,8 +336,9 @@ window.mxliCanLayer = function (layerKey) {
 <script src="js/inspeccionFotos.js?v=102"></script>
 <script src="js/inspeccionesCapa.js?v=102"></script>
 <script src="js/consultaPlanos.js?v=102"></script>
+<script src="js/consultaDeslindes.js?v=100"></script>
 <script src="js/mapTopToolbar.js?v=102"></script>
-<script src="js/permissions.js?v=103"></script>
+<script src="js/permissions.js?v=104"></script>
 <script src="js/sessionGuard.js?v=102"></script>
 
 <script>

@@ -361,7 +361,7 @@ $layerCatalog = mxli_layer_catalog();
   </dialog>
 
   <script src="../js/admin-users.js?v=104"></script>
-  <script src="../js/admin-roles.js?v=103"></script>
+  <script src="../js/admin-roles.js?v=104"></script>
   <script src="../js/admin-padron-bitacora.js?v=1"></script>
   <script src="../js/sessionGuard.js?v=99"></script>
 </body>

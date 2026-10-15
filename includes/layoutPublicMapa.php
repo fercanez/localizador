@@ -18,6 +18,9 @@
       <span class="control-icon control-icon--planos" id="consultaPlanosBtn" title="Consulta de planos" role="button" tabindex="0" aria-label="Consulta de planos">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm8 1.5V8h4.5L14 3.5zM8 11h8v1.5H8V11zm0 3h8v1.5H8V14zm0 3h5V18.5H8V17z"/></svg>
       </span>
+      <span class="control-icon control-icon--deslindes" id="consultaDeslindesBtn" title="Trámites de deslinde (ventanilla)" role="button" tabindex="0" aria-label="Trámites de deslinde por ventanilla">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6a1 1 0 0 1 1 1v1h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V3a1 1 0 0 1 1-1zm0 2v1.5h6V4H9zM6 6v14h12V6h-2v1H8V6H6zm2.2 8.4 1.1-1.1 1.9 1.9 4.5-4.5 1.1 1.1-5.6 5.6-3-3z"/></svg>
+      </span>
       <span class="icon-Informacion control-icon" id="getFeatureInfoBtn">
       </span>
       <span class="icon-Mano btnIsActive control-icon" id="panMapBtn">

@@ -54,6 +54,7 @@
       "map.planos.download": "Descargar planos",
       "map.planos.print": "Imprimir planos",
       "map.planos.nowatermark": "Planos sin marca agua",
+      "map.deslindes": "Deslindes ventanilla",
       "map.print": "Imprimir",
       "map.locate": "GPS",
       "map.measure": "Medir",

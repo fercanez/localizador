@@ -33,4 +33,16 @@ return [
     // se usa data/planos/{HOMO}.json y Documentacion.aspx.
     "planos_dir" => "\\\\SCATASTRO\\GROMA",
     "planos_doc_url" => "https://www.mexicali.gob.mx/webpub/consultacatastro/documentacion.aspx?",
+
+    // Trámites de deslinde por ventanilla (portal "Consulta padrón catastral").
+    // Cuenta del portal compartida por el servidor; definir solo en config.local.php.
+    "deslindes_portal_url" => "https://www.mexicali.gob.mx/webpub/consultacatastro/",
+    "deslindes_portal_user" => "",
+    "deslindes_portal_pass" => "",
+    // Opcionales: nombre POST del campo "No. de Trámite" y control que dispara
+    // "Consultar" (__EVENTTARGET o name del submit). Vacío = autodetectar.
+    "deslindes_tramite_field" => "",
+    "deslindes_submit_target" => "",
+    // Carpeta privada para cookies/caché del portal. Vacío = temp del sistema.
+    "deslindes_state_dir" => "",
 ];

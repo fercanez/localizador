@@ -69,4 +69,5 @@
   <link rel="stylesheet" href="./css/sidePanels/simbologia.css?v=99">
   <link rel="stylesheet" href="./css/inspeccion-fotos.css?v=99">
   <link rel="stylesheet" href="./css/consulta-planos.css?v=102">
+  <link rel="stylesheet" href="./css/consulta-deslindes.css?v=101">
 </head>
