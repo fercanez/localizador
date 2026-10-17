@@ -19,7 +19,7 @@ $layerCatalog = mxli_layer_catalog();
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Usuarios y roles | Catastro Mexicali</title>
   <link rel="stylesheet" href="../css/auth-app.css">
-  <link rel="stylesheet" href="../css/admin-users.css">
+  <link rel="stylesheet" href="../css/admin-users.css?v=101">
 </head>
 <body class="admin-body">
   <header class="admin-header">

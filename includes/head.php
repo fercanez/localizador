@@ -6,6 +6,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="theme-color" content="#6f2f3d">
+  <script src="./js/deviceMode.js?v=103"></script>
 
   <!-- Google Fonts and Icons -->
   <link rel="stylesheet"
@@ -68,6 +69,7 @@
   <link rel="stylesheet" href="./css/sidePanels/wmsLayerPanel.css?v=99">
   <link rel="stylesheet" href="./css/sidePanels/simbologia.css?v=99">
   <link rel="stylesheet" href="./css/inspeccion-fotos.css?v=99">
-  <link rel="stylesheet" href="./css/consulta-planos.css?v=102">
-  <link rel="stylesheet" href="./css/consulta-deslindes.css?v=101">
+  <link rel="stylesheet" href="./css/consulta-planos.css?v=106">
+  <link rel="stylesheet" href="./css/consulta-deslindes.css?v=102">
+  <link rel="stylesheet" href="./css/responsive.css?v=103">
 </head>

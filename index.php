@@ -265,7 +265,10 @@ html, body {
       <div class="ciudad">Mexicali, Baja California</div>
     </div>
   </div>
-  <div class="header-user-box">
+  <button type="button" class="header-menu-toggle" id="mxliHeaderMenuBtn" aria-label="Menú" aria-expanded="false" aria-controls="mxliHeaderMenu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="header-user-box" id="mxliHeaderMenu">
     <div class="header-user-identity">
       <span class="header-user-name"><?= htmlspecialchars($mxliUser["username"] ?? "", ENT_QUOTES, "UTF-8") ?></span>
       <span class="header-user-role"><?= htmlspecialchars($mxliUser["role_label"] ?? mxli_role_label($mxliUser["role"] ?? "consulta"), ENT_QUOTES, "UTF-8") ?></span>
@@ -331,12 +334,12 @@ window.mxliCanLayer = function (layerKey) {
 <script src="js/layerControls.js?v=103"></script>
 <script src="js/wmsLayerPanel.js?v=103"></script>
 <script src="js/simbologiaPanel.js?v=103"></script>
-<script src="js/buscadorPredios.js?v=108"></script>
+<script src="js/buscadorPredios.js?v=113"></script>
 <script src="js/predialCapa.js?v=110"></script>
 <script src="js/inspeccionFotos.js?v=102"></script>
 <script src="js/inspeccionesCapa.js?v=102"></script>
-<script src="js/consultaPlanos.js?v=102"></script>
-<script src="js/consultaDeslindes.js?v=100"></script>
+<script src="js/consultaPlanos.js?v=105"></script>
+<script src="js/consultaDeslindes.js?v=102"></script>
 <script src="js/mapTopToolbar.js?v=102"></script>
 <script src="js/permissions.js?v=104"></script>
 <script src="js/sessionGuard.js?v=102"></script>

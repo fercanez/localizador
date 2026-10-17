@@ -137,13 +137,13 @@
             : escapeHtml(clave || "—");
         return (
           "<tr>" +
-          "<td>" + escapeHtml(r.folio || "") + "</td>" +
-          "<td>" + claveHtml + "</td>" +
-          '<td><span class="deslindes-estatus">' + escapeHtml(r.estatus || "") + "</span></td>" +
-          "<td>" + escapeHtml(r.fecha || "") + "</td>" +
-          "<td>" + escapeHtml(r.tramitador || "") + "</td>" +
-          "<td>" + escapeHtml(r.perito || "") + "</td>" +
-          "<td>" + escapeHtml(r.fecha_termino || "") + "</td>" +
+          '<td data-label="Folio">' + escapeHtml(r.folio || "") + "</td>" +
+          '<td data-label="Clave catastral">' + claveHtml + "</td>" +
+          '<td data-label="Estatus"><span class="deslindes-estatus">' + escapeHtml(r.estatus || "") + "</span></td>" +
+          '<td data-label="Fecha">' + escapeHtml(r.fecha || "") + "</td>" +
+          '<td data-label="Tramitador">' + escapeHtml(r.tramitador || "") + "</td>" +
+          '<td data-label="Perito">' + escapeHtml(r.perito || "") + "</td>" +
+          '<td data-label="Fecha término">' + escapeHtml(r.fecha_termino || "") + "</td>" +
           "</tr>"
         );
       })

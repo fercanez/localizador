@@ -1,0 +1,785 @@
+/*
+ * Celular / tableta. Solo aplica con las clases que pone js/deviceMode.js en <html>:
+ *   mxli-compact  ancho <= 900px, celular o tableta (encabezado con menú)
+ *   is-mobile     celular (vertical u horizontal)
+ *   is-tablet     tableta táctil
+ *   is-touch      puntero táctil principal
+ * En escritorio con mouse ninguna regla de este archivo aplica.
+ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.header-menu-toggle,
+.mxli-drawer-backdrop {
+  display: none;
+}
+
+#mxliCapasBtn {
+  display: none !important;
+}
+
+form.buscador-predio-box {
+  margin: 0;
+}
+
+.buscador-predio-btn__icon {
+  display: none;
+}
+
+/* ================= Encabezado compacto con menú ================= */
+html.mxli-compact {
+  --mxli-hh: calc(48px + env(safe-area-inset-top, 0px));
+}
+
+html.mxli-compact .header-catastro-mxli {
+  height: var(--mxli-hh) !important;
+  padding: env(safe-area-inset-top, 0px) max(8px, env(safe-area-inset-right, 0px)) 0
+    max(8px, env(safe-area-inset-left, 0px)) !important;
+  border-top-width: 2px !important;
+  border-bottom-width: 2px !important;
+  gap: 8px;
+}
+
+html.mxli-compact .header-catastro-mxli > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+}
+
+html.mxli-compact .header-catastro-mxli img {
+  height: 34px !important;
+  max-width: 28px !important;
+  padding: 2px 3px !important;
+  margin-right: 8px !important;
+  border-radius: 6px !important;
+}
+
+html.mxli-compact .header-catastro-texto .dependencia,
+html.mxli-compact .header-catastro-texto .ciudad {
+  display: none !important;
+}
+
+html.mxli-compact .header-catastro-texto {
+  min-width: 0;
+  overflow: hidden;
+}
+
+html.mxli-compact .header-catastro-texto .titulo {
+  font-size: 15px !important;
+  letter-spacing: 0.02em !important;
+  margin-top: 0 !important;
+  max-width: none !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html.mxli-compact .header-menu-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.mxli-compact .header-menu-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: #fff;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+html.mxli-compact .header-menu-toggle.is-open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+html.mxli-compact .header-menu-toggle.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+html.mxli-compact .header-menu-toggle.is-open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+html.mxli-compact .header-user-box {
+  display: none !important;
+  position: fixed;
+  top: var(--mxli-hh);
+  right: 0;
+  width: min(320px, 100vw);
+  max-height: calc(100vh - var(--mxli-hh));
+  max-height: calc(100dvh - var(--mxli-hh));
+  overflow-y: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px !important;
+  padding: 12px max(12px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) 12px;
+  box-sizing: border-box;
+  background: linear-gradient(160deg, #6f2f3d 0%, #7d3445 55%, #5e2633 100%);
+  border-left: 3px solid #d6aa2f;
+  border-bottom: 3px solid #d6aa2f;
+  border-bottom-left-radius: 14px;
+  box-shadow: -6px 10px 24px rgba(0, 0, 0, 0.35);
+  z-index: 100050;
+}
+
+html.mxli-compact .header-user-box.is-open {
+  display: flex !important;
+}
+
+html.mxli-compact .header-user-box .header-user-identity {
+  display: contents;
+}
+
+html.mxli-compact .header-user-box .header-user-name {
+  display: block !important;
+  order: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+html.mxli-compact .header-user-box .header-user-role {
+  display: inline-block !important;
+  order: 0;
+  align-self: flex-start;
+  margin-bottom: 4px;
+}
+
+html.mxli-compact .header-user-box > a,
+html.mxli-compact .header-user-box > button,
+html.mxli-compact .header-user-box .header-user-identity > a {
+  order: 1;
+  display: flex !important;
+  align-items: center;
+  min-height: 48px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 16px !important;
+  font-size: 16px !important;
+  font-weight: 700;
+  border-radius: 10px !important;
+  text-align: left;
+}
+
+html.mxli-compact .header-user-box .header-user-identity > a.header-logout {
+  order: 2;
+  margin-top: 6px;
+  justify-content: center;
+}
+
+/* Desplazamientos: alto del encabezado compacto */
+html.mxli-compact .contenedorPrincipal,
+html.mxli-compact .main,
+html.mxli-compact .layoutPublicMap,
+html.mxli-compact .mapMenu,
+html.mxli-compact #map2d,
+html.mxli-compact .sidePanel,
+html.mxli-compact .sidePanel-content,
+html.mxli-compact .map-sideElement,
+html.mxli-compact .map-open {
+  top: var(--mxli-hh) !important;
+}
+
+html.mxli-compact .contenedorPrincipal,
+html.mxli-compact .main,
+html.mxli-compact .layoutPublicMap,
+html.mxli-compact .mapMenu,
+html.mxli-compact .map3d iframe,
+html.mxli-compact .map-sideElement,
+html.mxli-compact .mapMenu-nav,
+html.mxli-compact #map2d {
+  height: calc(100vh - var(--mxli-hh)) !important;
+  height: calc(100dvh - var(--mxli-hh)) !important;
+  min-height: 0 !important;
+}
+
+html.mxli-compact .map-open,
+html.mxli-compact .listado-capas,
+html.mxli-compact .sidePanel,
+html.mxli-compact .sidePanel-content {
+  height: calc(100vh - var(--mxli-hh)) !important;
+  height: calc(100dvh - var(--mxli-hh)) !important;
+}
+
+html.mxli-compact .map-top-toolbar {
+  top: calc(var(--mxli-hh) + 6px) !important;
+  left: 50px !important;
+  right: max(6px, env(safe-area-inset-right, 0px)) !important;
+  max-width: none !important;
+}
+
+html.mxli-compact .map-top-toolbar__handle,
+html.mxli-compact .buscador-predio-label {
+  display: none !important;
+}
+
+html.mxli-compact .listado-capas {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+html.mxli-compact,
+html.mxli-compact body {
+  overflow-x: hidden;
+}
+
+/* ================= Táctil: objetivos de 44px ================= */
+html.is-touch .mapMenu,
+html.is-touch .mapMenu-nav {
+  width: 44px !important;
+}
+
+html.is-touch .mapMenu-link,
+html.is-touch .mapMenu-btn {
+  block-size: 44px !important;
+  inline-size: 44px !important;
+}
+
+html.is-touch .mapMenu-icon {
+  font-size: 1.3rem !important;
+}
+
+html.is-touch .map-open {
+  margin-left: 44px !important;
+}
+
+html.is-touch .leaflet-left {
+  left: 48px !important;
+}
+
+html.is-touch .map-top-toolbar__tools .control-icon,
+html.is-touch .map-top-toolbar__zoom a {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 1.2rem !important;
+  border-radius: 9px !important;
+  flex: 0 0 auto;
+}
+
+html.is-touch .map-top-toolbar__tools .control-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+html.is-touch .map-top-toolbar__zoom a {
+  font-size: 22px !important;
+}
+
+html.is-touch .buscador-predio-input,
+html.is-touch .buscador-predio-btn {
+  height: 44px !important;
+  font-size: 16px !important;
+}
+
+html.is-touch .buscador-predio-input {
+  flex: 1 1 auto;
+  width: auto !important;
+  min-width: 160px;
+  max-width: none !important;
+  padding: 0 10px !important;
+}
+
+html.is-touch .buscador-predio-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 0 14px !important;
+}
+
+html.is-touch .google-toggle {
+  overflow: hidden;
+}
+
+html.is-touch .google-toggle span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.is-touch .buscador-predio-results {
+  top: 50px !important;
+  max-height: min(50vh, 360px) !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+html.is-touch .buscador-predio-results__item {
+  min-height: 44px;
+  justify-content: center;
+  font-size: 14px !important;
+}
+
+html.is-touch .buscador-predio-results__item-sub {
+  font-size: 12px !important;
+}
+
+html.is-touch input,
+html.is-touch select,
+html.is-touch textarea {
+  font-size: max(16px, 1em);
+}
+
+html.is-touch .wms-layer-card__check input,
+html.is-touch .listado-capas input[type="checkbox"] {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+html.is-touch .wms-layer-card__btn {
+  min-height: 36px;
+  font-size: 0.8rem !important;
+  padding: 0.3rem 0.5rem !important;
+}
+
+html.is-touch .wms-layer-card__title {
+  font-size: 0.85rem !important;
+}
+
+html.is-touch .wms-layer-card__slider {
+  height: 8px !important;
+  margin: 0.4rem 0 0.6rem !important;
+}
+
+html.is-touch .cd-accordion__label,
+html.is-touch .cd-accordion__label--level1,
+html.is-touch .cd-accordion__label--level2 {
+  min-height: 44px !important;
+  font-size: 0.82rem !important;
+}
+
+html.is-touch .leaflet-container a.leaflet-popup-close-button {
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 24px !important;
+  top: 0 !important;
+  right: 0 !important;
+}
+
+html.is-touch .mxli-feature-popup__head {
+  padding-right: 40px !important;
+}
+
+html.is-touch .planos-close,
+html.is-touch .mxli-expediente-dialog__close {
+  width: 44px;
+  height: 44px;
+}
+
+html.is-touch .planos-search input,
+html.is-touch .planos-search button {
+  height: 44px;
+  font-size: 16px;
+}
+
+html.is-touch .modal-container-v2 .boton,
+html.is-touch .print-mode-options button {
+  min-height: 44px;
+}
+
+/* ================= Celular: barra de búsqueda y herramientas ================= */
+html.is-mobile .map-top-toolbar {
+  top: calc(var(--mxli-hh, 48px) + 6px) !important;
+  left: max(6px, env(safe-area-inset-left, 0px)) !important;
+  right: max(6px, env(safe-area-inset-right, 0px)) !important;
+  max-width: none !important;
+  padding: 6px !important;
+  gap: 6px !important;
+  border-radius: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+html.is-mobile .map-top-toolbar__handle {
+  display: none !important;
+}
+
+html.is-mobile .map-top-toolbar__search {
+  flex: 1 1 100% !important;
+  min-width: 0 !important;
+  gap: 6px !important;
+}
+
+html.is-mobile .map-top-toolbar .buscador-predio-box {
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+html.is-mobile .buscador-predio-input {
+  min-width: 140px;
+}
+
+/* Buscar y Medidas como iconos de 44px; el texto queda para lectores de pantalla */
+html.is-mobile .buscador-predio-btn--buscar,
+html.is-mobile .buscador-predio-btn-medidas {
+  flex: 0 0 44px;
+  width: 44px !important;
+  height: 44px !important;
+  padding: 0 !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px !important;
+}
+
+html.is-mobile .buscador-predio-btn--buscar {
+  display: inline-flex;
+}
+
+html.is-mobile .buscador-predio-btn--buscar .buscador-predio-btn__icon,
+html.is-mobile .buscador-predio-btn-medidas .buscador-predio-btn__icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+html.is-mobile .buscador-predio-btn--buscar .buscador-predio-btn__text,
+html.is-mobile .buscador-predio-btn-medidas .buscador-predio-btn__text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+html.is-mobile .buscador-predio-btn-medidas {
+  border: 2px solid #c62828 !important;
+}
+
+/* Sin franja lateral en celular: el botón Capas vive en la barra */
+html.is-mobile .mapMenu {
+  width: 0 !important;
+  background: transparent !important;
+}
+
+html.is-mobile .mapMenu-item {
+  display: none !important;
+}
+
+html.is-mobile .map-open {
+  margin-left: 0 !important;
+}
+
+html.is-mobile .leaflet-left {
+  left: 6px !important;
+}
+
+html.is-mobile #mxliCapasBtn {
+  display: flex !important;
+}
+
+html.is-mobile #mxliCapasBtn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+html.is-mobile body.mxli-drawer-open #mxliCapasBtn {
+  background: #fff;
+  color: #9b2f55 !important;
+}
+
+html.is-mobile .baseLayer-control {
+  margin-inline-end: max(8px, env(safe-area-inset-right, 0px));
+  margin-block-end: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+html.is-mobile .google-toggle {
+  block-size: 56px;
+  inline-size: 56px;
+  min-width: 56px;
+  border-width: 3px;
+  padding: 2px;
+}
+
+html.is-mobile .google-toggle span {
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+html.is-mobile .map-top-toolbar__actions {
+  width: 100% !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  gap: 6px !important;
+  padding-bottom: 1px;
+}
+
+html.is-mobile .map-top-toolbar__actions::-webkit-scrollbar {
+  display: none;
+}
+
+html.is-mobile .map-top-toolbar__tools,
+html.is-mobile .map-top-toolbar__zoom {
+  flex-wrap: nowrap !important;
+  flex: 0 0 auto;
+  gap: 6px !important;
+}
+
+html.is-mobile .map-top-toolbar__tools .control-icon--camera {
+  width: 44px !important;
+  height: 44px !important;
+}
+
+/* Horizontal en celular: barra en una sola fila para no tapar el mapa */
+html.is-mobile.is-landscape .map-top-toolbar {
+  flex-wrap: nowrap !important;
+}
+
+html.is-mobile.is-landscape .map-top-toolbar__search {
+  flex: 0 1 300px !important;
+}
+
+html.is-mobile.is-landscape .map-top-toolbar__actions {
+  width: auto !important;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ================= Celular: panel de capas como cajón ================= */
+html.is-mobile .map-sideElement.map-open {
+  width: min(calc(100vw - 48px), 360px) !important;
+  box-shadow: 6px 0 22px rgba(0, 0, 0, 0.35);
+}
+
+html.is-mobile .mxli-drawer-backdrop {
+  display: block;
+  position: fixed;
+  top: var(--mxli-hh, 48px);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(20, 10, 14, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 100020;
+}
+
+html.is-mobile body.mxli-drawer-open .mxli-drawer-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+html.is-mobile body.mxli-drawer-open .mapMenu {
+  z-index: 100030 !important;
+}
+
+html.is-mobile .simbologia {
+  right: -37px;
+  max-width: min(300px, calc(100vw - 60px)) !important;
+}
+
+/* ================= Celular: popups / ficha del predio ================= */
+html.is-mobile .leaflet-popup,
+html.is-mobile .leaflet-popup.mxli-predio-leaflet-popup,
+html.is-mobile .leaflet-popup-content-wrapper,
+html.is-mobile .leaflet-popup.mxli-predio-leaflet-popup .leaflet-popup-content-wrapper {
+  max-width: calc(100vw - 24px) !important;
+}
+
+html.is-mobile .leaflet-popup-content,
+html.is-mobile .leaflet-popup.mxli-predio-leaflet-popup .leaflet-popup-content {
+  max-height: min(48vh, 420px) !important;
+  font-size: 13px !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+html.is-mobile .mxli-padron-table,
+html.is-mobile .mxli-feature-popup__body div {
+  font-size: 13px !important;
+}
+
+/* ================= Celular: diálogos a pantalla completa ================= */
+html.is-mobile .planos-dialog,
+html.is-mobile .planos-dialog.deslindes-dialog,
+html.is-mobile .mxli-expediente-dialog {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  inset: 0;
+  border-radius: 0 !important;
+}
+
+html.is-mobile .planos-dialog .planos-shell,
+html.is-mobile .deslindes-dialog .planos-shell {
+  height: 100% !important;
+  max-height: none !important;
+}
+
+html.is-mobile .planos-bar,
+html.is-mobile .mxli-expediente-dialog__bar {
+  padding: calc(0.6rem + env(safe-area-inset-top, 0px)) max(0.8rem, env(safe-area-inset-right, 0px)) 0.6rem
+    max(0.8rem, env(safe-area-inset-left, 0px));
+}
+
+html.is-mobile .mxli-expediente-dialog__frame {
+  height: calc(100% - 60px - env(safe-area-inset-top, 0px));
+}
+
+html.is-mobile .planos-toolbar {
+  padding: 0.6rem 0.8rem 0.5rem;
+}
+
+html.is-mobile .planos-search label {
+  flex: 1 1 100%;
+}
+
+html.is-mobile .planos-search input {
+  min-width: 0;
+}
+
+html.is-mobile .planos-main {
+  flex-direction: column;
+}
+
+html.is-mobile .planos-list-pane {
+  width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+  max-height: 40%;
+  border-right: 0;
+  border-bottom: 1px solid #eadfe3;
+}
+
+html.is-mobile .planos-preview-pane {
+  flex: 1 1 auto;
+  min-height: 45%;
+}
+
+html.is-mobile .deslindes-list {
+  flex: 1 1 auto !important;
+  max-height: none !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Tabla de deslindes como tarjetas */
+html.is-mobile .deslindes-table thead {
+  display: none;
+}
+
+html.is-mobile .deslindes-table,
+html.is-mobile .deslindes-table tbody,
+html.is-mobile .deslindes-table tr {
+  display: block;
+  width: 100%;
+}
+
+html.is-mobile .deslindes-table tr {
+  box-sizing: border-box;
+  width: auto;
+  margin: 0.6rem 0.7rem;
+  border: 1px solid #e3d3d8;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(60, 30, 40, 0.08);
+}
+
+html.is-mobile .deslindes-table td,
+html.is-mobile .deslindes-table td:nth-child(5),
+html.is-mobile .deslindes-table td:nth-child(6) {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0.5rem 0.8rem;
+  white-space: normal;
+  text-align: right;
+  font-size: 0.92rem;
+}
+
+html.is-mobile .deslindes-table tr td:first-child {
+  border-top: 0;
+  background: #f7eef1;
+  font-weight: 800;
+}
+
+html.is-mobile .deslindes-table td::before {
+  content: attr(data-label);
+  flex: 0 0 auto;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #7d5a66;
+}
+
+html.is-mobile .deslindes-clave {
+  min-height: 36px;
+  font-size: 1rem;
+}
+
+/* Diálogos de impresión */
+html.is-mobile .modal-container-v2 {
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  padding: 1.2rem;
+}
+
+html.is-mobile .print-mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+/* ================= Tableta ================= */
+html.is-tablet .planos-dialog,
+html.is-tablet .mxli-expediente-dialog {
+  width: 98vw;
+  max-width: 98vw;
+}
+
+html.is-tablet.is-portrait .planos-main {
+  flex-direction: column;
+}
+
+html.is-tablet.is-portrait .planos-list-pane {
+  width: 100%;
+  min-width: 0;
+  max-height: 38%;
+  border-right: 0;
+  border-bottom: 1px solid #eadfe3;
+}
+
+html.is-tablet.is-portrait .planos-preview-pane {
+  flex: 1 1 auto;
+}
+
+html.is-tablet .deslindes-table td,
+html.is-tablet .planos-table td {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}

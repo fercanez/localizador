@@ -7,6 +7,9 @@
       <div id="map-top-toolbar-actions" class="map-top-toolbar__actions"></div>
     </div>
     <div class="tools" id="tools">
+      <span class="control-icon control-icon--capas" id="mxliCapasBtn" title="Capas" role="button" tabindex="0" aria-label="Capas del mapa">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 1.5 7.5 12 13l10.5-5.5L12 2zm0 2.3 6.2 3.2L12 10.7 5.8 7.5 12 4.3zM3.6 11.4 1.5 12.5 12 18l10.5-5.5-2.1-1.1L12 15.8l-8.4-4.4zm0 5L1.5 17.5 12 23l10.5-5.5-2.1-1.1L12 20.8l-8.4-4.4z"/></svg>
+      </span>
       <span class="icon-Ubicacion_2 control-icon" id="locateBtn">
       </span>
       <span class="icon-Subir_1 control-icon" id="visible-uploadBtn">
