@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . "/includes/init.php";
 require_once dirname(__DIR__, 2) . "/includes/auth.php";
 require_once dirname(__DIR__, 2) . "/includes/layer-catalog.php";
+require_once dirname(__DIR__, 2) . "/includes/planos.php";
 
 header("Content-Type: application/json; charset=UTF-8");
 header("Cache-Control: no-store, no-cache, must-revalidate");
@@ -117,6 +118,12 @@ function mxli_public_role(array $role): array
 try {
     $pdo = mxli_db();
     mxli_ensure_roles_table($pdo);
+    if (function_exists("mxli_grant_patrulla_ecologica_role")) {
+        mxli_grant_patrulla_ecologica_role($pdo);
+    }
+    if (function_exists("mxli_grant_fallas_geologicas_layer")) {
+        mxli_grant_fallas_geologicas_layer($pdo);
+    }
 
     if ($method === "GET") {
         // Sembrar roles base si la tabla está vacía
@@ -257,6 +264,7 @@ try {
             "layers" => json_encode(array_values($layers), JSON_UNESCAPED_UNICODE),
         ]);
         $row = $stmt->fetch();
+        mxli_clear_role_cache($slug);
 
         mxli_json_response([
             "ok" => true,

@@ -1,0 +1,419 @@
+/* Consulta de planos catastrales */
+.planos-dialog {
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  width: 96vw;
+  height: 92vh;
+  max-width: 96vw;
+  max-height: 92vh;
+  box-shadow: 0 22px 48px rgba(30, 12, 20, 0.38);
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.planos-dialog[open] {
+  display: flex;
+}
+
+.planos-dialog::backdrop {
+  background: rgba(28, 16, 22, 0.48);
+}
+
+.planos-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: #2a2030;
+}
+
+.planos-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(135deg, #6f2f3d 0%, #7d3445 55%, #5e2633 100%);
+  color: #fff;
+  border-bottom: 3px solid #d6aa2f;
+}
+
+.planos-bar h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.planos-bar p {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  opacity: 0.9;
+}
+
+.planos-close {
+  border: 1px solid rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.planos-toolbar {
+  padding: 0.7rem 1rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border-bottom: 1px solid #eadfe3;
+  background: #fff;
+}
+
+.planos-main {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+.planos-list-pane {
+  width: min(380px, 34vw);
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #eadfe3;
+  background: #faf7f5;
+}
+
+.planos-preview-pane {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  background: #3d3336;
+}
+
+.planos-preview-frame {
+  display: none;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #3d3336;
+}
+
+.planos-preview-frame.is-on {
+  display: block;
+}
+
+.planos-preview-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+  color: #d7c9ce;
+  font-size: 0.95rem;
+}
+
+.planos-preview-placeholder[hidden] {
+  display: none;
+}
+
+.planos-search {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.planos-search label {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #5e2633;
+}
+
+.planos-search input {
+  flex: 1;
+  min-width: 140px;
+  height: 38px;
+  border: 1px solid #c9b8be;
+  border-radius: 8px;
+  padding: 0 0.7rem;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.planos-search input:focus {
+  outline: none;
+  border-color: #9b2f55;
+  box-shadow: 0 0 0 3px rgba(155, 47, 85, 0.16);
+}
+
+.planos-search button {
+  height: 38px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 1rem;
+  background: #7d3445;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.planos-search button:hover {
+  background: #5e2633;
+}
+
+.planos-meta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #6b5b64;
+}
+
+.planos-list-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #faf7f5;
+}
+
+.planos-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.planos-table th {
+  text-align: left;
+  background: #efe4e7;
+  color: #5e2633;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.7rem;
+  position: sticky;
+  top: 0;
+}
+
+.planos-table td {
+  padding: 0.4rem 0.7rem;
+  border-top: 1px solid #efe8ea;
+  background: #fff;
+}
+
+.planos-table tr:hover td {
+  background: #fff7ea;
+}
+
+.planos-row {
+  cursor: pointer;
+}
+
+.planos-row.is-selected td {
+  background: #f3e0c4;
+}
+
+.planos-row.is-selected:hover td {
+  background: #edc98a;
+}
+
+.planos-empty {
+  padding: 1.4rem 1rem;
+  text-align: center;
+  color: #6b5b64;
+  font-size: 0.9rem;
+}
+
+.planos-badge {
+  display: inline-block;
+  min-width: 3.1rem;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+}
+
+.planos-badge--pdf {
+  background: #fde8e8;
+  color: #9b1c1c;
+}
+
+.planos-badge--dwg,
+.planos-badge--dxf {
+  background: #e8f0fe;
+  color: #1a56db;
+}
+
+.planos-badge--jpg,
+.planos-badge--jpeg {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.planos-link {
+  color: #1d4ed8;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.planos-link:hover {
+  text-decoration: underline;
+}
+
+.control-icon--planos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-icon--planos svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.header-user-box button.header-planos-btn,
+.header-user-box a.header-planos-btn {
+  color: #fff;
+  background: rgba(214, 170, 47, 0.22);
+  border: 1px solid rgba(214, 170, 47, 0.55);
+  border-radius: 999px;
+  padding: 0.32rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.header-user-box button.header-planos-btn:hover,
+.header-user-box a.header-planos-btn:hover {
+  background: rgba(214, 170, 47, 0.38);
+}
+
+.deslindes-dialog {
+  width: min(1180px, 96vw);
+  height: auto;
+  max-height: 90vh;
+}
+
+.deslindes-dialog .planos-shell {
+  height: auto;
+  max-height: 90vh;
+}
+
+.deslindes-dialog .planos-search input {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.deslindes-main,
+.deslindes-table-wrap.planos-list-wrap {
+  display: block;
+  overflow: auto;
+  overflow-x: hidden;
+  width: 100%;
+  background: #fff;
+}
+
+.deslindes-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.deslindes-table th,
+.deslindes-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.deslindes-table th {
+  font-size: 0.7rem;
+}
+
+.deslindes-table td {
+  font-size: 0.8rem;
+  vertical-align: top;
+}
+
+.deslindes-table th:nth-child(1),
+.deslindes-table td:nth-child(1) { width: 9%; }
+.deslindes-table th:nth-child(2),
+.deslindes-table td:nth-child(2) { width: 12%; }
+.deslindes-table th:nth-child(3),
+.deslindes-table td:nth-child(3) { width: 16%; }
+.deslindes-table th:nth-child(4),
+.deslindes-table td:nth-child(4) { width: 10%; }
+.deslindes-table th:nth-child(5),
+.deslindes-table td:nth-child(5) { width: 20%; }
+.deslindes-table th:nth-child(6),
+.deslindes-table td:nth-child(6) { width: 20%; }
+.deslindes-table th:nth-child(7),
+.deslindes-table td:nth-child(7) { width: 13%; }
+
+.deslindes-status {
+  display: inline-block;
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  padding: 0.12rem 0.45rem;
+  border-radius: 6px;
+  background: #f3e8ee;
+  color: #5e2633;
+}
+
+.deslindes-status--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.deslindes-status--wait {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.deslindes-status--bad {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Iconos de la barra: el de capas y el de trámites van en trazo negro. */
+.map-top-toolbar__tools,
+.map-top-toolbar__tools *:not(input):not(textarea),
+.map-top-toolbar__tools *:not(input)::before,
+.map-top-toolbar__zoom,
+.map-top-toolbar__zoom * {
+  color: #7d3445 !important;
+  -webkit-text-fill-color: #7d3445 !important;
+}
+
+.map-top-toolbar__tools svg,
+.map-top-toolbar__tools svg * {
+  fill: #7d3445 !important;
+  stroke: #7d3445 !important;
+}
+
+.map-top-toolbar__tools .control-icon,
+.map-top-toolbar__tools .control-icon:hover,
+#inspectPhotoBtn,
+#consultaPlanosBtn,
+#consultaDeslindesBtn {
+  background: #fff !important;
+  background-color: #fff !important;
+}
+
+.map-top-toolbar__tools .control-icon.btnIsActive,
+.map-top-toolbar__tools .control-icon.locationIsActive {
+  background: #ac905b !important;
+  background-color: #ac905b !important;
+}

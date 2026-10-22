@@ -14,8 +14,10 @@
     return (
       window.mxliCan("map.inspect") ||
       window.mxliCan("map.inspect.catastro") ||
+      window.mxliCan("map.inspect.ecologica") ||
       window.mxliCan("inspections.manage") ||
       window.mxliCan("inspections.catastro.manage") ||
+      window.mxliCan("inspections.ecologica.manage") ||
       window.mxliCan("users.manage")
     );
   }
@@ -29,6 +31,78 @@
     );
   }
 
+  function ensureInspectPhotoInput() {
+    var input = document.getElementById("inspect-photo-input");
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "file";
+      input.id = "inspect-photo-input";
+      input.accept = "image/*";
+      input.setAttribute("capture", "environment");
+      input.hidden = true;
+      document.body.appendChild(input);
+    } else if (input.parentNode !== document.body) {
+      document.body.appendChild(input);
+    }
+    return input;
+  }
+
+  function releaseInspectDialog() {
+    var dlg = document.getElementById("inspect-photo-dialog");
+    if (!dlg || !dlg.open) return;
+    document.querySelectorAll("[inert]").forEach(function (el) {
+      if (el !== dlg && !dlg.contains(el)) el.removeAttribute("inert");
+    });
+  }
+
+  function prepareInspectionPhoto(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !/^image\//.test(file.type || "") || file.type === "image/gif") {
+        resolve(file);
+        return;
+      }
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        if (!w || !h) {
+          resolve(file);
+          return;
+        }
+        var maxEdge = 1600;
+        var scale = Math.min(1, maxEdge / Math.max(w, h));
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(w * scale));
+        canvas.height = Math.max(1, Math.round(h * scale));
+        var ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          function (blob) {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            var name = String(file.name || "foto.jpg").replace(/\.\w+$/, "") + ".jpg";
+            resolve(new File([blob], name, { type: "image/jpeg" }));
+          },
+          "image/jpeg",
+          0.72
+        );
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        reject(new Error("foto"));
+      };
+      img.src = url;
+    });
+  }
+
   function canInspectCatastro() {
     return (
       typeof window.mxliCan === "function" &&
@@ -38,10 +112,19 @@
     );
   }
 
+  function canInspectEcologica() {
+    return (
+      typeof window.mxliCan === "function" &&
+      (window.mxliCan("map.inspect.ecologica") ||
+        window.mxliCan("inspections.ecologica.manage"))
+    );
+  }
+
   function userInspectionAreas() {
     var areas = [];
     if (canInspectUrbano()) areas.push("urbano");
     if (canInspectCatastro()) areas.push("catastro");
+    if (canInspectEcologica()) areas.push("ecologica");
     return areas;
   }
 
@@ -55,7 +138,9 @@
   var captureArea = "urbano";
 
   function areaTitle(area) {
-    return area === "catastro" ? "Inspección Catastro" : "Inspección Control Urbano";
+    if (area === "catastro") return "Inspección Catastro";
+    if (area === "ecologica") return "Inspección Patrulla Ecológica";
+    return "Inspección Control Urbano";
   }
 
   function mustChooseArea() {
@@ -67,16 +152,44 @@
     var title = root.querySelector("#inspect-dialog-title");
     if (title) title.textContent = areaTitle(captureArea);
     var typeField = root.querySelector(".inspect-type-field");
-    if (typeField) typeField.hidden = captureArea === "catastro";
+    if (typeField) typeField.hidden = captureArea !== "urbano";
     var badge = root.querySelector("#inspect-area-badge");
     if (badge) {
-      badge.textContent =
-        captureArea === "catastro" ? "Catastro" : "Control Urbano";
+      var shortLabel = "Control Urbano";
+      if (captureArea === "catastro") shortLabel = "Catastro";
+      if (captureArea === "ecologica") shortLabel = "Patrulla Ecológica";
+      badge.textContent = shortLabel;
       badge.classList.toggle("is-catastro", captureArea === "catastro");
-      badge.classList.toggle("is-urbano", captureArea !== "catastro");
+      badge.classList.toggle("is-ecologica", captureArea === "ecologica");
+      badge.classList.toggle("is-urbano", captureArea === "urbano");
     }
     var backBtn = root.querySelector("#inspect-area-back");
     if (backBtn) backBtn.hidden = !mustChooseArea();
+
+    var eco = captureArea === "ecologica";
+    var captureForm = root.querySelector("#inspect-step-capture");
+    var hint = captureForm ? captureForm.querySelector(".inspect-photo-form__hint") : null;
+    if (hint) {
+      hint.textContent = eco
+        ? "La clave catastral es opcional. Ubique el punto con GPS o punteando en el mapa."
+        : "Capture la clave catastral y la fotografía del predio.";
+    }
+    var claveLabel = root.querySelector("#inspect-clave-label-text");
+    if (claveLabel) claveLabel.textContent = eco ? "Clave catastral (opcional)" : "Clave catastral";
+    var claveInput = root.querySelector("#inspect-clave");
+    if (claveInput) {
+      claveInput.required = !eco;
+      claveInput.placeholder = eco ? "Opcional" : "ST312014";
+    }
+    root.querySelectorAll(".inspect-coord-toggle--clave").forEach(function (btn) {
+      btn.hidden = eco;
+    });
+    root.querySelectorAll(".inspect-coord-toggle--map").forEach(function (btn) {
+      btn.hidden = !eco;
+    });
+    if (eco && coordSource !== "gps" && coordSource !== "map") coordSource = "gps";
+    if (!eco && coordSource === "map") coordSource = "clave";
+    setCoordSource(coordSource, false);
   }
 
   function showInspectStep(step) {
@@ -91,8 +204,10 @@
     return (
       window.mxliCan("map.inspect") ||
       window.mxliCan("map.inspect.catastro") ||
+      window.mxliCan("map.inspect.ecologica") ||
       window.mxliCan("inspections.manage") ||
       window.mxliCan("inspections.catastro.manage") ||
+      window.mxliCan("inspections.ecologica.manage") ||
       window.mxliCan("users.manage")
     );
   }
@@ -141,6 +256,7 @@
     lic_construccion: "Lic. Construcción",
     imagen_urbana: "Imagen Urbana",
     uso_suelo: "Uso de Suelo",
+    casetas_de_fraccs: "Casetas de Fraccs.",
     otro: "Otro",
   };
 
@@ -164,6 +280,14 @@
         '<button type="button" class="inspect-area-choice inspect-area-choice--catastro" data-inspect-area="catastro">' +
           '<span class="inspect-area-choice__title">Catastro</span>' +
           '<span class="inspect-area-choice__desc">Reporte fotográfico de Catastro (foto, GPS/centroide y notas)</span>' +
+          "</button>"
+      );
+    }
+    if (areas.indexOf("ecologica") >= 0) {
+      cards.push(
+        '<button type="button" class="inspect-area-choice inspect-area-choice--ecologica" data-inspect-area="ecologica">' +
+          '<span class="inspect-area-choice__title">Patrulla Ecológica</span>' +
+          '<span class="inspect-area-choice__desc">Foto con GPS o un punto en el mapa. La clave catastral es opcional y solo la ve Patrulla Ecológica.</span>' +
           "</button>"
       );
     }
@@ -304,7 +428,23 @@
 
 
   var PREDIO_API = "api/wfs-nearest-predio.php";
-  var coordSource = "clave"; // clave | gps
+  var coordSource = "clave"; // clave | gps | map (map solo ecológica)
+  var shownGps = { lat: null, lng: null };
+  var mapPick = {
+    active: false,
+    suspendReset: false,
+    placing: false,
+    lat: null,
+    lng: null,
+    marker: null,
+    down: null,
+    onPointerDown: null,
+    onPointerUp: null,
+    onPointerCancel: null,
+    onClick: null,
+    onKey: null,
+    panSuspended: null,
+  };
 
   function getCoordSource() {
     var on = document.querySelector(".inspect-coord-toggle.is-on");
@@ -315,7 +455,11 @@
   }
 
   function setCoordSource(src, announce) {
-    coordSource = src === "gps" ? "gps" : "clave";
+    if (captureArea === "ecologica") {
+      coordSource = src === "map" ? "map" : "gps";
+    } else {
+      coordSource = src === "gps" ? "gps" : "clave";
+    }
     document.querySelectorAll(".inspect-coord-toggle").forEach(function (btn) {
       var on = btn.getAttribute("data-coord-source") === coordSource;
       btn.classList.toggle("is-on", on);
@@ -323,18 +467,55 @@
     });
     var hint = $("inspect-coord-hint");
     if (hint) {
-      if (coordSource === "gps") {
-        hint.textContent = "Se usará la ubicación GPS del dispositivo/mapa.";
+      if (captureArea === "ecologica" && coordSource === "map") {
+        hint.textContent = isValidCoord(mapPick.lat, mapPick.lng)
+          ? "Punto tomado del plano. Puede puntear de nuevo para moverlo."
+          : "Toque el plano para colocar el punto. Puede cancelar el punteo.";
+      } else if (coordSource === "gps") {
+        hint.textContent =
+          captureArea === "ecologica"
+            ? "Se usará la ubicación GPS del dispositivo."
+            : "Se usará la ubicación GPS del dispositivo/mapa.";
       } else {
         hint.textContent = "Se usará el centro geométrico del predio (clave).";
       }
     }
+    updateCoordReadout();
     if (announce) {
       showMsg($("inspect-msg"), hint ? hint.textContent : "", true);
     }
   }
 
+  function updateCoordReadout() {
+    var el = $("inspect-coord-readout");
+    if (!el) return;
+    if (captureArea !== "ecologica") {
+      el.hidden = true;
+      el.textContent = "";
+      el.classList.remove("is-empty");
+      return;
+    }
+    el.hidden = false;
+    var source = coordSource === "map" ? "map" : "gps";
+    var lat = source === "map" ? mapPick.lat : shownGps.lat;
+    var lng = source === "map" ? mapPick.lng : shownGps.lng;
+    if (!isValidCoord(lat, lng)) {
+      el.classList.add("is-empty");
+      el.textContent =
+        source === "map" ? "Aún no hay punto en el plano." : "Aún no hay lectura GPS.";
+      return;
+    }
+    el.classList.remove("is-empty");
+    el.textContent =
+      "Coordenadas: " +
+      Number(lat).toFixed(6) +
+      ", " +
+      Number(lng).toFixed(6) +
+      (source === "map" ? " (plano)" : " (GPS)");
+  }
+
   function autoPickCoordSourceFromClave() {
+    if (captureArea === "ecologica") return;
     var clave = String(($("inspect-clave") && $("inspect-clave").value) || "")
       .trim()
       .replace(/\s+/g, "");
@@ -346,10 +527,12 @@
       '<div class="inspect-coord-field">' +
       '<span class="inspect-coord-field__label">Coordenadas</span>' +
       '<div class="inspect-coord-toggles" role="group" aria-label="Origen de coordenadas">' +
-      '<button type="button" class="inspect-coord-toggle is-on" data-coord-source="clave" aria-pressed="true">Centro del predio</button>' +
-      '<button type="button" class="inspect-coord-toggle" data-coord-source="gps" aria-pressed="false">GPS actual</button>' +
+      '<button type="button" class="inspect-coord-toggle inspect-coord-toggle--clave is-on" data-coord-source="clave" aria-pressed="true">Centro del predio</button>' +
+      '<button type="button" class="inspect-coord-toggle inspect-coord-toggle--gps" data-coord-source="gps" aria-pressed="false">GPS actual</button>' +
+      '<button type="button" class="inspect-coord-toggle inspect-coord-toggle--map" data-coord-source="map" aria-pressed="false" hidden>Puntear en el mapa</button>' +
       "</div>" +
       '<p id="inspect-coord-hint" class="inspect-coord-hint">Se usará el centro geométrico del predio (clave).</p>' +
+      '<p id="inspect-coord-readout" class="inspect-coord-readout" hidden></p>' +
       "</div>"
     );
   }
@@ -359,9 +542,340 @@
     box.querySelectorAll(".inspect-coord-toggle").forEach(function (btn) {
       btn.addEventListener("click", function (ev) {
         ev.preventDefault();
-        setCoordSource(btn.getAttribute("data-coord-source") || "clave", true);
+        var src = btn.getAttribute("data-coord-source") || "clave";
+        if (captureArea === "ecologica" && src === "map") {
+          setCoordSource("map", false);
+          beginMapPick();
+          return;
+        }
+        if (captureArea === "ecologica" && src === "gps") {
+          finishMapPick(false);
+          var gpsMap = getMap();
+          if (mapPick.marker && gpsMap && gpsMap.hasLayer(mapPick.marker)) {
+            gpsMap.removeLayer(mapPick.marker);
+          }
+          setCoordSource("gps", false);
+          refreshEcoGps();
+          return;
+        }
+        setCoordSource(src, true);
       });
     });
+  }
+
+  function refreshEcoGps() {
+    if (captureArea !== "ecologica") return;
+    var hint = $("inspect-coord-hint");
+    if (hint) hint.textContent = "Obteniendo ubicación GPS…";
+    shownGps.lat = null;
+    shownGps.lng = null;
+    updateCoordReadout();
+    readDeviceGps().then(function (gps) {
+      if (captureArea !== "ecologica" || getCoordSource() !== "gps") return;
+      if (!gps) {
+        shownGps.lat = null;
+        shownGps.lng = null;
+        if (hint) hint.textContent = "No se obtuvo GPS. Active la ubicación o puntee en el mapa.";
+        showMsg($("inspect-msg"), "No se pudo obtener GPS. Puede puntear en el mapa.", false);
+        updateCoordReadout();
+        return;
+      }
+      shownGps.lat = gps.lat;
+      shownGps.lng = gps.lng;
+      if (hint) hint.textContent = "Se usará la ubicación GPS del dispositivo.";
+      showMsg($("inspect-msg"), "", true);
+      updateCoordReadout();
+    });
+  }
+
+  function showDraftMarker(lat, lng) {
+    var map = getMap();
+    if (!map || typeof L === "undefined") return;
+    if (!mapPick.marker) {
+      mapPick.marker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: "mxli-inspect-pick-marker",
+          html: '<span class="mxli-inspect-pick-marker__dot"></span>',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+        }),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 1000,
+      });
+    }
+    mapPick.marker.setLatLng([lat, lng]);
+    if (!map.hasLayer(mapPick.marker)) mapPick.marker.addTo(map);
+  }
+
+  function clearDraftMarker() {
+    var map = getMap();
+    if (mapPick.marker && map && map.hasLayer(mapPick.marker)) {
+      map.removeLayer(mapPick.marker);
+    }
+    mapPick.marker = null;
+    mapPick.lat = null;
+    mapPick.lng = null;
+  }
+
+  function ensurePickBanner() {
+    var banner = document.getElementById("inspect-map-pick-banner");
+    if (banner) return banner;
+    banner = document.createElement("div");
+    banner.id = "inspect-map-pick-banner";
+    banner.className = "inspect-map-pick-banner";
+    banner.hidden = true;
+    banner.innerHTML =
+      "<p>Toque el plano para ubicar la inspección de Patrulla Ecológica.</p>" +
+      '<button type="button" id="inspect-map-pick-cancel">Cancelar punteo</button>';
+    document.body.appendChild(banner);
+    var cancel = document.getElementById("inspect-map-pick-cancel");
+    if (cancel) {
+      cancel.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        cancelMapPick();
+      });
+    }
+    return banner;
+  }
+
+  function mapPickHitsUi(target) {
+    if (!target || !target.closest) return false;
+    return !!target.closest(
+      ".leaflet-control, .leaflet-popup, .buscador-predio-flotante, .map-top-toolbar, .inspect-map-pick-banner, button, a, input, select, textarea, label"
+    );
+  }
+
+  function unbindMapPick() {
+    if (mapPick.onPointerDown) {
+      document.removeEventListener("pointerdown", mapPick.onPointerDown, true);
+      mapPick.onPointerDown = null;
+    }
+    if (mapPick.onPointerUp) {
+      document.removeEventListener("pointerup", mapPick.onPointerUp, true);
+      mapPick.onPointerUp = null;
+    }
+    if (mapPick.onPointerCancel) {
+      document.removeEventListener("pointercancel", mapPick.onPointerCancel, true);
+      mapPick.onPointerCancel = null;
+    }
+    if (mapPick.onClick) {
+      document.removeEventListener("click", mapPick.onClick, true);
+      mapPick.onClick = null;
+    }
+    mapPick.down = null;
+  }
+
+  function panButton() {
+    return document.getElementById("panMapBtn");
+  }
+
+  function draggingEnabled(map) {
+    try {
+      return !!(map && map.dragging && typeof map.dragging.enabled === "function" && map.dragging.enabled());
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function suspendMapPan(map) {
+    if (!map || mapPick.panSuspended) return;
+    var panBtn = panButton();
+    mapPick.panSuspended = {
+      dragging: draggingEnabled(map),
+      panActive: !!(panBtn && panBtn.classList.contains("btnIsActive")),
+    };
+    if (map.dragging) map.dragging.disable();
+    var container = map.getContainer();
+    if (container) {
+      container.classList.remove("leaflet-grab", "leaflet-dragging");
+      if (typeof L !== "undefined" && L.DomUtil) {
+        L.DomUtil.removeClass(container, "leaflet-grab");
+        L.DomUtil.removeClass(container, "leaflet-dragging");
+      }
+    }
+    if (panBtn) panBtn.classList.remove("btnIsActive");
+  }
+
+  function restoreMapPan(map) {
+    var saved = mapPick.panSuspended;
+    mapPick.panSuspended = null;
+    var container = map && map.getContainer ? map.getContainer() : null;
+    if (container) {
+      container.classList.remove("mxli-inspect-pick-cursor");
+      container.style.cursor = "";
+    }
+    if (!saved) return;
+    var panBtn = panButton();
+    if (panBtn) panBtn.classList.toggle("btnIsActive", !!saved.panActive);
+    if (map && map.dragging) {
+      if (saved.dragging) map.dragging.enable();
+      else map.dragging.disable();
+    }
+  }
+
+  function swallowFollowingClick() {
+    var pending = true;
+    function onClick(ev) {
+      if (!pending) return;
+      pending = false;
+      document.removeEventListener("click", onClick, true);
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+    document.addEventListener("click", onClick, true);
+    setTimeout(function () {
+      pending = false;
+      document.removeEventListener("click", onClick, true);
+    }, 700);
+  }
+
+  function finishMapPick(reopen) {
+    mapPick.active = false;
+    window.mxliInspectMapPickActive = false;
+    mapPick.down = null;
+    unbindMapPick();
+    if (mapPick.onKey) {
+      document.removeEventListener("keydown", mapPick.onKey, true);
+      mapPick.onKey = null;
+    }
+    var map = getMap();
+    restoreMapPan(map);
+    var banner = document.getElementById("inspect-map-pick-banner");
+    if (banner) banner.hidden = true;
+    if (reopen) {
+      if (isValidCoord(mapPick.lat, mapPick.lng)) showDraftMarker(mapPick.lat, mapPick.lng);
+      setCoordSource("map", false);
+      reopenCaptureDialog();
+    }
+  }
+
+  function cancelMapPick() {
+    finishMapPick(true);
+    var hint = $("inspect-coord-hint");
+    if (hint) {
+      hint.textContent = isValidCoord(mapPick.lat, mapPick.lng)
+        ? "Punteo cancelado. Se conserva el punto anterior."
+        : "Punteo cancelado. Pulse «Puntear en el mapa» para elegir un punto.";
+    }
+  }
+
+  function pickEventOnMap(ev, map) {
+    if (!ev || !map || !map.getContainer) return false;
+    var container = map.getContainer();
+    if (!container || !ev.target || !container.contains(ev.target)) return false;
+    return !mapPickHitsUi(ev.target);
+  }
+
+  function placeFromEvent(ev, swallowClick) {
+    if (!mapPick.active || mapPick.placing) return;
+    var map = getMap();
+    if (!map) return;
+    var ll = null;
+    try {
+      ll = map.mouseEventToLatLng(ev);
+    } catch (err) {
+      ll = null;
+    }
+    if (!ll || !isValidCoord(ll.lat, ll.lng)) return;
+    mapPick.placing = true;
+    mapPick.lat = ll.lat;
+    mapPick.lng = ll.lng;
+    showDraftMarker(ll.lat, ll.lng);
+    if (swallowClick) swallowFollowingClick();
+    finishMapPick(true);
+    mapPick.placing = false;
+  }
+
+  function beginMapPick() {
+    var map = getMap();
+    if (!map || !map.getContainer()) {
+      showMsg($("inspect-msg"), "El mapa no está listo para puntear.", false);
+      return;
+    }
+    var dlg = $("inspect-photo-dialog");
+    var dialogOpen = !!(dlg && (dlg.open || dlg.hasAttribute("open")));
+    mapPick.active = true;
+    mapPick.placing = false;
+    window.mxliInspectMapPickActive = true;
+    mapPick.suspendReset = dialogOpen;
+    if (dialogOpen) {
+      try {
+        if (typeof dlg.close === "function") dlg.close();
+        else dlg.removeAttribute("open");
+      } catch (e) {
+        dlg.removeAttribute("open");
+        mapPick.suspendReset = false;
+      }
+    }
+
+    suspendMapPan(map);
+    var container = map.getContainer();
+    container.classList.add("mxli-inspect-pick-cursor");
+    container.style.cursor = "crosshair";
+    var banner = ensurePickBanner();
+    banner.hidden = false;
+
+    unbindMapPick();
+    mapPick.onPointerDown = function (ev) {
+      if (!mapPick.active) return;
+      if (ev.button !== undefined && ev.button !== 0) return;
+      if (!pickEventOnMap(ev, map)) return;
+      mapPick.down = { x: ev.clientX, y: ev.clientY };
+      ev.preventDefault();
+      ev.stopPropagation();
+    };
+    mapPick.onPointerUp = function (ev) {
+      if (!mapPick.active) return;
+      if (!mapPick.down) return;
+      if (ev.button !== undefined && ev.button !== 0) {
+        mapPick.down = null;
+        return;
+      }
+      var down = mapPick.down;
+      mapPick.down = null;
+      if (!pickEventOnMap(ev, map)) return;
+      var dx = ev.clientX - down.x;
+      var dy = ev.clientY - down.y;
+      if (dx * dx + dy * dy > 576) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      placeFromEvent(ev, true);
+    };
+    mapPick.onPointerCancel = function () {
+      mapPick.down = null;
+    };
+    mapPick.onClick = function (ev) {
+      if (!mapPick.active) return;
+      if (!pickEventOnMap(ev, map)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      placeFromEvent(ev, false);
+    };
+    document.addEventListener("pointerdown", mapPick.onPointerDown, true);
+    document.addEventListener("pointerup", mapPick.onPointerUp, true);
+    document.addEventListener("pointercancel", mapPick.onPointerCancel, true);
+    document.addEventListener("click", mapPick.onClick, true);
+
+    if (mapPick.onKey) document.removeEventListener("keydown", mapPick.onKey, true);
+    mapPick.onKey = function (ev) {
+      if (!mapPick.active || ev.key !== "Escape") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      cancelMapPick();
+    };
+    document.addEventListener("keydown", mapPick.onKey, true);
+  }
+
+  function reopenCaptureDialog() {
+    var dlg = $("inspect-photo-dialog");
+    if (!dlg) return;
+    showInspectStep("capture");
+    syncAreaUI(dlg);
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
+    updateCoordReadout();
   }
 
   function fetchClaveCentroid(clave) {
@@ -453,6 +967,22 @@
     });
   }
 
+  function resolveEcoCoords() {
+    var source = getCoordSource() === "map" ? "map" : "gps";
+    if (source === "map") {
+      if (!isValidCoord(mapPick.lat, mapPick.lng)) {
+        return Promise.reject(new Error("Pantee un punto en el mapa antes de guardar."));
+      }
+      return Promise.resolve({ lat: mapPick.lat, lng: mapPick.lng, source: "map" });
+    }
+    if (!isValidCoord(shownGps.lat, shownGps.lng)) {
+      return Promise.reject(
+        new Error("No hay ubicación GPS. Obtenga el GPS o puntee en el mapa.")
+      );
+    }
+    return Promise.resolve({ lat: shownGps.lat, lng: shownGps.lng, source: "gps" });
+  }
+
 
   function ensureInspectionLayer() {
     var map = getMap();
@@ -485,6 +1015,28 @@
         '" alt="Foto"></button>'
       : "";
     var types = item.types_label || "";
+    var area = item.inspection_area === "catastro" || item.inspection_area === "ecologica"
+      ? item.inspection_area
+      : "urbano";
+    var claveText = String(item.clavecatas || "").trim();
+    claveText = claveText ? claveText.toUpperCase() : "—";
+    var typesRow =
+      area === "urbano"
+        ? '<tr><td class="mxli-padron-label">Tipos</td><td class="mxli-padron-value"><b>' +
+          escapeHtml(String(types || "—").toUpperCase()) +
+          "</b></td></tr>"
+        : "";
+    var gpsRow = "";
+    if (area === "ecologica") {
+      var gpsText = "—";
+      if (isValidCoord(Number(item.lat), Number(item.lng))) {
+        gpsText = Number(item.lat).toFixed(5) + ", " + Number(item.lng).toFixed(5);
+      }
+      gpsRow =
+        '<tr><td class="mxli-padron-label">GPS</td><td class="mxli-padron-value"><b>' +
+        escapeHtml(gpsText) +
+        "</b></td></tr>";
+    }
     return (
       '<div class="mxli-feature-popup mxli-inspect-popup">' +
       '<div class="mxli-feature-popup__head">Inspección</div>' +
@@ -492,17 +1044,16 @@
       photo +
       '<table class="mxli-padron-table mxli-inspect-ficha" role="presentation"><tbody>' +
       '<tr><td class="mxli-padron-label">Clave</td><td class="mxli-padron-value"><b>' +
-      escapeHtml(String(item.clavecatas || "—").toUpperCase()) +
+      escapeHtml(claveText) +
       "</b></td></tr>" +
+      gpsRow +
       '<tr><td class="mxli-padron-label">Fecha</td><td class="mxli-padron-value"><b>' +
       escapeHtml(String(formatDate(item.captured_at)).toUpperCase()) +
       "</b></td></tr>" +
       '<tr><td class="mxli-padron-label">Inspector</td><td class="mxli-padron-value"><b>' +
       escapeHtml(String(item.created_by_name || "—").toUpperCase()) +
       "</b></td></tr>" +
-      '<tr><td class="mxli-padron-label">Tipos</td><td class="mxli-padron-value"><b>' +
-      escapeHtml(String(types || "—").toUpperCase()) +
-      "</b></td></tr>" +
+      typesRow +
       '<tr><td class="mxli-padron-label">Notas</td><td class="mxli-padron-value"><b>' +
       escapeHtml(String(item.notes || "—").toUpperCase()) +
       "</b></td></tr>" +
@@ -630,14 +1181,13 @@
       "</div>" +
       '<h3 id="inspect-dialog-title">Inspección Control Urbano</h3>' +
       '<p class="inspect-photo-form__hint">Capture la clave catastral y la fotografía del predio.</p>' +
-      '<label>Clave catastral<input type="text" id="inspect-clave" maxlength="32" required placeholder="ST312014"></label>' +
+      '<label><span id="inspect-clave-label-text">Clave catastral</span><input type="text" id="inspect-clave" maxlength="32" required placeholder="ST312014"></label>' +
       coordSourceHtml() +
       '<label>Notas (opcional)<textarea id="inspect-notes" rows="2" placeholder="Observaciones"></textarea></label>' +
       typesHtml("") +
       '<div class="inspect-photo-preview-wrap">' +
       '<img id="inspect-preview" class="inspect-photo-preview" alt="Vista previa" hidden>' +
       '<button type="button" id="inspect-take-btn" class="inspect-photo-take">Tomar / seleccionar foto</button>' +
-      '<input type="file" id="inspect-photo-input" accept="image/*" capture="environment" hidden>' +
       "</div>" +
       '<p id="inspect-msg" class="inspect-photo-msg" hidden></p>' +
       '<div class="inspect-photo-actions">' +
@@ -675,15 +1225,29 @@
       dlg.querySelectorAll('input[type="checkbox"][name="inspection_types"]').forEach(function (inp) {
         inp.checked = false;
       });
+      finishMapPick(false);
+      clearDraftMarker();
+      shownGps.lat = null;
+      shownGps.lng = null;
       showMsg($("inspect-msg"), "", true);
     }
 
     function goToCapture(area) {
-      captureArea = area === "catastro" ? "catastro" : "urbano";
+      captureArea = area === "catastro" || area === "ecologica" ? area : "urbano";
+      if (captureArea === "ecologica") {
+        coordSource = "gps";
+        shownGps.lat = null;
+        shownGps.lng = null;
+        clearDraftMarker();
+      } else if (coordSource === "map") {
+        coordSource = "clave";
+      }
       syncAreaUI(dlg);
       showInspectStep("capture");
       var clave = $("inspect-clave");
       if (clave && !clave.value) clave.value = claveFromSearch();
+      if (captureArea === "ecologica") refreshEcoGps();
+      else autoPickCoordSourceFromClave();
       if (clave) {
         setTimeout(function () {
           clave.focus();
@@ -728,30 +1292,81 @@
     });
 
     var takeBtn = $("inspect-take-btn");
-    var fileInput = $("inspect-photo-input");
+    var fileInput = ensureInspectPhotoInput();
     var preview = $("inspect-preview");
     var selectedFile = null;
+    var previewUrl = "";
 
-    takeBtn.addEventListener("click", function () {
-      fileInput.click();
+    function clearPreview() {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        previewUrl = "";
+      }
+      if (preview) {
+        preview.hidden = true;
+        preview.removeAttribute("src");
+      }
+    }
+
+    takeBtn.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      fileInput = ensureInspectPhotoInput();
+      try {
+        fileInput.value = "";
+        fileInput.click();
+      } catch (err) {
+        showMsg($("inspect-msg"), "No se pudo abrir la cámara. Intente de nuevo.", false);
+      }
     });
 
     fileInput.addEventListener("change", function () {
-      selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
-      if (!selectedFile) {
-        preview.hidden = true;
-        preview.removeAttribute("src");
+      var picked = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      if (!picked) {
+        selectedFile = null;
+        clearPreview();
         return;
       }
-      preview.src = URL.createObjectURL(selectedFile);
-      preview.hidden = false;
+      showMsg($("inspect-msg"), "Procesando foto…", true);
+      prepareInspectionPhoto(picked)
+        .then(function (ready) {
+          selectedFile = ready || picked;
+          clearPreview();
+          previewUrl = URL.createObjectURL(selectedFile);
+          preview.src = previewUrl;
+          preview.hidden = false;
+          showMsg($("inspect-msg"), "", true);
+          releaseInspectDialog();
+        })
+        .catch(function () {
+          selectedFile = picked;
+          clearPreview();
+          previewUrl = URL.createObjectURL(picked);
+          preview.src = previewUrl;
+          preview.hidden = false;
+          showMsg($("inspect-msg"), "", true);
+          releaseInspectDialog();
+        });
     });
 
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") releaseInspectDialog();
+    });
+    window.addEventListener("pageshow", releaseInspectDialog);
+    window.addEventListener("focus", releaseInspectDialog);
+
     dlg.addEventListener("close", function () {
+      if (mapPick.suspendReset || mapPick.active) {
+        mapPick.suspendReset = false;
+        return;
+      }
       selectedFile = null;
-      fileInput.value = "";
-      preview.hidden = true;
-      preview.removeAttribute("src");
+      if (fileInput) fileInput.value = "";
+      clearPreview();
+      finishMapPick(false);
+      clearDraftMarker();
+      shownGps.lat = null;
+      shownGps.lng = null;
     });
 
     var claveInput = $("inspect-clave");
@@ -767,41 +1382,54 @@
         return;
       }
 
-      var clave = String($("inspect-clave").value || "").trim().replace(/\s+/g, "").toUpperCase();
-      if (clave.length < 4) {
-        showMsg($("inspect-msg"), "Capture una clave catastral válida.", false);
-        return;
-      }
-
-      if (!captureArea || (captureArea !== "urbano" && captureArea !== "catastro")) {
+      if (!captureArea || (captureArea !== "urbano" && captureArea !== "catastro" && captureArea !== "ecologica")) {
         showMsg($("inspect-msg"), "Elija primero el tipo de reporte (área de inspección).", false);
         if (mustChooseArea()) showInspectStep("choose");
         return;
       }
 
-      showMsg($("inspect-msg"), "Guardando…", true);
+      var clave = String($("inspect-clave").value || "").trim().replace(/\s+/g, "").toUpperCase();
+      if (captureArea === "ecologica") {
+        if (clave !== "" && !/^[A-Z0-9]{4,32}$/.test(clave)) {
+          showMsg($("inspect-msg"), "Si anota clave catastral, use de 4 a 32 letras o números.", false);
+          return;
+        }
+      } else if (!/^[A-Z0-9]{4,32}$/.test(clave)) {
+        showMsg($("inspect-msg"), "Capture una clave catastral válida.", false);
+        return;
+      }
 
       var typesCsv = selectedTypesCsv(dlg);
       if (captureArea === "urbano" && !typesCsv) {
         showMsg($("inspect-msg"), "Seleccione al menos un tipo de inspección.", false);
         return;
       }
-      if (captureArea === "catastro") {
+      if (captureArea !== "urbano") {
         typesCsv = "";
       }
 
+      var saveBtn = dlg.querySelector(".inspect-photo-btn--primary");
       var source = getCoordSource();
-      if (clave.length >= 4 && source !== "gps") {
-        source = "clave";
-        setCoordSource("clave", false);
-      }
-      if (clave.length < 4) {
-        source = "gps";
-        setCoordSource("gps", false);
+      var coordsPromise;
+      if (captureArea === "ecologica") {
+        source = source === "map" ? "map" : "gps";
+        coordsPromise = resolveEcoCoords();
+      } else {
+        if (clave.length >= 4 && source !== "gps") {
+          source = "clave";
+          setCoordSource("clave", false);
+        }
+        if (clave.length < 4) {
+          source = "gps";
+          setCoordSource("gps", false);
+        }
+        coordsPromise = resolveSaveCoords(clave, source);
       }
 
-      resolveSaveCoords(clave, source)
+      coordsPromise
         .then(function (coords) {
+          showMsg($("inspect-msg"), "Guardando…", true);
+          if (saveBtn) saveBtn.disabled = true;
           var fd = new FormData();
           fd.append("clavecatas", clave);
           fd.append(
@@ -819,7 +1447,12 @@
             fd.append("lng", String(coords.lng));
           }
 
-          return fetch(API, { method: "POST", body: fd }).then(function (res) {
+          var ctrl = new AbortController();
+          var timer = setTimeout(function () {
+            ctrl.abort();
+          }, 45000);
+          return fetch(API, { method: "POST", body: fd, signal: ctrl.signal }).then(function (res) {
+            clearTimeout(timer);
             return res.json().then(function (data) {
               if (!res.ok || !data.ok) {
                 throw new Error((data && data.error) || "Error al guardar");
@@ -841,7 +1474,13 @@
           window.alert("Inspección registrada correctamente.");
         })
         .catch(function (err) {
-          showMsg($("inspect-msg"), err.message || "Error", false);
+          var msg = err && err.name === "AbortError"
+            ? "La foto tardó demasiado. Intente otra vez."
+            : (err && err.message) || "Error";
+          showMsg($("inspect-msg"), msg, false);
+        })
+        .then(function () {
+          if (saveBtn) saveBtn.disabled = false;
         });
     });
   }
@@ -866,14 +1505,23 @@
     });
     showMsg($("inspect-msg"), "", true);
 
+    finishMapPick(false);
+    clearDraftMarker();
+    shownGps.lat = null;
+    shownGps.lng = null;
+
     if (mustChooseArea()) {
       // Obliga a elegir área antes de foto / notas / guardar
       captureArea = "";
       showInspectStep("choose");
     } else {
       captureArea = areas[0];
+      if (captureArea === "ecologica") coordSource = "gps";
+      else if (coordSource === "map") coordSource = "clave";
       syncAreaUI(dlg);
       showInspectStep("capture");
+      if (captureArea === "ecologica") refreshEcoGps();
+      else autoPickCoordSourceFromClave();
     }
 
     if (typeof dlg.showModal === "function") dlg.showModal();

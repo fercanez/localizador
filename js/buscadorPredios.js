@@ -67,7 +67,7 @@
     });
 
     map.on("zoomend", function () {
-      if (ultimoRingCotas && medidasVisibles) {
+      if (ultimoRingCotas && ultimoRingCotas.length && medidasVisibles) {
         dibujarCotasProfesionales(ultimoRingCotas);
       }
     });
@@ -336,7 +336,7 @@
   function actualizarBotonMedidas() {
     const btn = document.getElementById("btnToggleMedidasPredio");
     if (!btn) return;
-    const hayPredio = !!ultimoRingCotas;
+    const hayPredio = !!(ultimoRingCotas && ultimoRingCotas.length);
     btn.style.display = hayPredio ? "inline-flex" : "none";
     btn.classList.toggle("is-on", medidasVisibles);
     btn.textContent = medidasVisibles ? "Medidas ON" : "Medidas OFF";
@@ -353,7 +353,7 @@
       if (!map2d.hasLayer(predioMedidasLayer)) {
         predioMedidasLayer.addTo(map2d);
       }
-      if (ultimoRingCotas) {
+      if (ultimoRingCotas && ultimoRingCotas.length) {
         dibujarCotasProfesionales(ultimoRingCotas);
       }
     } else {
@@ -727,7 +727,13 @@
       });
     }
     if (predioBuscadoLayer && predioBuscadoLayer.setStyle) {
-      predioBuscadoLayer.setStyle({ color: color });
+      predioBuscadoLayer.setStyle({
+        color: color,
+        fill: false,
+        fillOpacity: 0,
+        weight: 4,
+        dashArray: "7,5",
+      });
     }
   }
 
@@ -842,29 +848,54 @@
     encenderCapaPredios();
     limpiarResultadoAnterior();
 
-    const ring = obtenerRingPrincipal(feature.geometry);
-    const ringContorno = limpiarRingCadastral(ring);
-    const ringFinal = ringParaCotas(ringContorno);
+    const geom = feature.geometry;
+    if (!geom || !geom.type || !geom.coordinates) {
+      alert("El predio no tiene geometría para medir.");
+      return;
+    }
 
-    const latlngs = ringContorno.map(p => [p[1], p[0]]);
+    const rings = obtenerAnillosExteriores(geom)
+      .map(function (ring) {
+        return limpiarRingCadastral(ring);
+      })
+      .filter(function (ring) {
+        return ring && ring.length >= 4;
+      });
 
-    predioRellenoLayer = L.polygon(latlngs, {
+    if (!rings.length) {
+      alert("El predio no tiene un polígono válido para medir.");
+      return;
+    }
+
+    const latlngs = rings.map(ringToLatLngs);
+    const fillStyle = {
       color: PREDIO_COLOR,
       weight: 0,
       fillColor: PREDIO_FILL,
-      fillOpacity: 0.10,
+      fillOpacity: 0.1,
       interactive: false,
-    }).addTo(map2d);
-
-    predioBuscadoLayer = L.polyline(latlngs, {
+    };
+    const lineStyle = {
       color: PREDIO_COLOR,
       weight: 4,
       opacity: 1,
+      fill: false,
+      fillOpacity: 0,
       dashArray: "7,5",
-    }).addTo(map2d);
+      interactive: false,
+    };
+
+    predioRellenoLayer = L.featureGroup();
+    predioBuscadoLayer = L.featureGroup();
+    latlngs.forEach(function (ll) {
+      L.polygon(ll, fillStyle).addTo(predioRellenoLayer);
+      L.polygon(ll, lineStyle).addTo(predioBuscadoLayer);
+    });
+    predioRellenoLayer.addTo(map2d);
+    predioBuscadoLayer.addTo(map2d);
 
     const bounds = predioBuscadoLayer.getBounds();
-    ultimoRingCotas = ringFinal;
+    ultimoRingCotas = rings;
     medidasVisibles = true;
 
     map2d.fitBounds(bounds, {
@@ -1022,88 +1053,58 @@
       }, 0);
     }
   }
-  function obtenerRingPrincipal(geom) {
-    if (geom.type === "Polygon") return cerrarRing(geom.coordinates[0]);
-    if (geom.type === "MultiPolygon") return cerrarRing(geom.coordinates[0][0]);
-    throw new Error("Geometría no soportada");
+  function asLngLat(p) {
+    return [Number(p[0]), Number(p[1])];
   }
 
-  function cerrarRing(ring) {
-    const r = ring.slice();
-    const a = r[0];
-    const b = r[r.length - 1];
-
-    if (a[0] !== b[0] || a[1] !== b[1]) r.push([a[0], a[1]]);
+  function abrirRing(ring) {
+    const r = (ring || []).map(asLngLat);
+    if (r.length >= 2) {
+      const a = r[0];
+      const b = r[r.length - 1];
+      if (a[0] === b[0] && a[1] === b[1]) r.pop();
+    }
     return r;
   }
 
+  function cerrarRing(ring) {
+    const r = abrirRing(ring);
+    if (!r.length) return r;
+    r.push([r[0][0], r[0][1]]);
+    return r;
+  }
+
+  function obtenerAnillosExteriores(geom) {
+    if (!geom || !geom.type) return [];
+    if (geom.type === "Polygon") {
+      return geom.coordinates && geom.coordinates[0] ? [cerrarRing(geom.coordinates[0])] : [];
+    }
+    if (geom.type === "MultiPolygon") {
+      return (geom.coordinates || [])
+        .map(function (poly) {
+          return poly && poly[0] ? cerrarRing(poly[0]) : null;
+        })
+        .filter(Boolean);
+    }
+    return [];
+  }
+
+  function ringToLatLngs(ring) {
+    return abrirRing(ring).map(function (p) {
+      return [p[1], p[0]];
+    });
+  }
+
+  /**
+   * Conserva el contorno catastral. Solo fusiona duplicados y puntos
+   * colineales en un único paso (sin iterar, para no recortar esquinas).
+   */
   function limpiarRingCadastral(ring) {
-    let puntos = ring.slice(0, -1);
-    puntos = eliminarPuntosCortos(puntos, 0.15);
-    puntos = eliminarColineales(puntos, 1.5);
-    if (puntos.length < 3) puntos = ring.slice(0, -1);
-    puntos.push([puntos[0][0], puntos[0][1]]);
-    return puntos;
-  }
-
-  function ringParaCotas(ringContorno) {
-    let puntos = ringContorno.slice(0, -1);
-    const hull = convexHullMetros(puntos);
-
-    // Rectángulo simple (4 esquinas, pocos vértices): cotas en las 4 esquinas exteriores
-    if (hull.length === 4 && puntos.length <= 12) {
-      return cerrarRing(hull);
-    }
-
-    // Polígono complejo: medir todos los lados del contorno hasta cerrar
-    return ringContorno;
-  }
-
-  /** Plano local: UTM (metros) o lon/lat convertido a metros aproximados */
-  function planimetriaXY(p) {
-    if (Math.abs(p[0]) > 180 || Math.abs(p[1]) > 90) {
-      return { x: p[0], y: p[1] };
-    }
-    return { x: lngToMeters(p[0]), y: latToMeters(p[1]) };
-  }
-
-  /** Contorno convexo (Graham) en metros planos */
-  function convexHullMetros(points) {
-    if (points.length < 3) return points.slice();
-
-    const pts = points
-      .map(function (p, idx) {
-        const xy = planimetriaXY(p);
-        return { p: p, idx: idx, x: xy.x, y: xy.y };
-      })
-      .sort(function (a, b) {
-        return a.y - b.y || a.x - b.x;
-      });
-
-    const start = pts[0];
-    const sorted = pts.slice(1).sort(function (a, b) {
-      const angA = Math.atan2(a.y - start.y, a.x - start.x);
-      const angB = Math.atan2(b.y - start.y, b.x - start.x);
-      return angA - angB;
-    });
-
-    const stack = [start, sorted[0]];
-
-    function cross(o, a, b) {
-      return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-    }
-
-    for (let i = 1; i < sorted.length; i++) {
-      const p = sorted[i];
-      while (stack.length > 1 && cross(stack[stack.length - 2], stack[stack.length - 1], p) <= 0) {
-        stack.pop();
-      }
-      stack.push(p);
-    }
-
-    return stack.map(function (s) {
-      return s.p;
-    });
+    let puntos = abrirRing(ring);
+    puntos = eliminarPuntosCortos(puntos, 0.08);
+    puntos = eliminarColinealesUnaPasada(puntos, 0.25);
+    if (puntos.length < 3) puntos = abrirRing(ring);
+    return cerrarRing(puntos);
   }
 
   function eliminarPuntosCortos(points, minMetros) {
@@ -1118,7 +1119,6 @@
       }
     }
 
-    // Cierre del anillo: no dejar primer/último demasiado cerca
     if (res.length >= 3 && distanciaCoord(res[0], res[res.length - 1]) < minMetros) {
       res.pop();
     }
@@ -1126,126 +1126,110 @@
     return res.length >= 3 ? res : points;
   }
 
-  function eliminarColineales(points, anguloMinimo) {
-    if (points.length <= 3) return points;
+  function eliminarColinealesUnaPasada(points, maxDesvioMetros) {
+    if (points.length <= 3) return points.slice();
 
     const res = [];
-
     for (let i = 0; i < points.length; i++) {
       const prev = points[(i - 1 + points.length) % points.length];
       const curr = points[i];
       const next = points[(i + 1) % points.length];
-
-      if (cambioAngulo(prev, curr, next) >= anguloMinimo) {
+      if (distanciaPuntoSegmentoMetros(curr, prev, next) >= maxDesvioMetros) {
         res.push(curr);
       }
     }
-
     return res.length >= 3 ? res : points;
   }
 
-  function douglasPeuckerMetros(points, tolerance) {
-    if (points.length <= 3) return points;
-
-    let maxDist = 0;
-    let index = 0;
-    const first = points[0];
-    const last = points[points.length - 1];
-
-    for (let i = 1; i < points.length - 1; i++) {
-      const d = distanciaPuntoSegmentoMetros(points[i], first, last);
-      if (d > maxDist) {
-        maxDist = d;
-        index = i;
-      }
-    }
-
-    if (maxDist > tolerance) {
-      const left = douglasPeuckerMetros(points.slice(0, index + 1), tolerance);
-      const right = douglasPeuckerMetros(points.slice(index), tolerance);
-      return left.slice(0, -1).concat(right);
-    }
-
-    return [first, last];
+  function ringsDeCotas(ringsOrRing) {
+    if (!ringsOrRing || !ringsOrRing.length) return [];
+    if (typeof ringsOrRing[0][0] === "number") return [ringsOrRing];
+    return ringsOrRing;
   }
 
-  function cambioAngulo(a, b, c) {
-    const p1 = map2d.latLngToLayerPoint([a[1], a[0]]);
-    const p2 = map2d.latLngToLayerPoint([b[1], b[0]]);
-    const p3 = map2d.latLngToLayerPoint([c[1], c[0]]);
-
-    const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
-    const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
-
-    const dot = v1.x * v2.x + v1.y * v2.y;
-    const m1 = Math.hypot(v1.x, v1.y);
-    const m2 = Math.hypot(v2.x, v2.y);
-
-    if (!m1 || !m2) return 0;
-
-    let cos = dot / (m1 * m2);
-    cos = Math.max(-1, Math.min(1, cos));
-
-    const ang = Math.acos(cos) * 180 / Math.PI;
-    return Math.abs(180 - ang);
+  function ringAPuntosCapa(ring) {
+    const pts = abrirRing(ring);
+    return pts.map(function (p) {
+      return map2d.latLngToLayerPoint(L.latLng(p[1], p[0]));
+    });
   }
 
-  function dibujarCotasProfesionales(ring) {
+  function puntoEnRingLayer(pt, layerPts) {
+    let inside = false;
+    for (let i = 0, j = layerPts.length - 1; i < layerPts.length; j = i++) {
+      const xi = layerPts[i].x;
+      const yi = layerPts[i].y;
+      const xj = layerPts[j].x;
+      const yj = layerPts[j].y;
+      const cruce =
+        yi > pt.y !== yj > pt.y &&
+        pt.x < ((xj - xi) * (pt.y - yi)) / ((yj - yi) || 1e-9) + xi;
+      if (cruce) inside = !inside;
+    }
+    return inside;
+  }
+
+  function dibujarCotasProfesionales(ringsOrRing) {
     if (!predioMedidasLayer || !medidasVisibles) return;
     predioMedidasLayer.clearLayers();
     if (!map2d.hasLayer(predioMedidasLayer)) {
       predioMedidasLayer.addTo(map2d);
     }
 
-    const centro = centroide(ring);
-    const pts = ring.slice(0, -1);
+    const rings = ringsDeCotas(ringsOrRing);
     const minLado = 0.2;
+    let nVertice = 0;
 
-    for (let i = 0; i < pts.length; i++) {
-      const A = L.latLng(pts[i][1], pts[i][0]);
-      const B = L.latLng(pts[(i + 1) % pts.length][1], pts[(i + 1) % pts.length][0]);
-      const dist = A.distanceTo(B);
-      if (dist >= minLado) {
-        dibujarLineaCota(A, B, centro, dist);
+    rings.forEach(function (ring) {
+      const pts = abrirRing(ring);
+      if (pts.length < 3) return;
+      const layerPts = ringAPuntosCapa(pts);
+
+      for (let i = 0; i < pts.length; i++) {
+        const A = L.latLng(pts[i][1], pts[i][0]);
+        const B = L.latLng(pts[(i + 1) % pts.length][1], pts[(i + 1) % pts.length][0]);
+        const dist = A.distanceTo(B);
+        if (dist >= minLado) {
+          dibujarLineaCota(A, B, layerPts, dist);
+        }
       }
-    }
 
-    for (let i = 0; i < pts.length; i++) {
-      const A = L.latLng(pts[i][1], pts[i][0]);
-      dibujarVertice(A, "P" + (i + 1), centro);
-    }
+      for (let i = 0; i < pts.length; i++) {
+        nVertice += 1;
+        const A = L.latLng(pts[i][1], pts[i][0]);
+        dibujarVertice(A, "P" + nVertice, layerPts);
+      }
+    });
 
     predioMedidasLayer.eachLayer(function (layer) {
       if (layer.bringToFront) layer.bringToFront();
     });
   }
 
-  function dibujarLineaCota(A, B, centro, distancia) {
-    const pa = map2d.latLngToLayerPoint(A);
-    const pb = map2d.latLngToLayerPoint(B);
-    const pc = map2d.latLngToLayerPoint(centro);
-
+  function normalExterna(pa, pb, layerPts) {
     const dx = pb.x - pa.x;
     const dy = pb.y - pa.y;
     const len = Math.hypot(dx, dy) || 1;
-
     let nx = -dy / len;
     let ny = dx / len;
-
     const mid = L.point((pa.x + pb.x) / 2, (pa.y + pb.y) / 2);
-    const haciaCentro = L.point(pc.x - mid.x, pc.y - mid.y);
-
-    if (nx * haciaCentro.x + ny * haciaCentro.y > 0) {
+    const prueba = L.point(mid.x + nx * 8, mid.y + ny * 8);
+    if (puntoEnRingLayer(prueba, layerPts)) {
       nx *= -1;
       ny *= -1;
     }
+    return { nx: nx, ny: ny, mid: mid, dx: dx, dy: dy };
+  }
 
+  function dibujarLineaCota(A, B, layerPts, distancia) {
+    const pa = map2d.latLngToLayerPoint(A);
+    const pb = map2d.latLngToLayerPoint(B);
+    const n = normalExterna(pa, pb, layerPts);
     const offset = 22;
 
-    const A2 = map2d.layerPointToLatLng(L.point(pa.x + nx * offset, pa.y + ny * offset));
-    const B2 = map2d.layerPointToLatLng(L.point(pb.x + nx * offset, pb.y + ny * offset));
+    const A2 = map2d.layerPointToLatLng(L.point(pa.x + n.nx * offset, pa.y + n.ny * offset));
+    const B2 = map2d.layerPointToLatLng(L.point(pb.x + n.nx * offset, pb.y + n.ny * offset));
 
-    // Patillas desde el vértice real hasta la línea de cota
     L.polyline([A, A2], {
       color: COTA_COLOR,
       weight: 1.5,
@@ -1266,9 +1250,11 @@
       interactive: false,
     }).addTo(predioMedidasLayer);
 
-    const mid2 = map2d.layerPointToLatLng(L.point(mid.x + nx * offset, mid.y + ny * offset));
+    const mid2 = map2d.layerPointToLatLng(
+      L.point(n.mid.x + n.nx * offset, n.mid.y + n.ny * offset)
+    );
 
-    const angulo = normalizarAngulo(Math.atan2(dy, dx) * 180 / Math.PI);
+    const angulo = normalizarAngulo((Math.atan2(n.dy, n.dx) * 180) / Math.PI);
 
     L.marker(mid2, {
       interactive: false,
@@ -1283,16 +1269,31 @@
     }).addTo(predioMedidasLayer);
   }
 
-  function dibujarVertice(A, texto, centro) {
+  function dibujarVertice(A, texto, layerPts) {
     const p = map2d.latLngToLayerPoint(A);
-    const c = map2d.latLngToLayerPoint(centro);
-
-    const dx = p.x - c.x;
-    const dy = p.y - c.y;
+    const dirs = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+      [-1, 1],
+      [1, -1],
+      [-1, -1],
+    ];
+    let dx = 1;
+    let dy = -1;
+    for (let k = 0; k < dirs.length; k++) {
+      const test = L.point(p.x + dirs[k][0] * 12, p.y + dirs[k][1] * 12);
+      if (!puntoEnRingLayer(test, layerPts)) {
+        dx = dirs[k][0];
+        dy = dirs[k][1];
+        break;
+      }
+    }
     const len = Math.hypot(dx, dy) || 1;
-
     const pos = map2d.layerPointToLatLng(
-      L.point(p.x + (dx / len) * 15, p.y + (dy / len) * 15)
+      L.point(p.x + (dx / len) * 16, p.y + (dy / len) * 16)
     );
 
     L.circleMarker(A, {
@@ -1318,19 +1319,6 @@
     if (a > 90) a -= 180;
     if (a < -90) a += 180;
     return a;
-  }
-
-  function centroide(ring) {
-    let lat = 0;
-    let lng = 0;
-    const n = ring.length - 1;
-
-    for (let i = 0; i < n; i++) {
-      lng += ring[i][0];
-      lat += ring[i][1];
-    }
-
-    return L.latLng(lat / n, lng / n);
   }
 
   function distanciaCoord(a, b) {

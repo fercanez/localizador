@@ -113,6 +113,18 @@ body.exp-embed .exp-bar__back {
   height: calc(100% - 56px);
   overflow: auto;
   padding: 12px 8px 28px;
+  cursor: grab;
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
+#exp-scroll.is-panning {
+  cursor: grabbing;
+}
+
+#exp-pages {
+  min-width: min-content;
+  min-height: min-content;
 }
 
 .exp-page {
@@ -128,7 +140,7 @@ body.exp-embed .exp-bar__back {
   position: relative;
   display: inline-block;
   line-height: 0;
-  max-width: 100%;
+  max-width: none;
 }
 
 .exp-page canvas {
@@ -173,6 +185,24 @@ body:not(.wm-on) .exp-wm {
 
 #exp-busy.show {
   display: flex;
+}
+
+.exp-cad-host {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 56px);
+  min-height: 280px;
+  background: #2a2224;
+}
+
+.exp-cad-host canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#exp-pages .exp-wm {
+  z-index: 2;
 }
 
 @media print {

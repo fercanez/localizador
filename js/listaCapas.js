@@ -24,6 +24,25 @@ predios.id = "predios";
 overlayMaps["predios"] = predios;
 
 // -----------------------------
+// RED UNIFICADA (vértices de control)
+// -----------------------------
+var red_unificada = L.tileLayer.wms(WMS_GEOMEXICALI, Object.assign({
+  layers: "geonode:red_unificada_de_mexicali",
+  title: "Red Unificada",
+  format: "image/png",
+  transparent: true,
+  version: "1.1.1",
+  attribution: "MXLI",
+  zIndex: 980,
+}, WMS_ZOOM));
+
+red_unificada.id = "red_unificada_de_mexicali";
+overlayMaps["red_unificada"] = red_unificada;
+overlayMaps["Red Unificada"] = red_unificada;
+overlayMaps["red_unificada_de_mexicali"] = red_unificada;
+overlayMaps["geonode:red_unificada_de_mexicali"] = red_unificada;
+
+// -----------------------------
 // PREDIOS BALDÍOS
 // -----------------------------
 var predios_baldios = L.tileLayer.wms(WMS_GEOMEXICALI, Object.assign({
@@ -220,6 +239,25 @@ canales_conagua.id = "canales_conagua";
 overlayMaps["canales_conagua"] = canales_conagua;
 overlayMaps["Canales CONAGUA"] = canales_conagua;
 overlayMaps["geonode:canales_conagua"] = canales_conagua;
+
+// -----------------------------
+// FALLAS GEOLÓGICAS
+// Solo la ven administrador y perito valuador (el panel ya filtra el permiso).
+// -----------------------------
+var fallas_geologicas = L.tileLayer.wms(WMS_GEOMEXICALI, Object.assign({
+  layers: "geonode:fallas_geologicas",
+  title: "Fallas geológicas",
+  format: "image/png",
+  transparent: true,
+  version: "1.1.1",
+  attribution: "MXLI",
+  zIndex: 930,
+}, WMS_ZOOM));
+
+fallas_geologicas.id = "fallas_geologicas";
+overlayMaps["fallas_geologicas"] = fallas_geologicas;
+overlayMaps["Fallas geológicas"] = fallas_geologicas;
+overlayMaps["geonode:fallas_geologicas"] = fallas_geologicas;
 
 // -----------------------------
 // ADEUDO PREDIAL (capa temporal, se llena al acercar)

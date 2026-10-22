@@ -33,7 +33,37 @@
         if (status) {
             document.getElementById(section).classList.toggle("map-open");
         }
+        if (typeof syncCapasBackdrop === "function") syncCapasBackdrop();
         // evt.currentTarget.classList.toggle("active");
+    }
+
+    function cerrarPanelCapas(evt) {
+        if (evt) {
+            evt.preventDefault();
+            evt.stopPropagation();
+        }
+        var capas = document.getElementById("capas");
+        var activas = document.getElementById("capasActivas");
+        if (capas) capas.classList.remove("map-open");
+        if (activas) activas.classList.remove("map-open");
+        if (typeof syncCapasBackdrop === "function") syncCapasBackdrop();
+    }
+
+    function syncCapasBackdrop() {
+        var capas = document.getElementById("capas");
+        var open = !!(capas && capas.classList.contains("map-open"));
+        var bd = document.getElementById("mxli-capas-backdrop");
+        if (!bd) {
+            bd = document.createElement("button");
+            bd.type = "button";
+            bd.id = "mxli-capas-backdrop";
+            bd.setAttribute("aria-label", "Cerrar capas");
+            bd.hidden = true;
+            bd.addEventListener("click", cerrarPanelCapas);
+            document.body.appendChild(bd);
+        }
+        var estrecho = window.matchMedia("(max-width: 1100px)").matches;
+        bd.hidden = !(open && estrecho);
     }
 
 

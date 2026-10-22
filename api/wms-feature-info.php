@@ -13,6 +13,13 @@ $width = (int)($_GET["width"] ?? 0);
 $height = (int)($_GET["height"] ?? 0);
 $x = (int)($_GET["x"] ?? 0);
 $y = (int)($_GET["y"] ?? 0);
+$buffer = (int)($_GET["buffer"] ?? 0);
+if ($buffer < 0) {
+    $buffer = 0;
+}
+if ($buffer > 30) {
+    $buffer = 30;
+}
 
 if ($layers === "" || $bbox === "" || $width <= 0 || $height <= 0) {
     http_response_code(400);
@@ -48,7 +55,8 @@ function mxli_build_feature_info_query(
     int $width,
     int $height,
     int $x,
-    int $y
+    int $y,
+    int $buffer = 0
 ): array {
     $query = [
         "service" => "WMS",
@@ -66,6 +74,10 @@ function mxli_build_feature_info_query(
         "height" => $height,
         "feature_count" => "10",
     ];
+
+    if ($buffer > 0) {
+        $query["buffer"] = $buffer;
+    }
 
     if ($version === "1.3.0") {
         $query["i"] = $x;
@@ -135,9 +147,10 @@ function mxli_query_feature_info(
     int $width,
     int $height,
     int $x,
-    int $y
+    int $y,
+    int $buffer = 0
 ): ?array {
-    $query = mxli_build_feature_info_query($layers, $version, $bbox, $width, $height, $x, $y);
+    $query = mxli_build_feature_info_query($layers, $version, $bbox, $width, $height, $x, $y, $buffer);
 
     foreach ($endpoints as $endpoint) {
         $result = mxli_fetch_feature_info($endpoint, $query);
@@ -150,7 +163,7 @@ function mxli_query_feature_info(
 }
 
 $endpoints = mxli_feature_info_endpoints($geoserverBase, $gsOws);
-$combined = mxli_query_feature_info($endpoints, $layers, $version, $bbox, $width, $height, $x, $y);
+$combined = mxli_query_feature_info($endpoints, $layers, $version, $bbox, $width, $height, $x, $y, $buffer);
 
 if ($combined !== null && mxli_feature_count($combined) > 0) {
     echo json_encode($combined);
@@ -169,7 +182,8 @@ foreach ($layerList as $singleLayer) {
         $width,
         $height,
         $x,
-        $y
+        $y,
+        $buffer
     );
 
     if ($singleResult === null || mxli_feature_count($singleResult) === 0) {

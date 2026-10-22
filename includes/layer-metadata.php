@@ -6,6 +6,12 @@ return [
         "title" => "Predios",
         "abstract" => "Capa de predios catastrales del municipio de Mexicali.",
     ],
+    "red_unificada_de_mexicali" => [
+        "title" => "Red Unificada",
+        "abstract" => "Red topográfica unificada de vértices de control del municipio de Mexicali.",
+        "legend_width" => 220,
+        "legend_height" => 80,
+    ],
     "predios_adeudo" => [
         "title" => "Adeudo predial (deudores)",
         "abstract" => "Capa temporal de adeudo predial y aseo público consultada en el portal del Ayuntamiento.",
@@ -82,5 +88,11 @@ return [
     "canales_conagua" => [
         "title" => "Canales CONAGUA",
         "abstract" => "Red de canales de la Comisión Nacional del Agua (CONAGUA).",
+    ],
+    "fallas_geologicas" => [
+        "title" => "Fallas geológicas",
+        "abstract" => "Fallas geológicas del municipio de Mexicali.",
+        "legend_width" => 280,
+        "legend_height" => 120,
     ],
 ];

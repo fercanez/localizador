@@ -1,8 +1,12 @@
 # Padron catastral (PII; no versionar)
-/data/
+/data/*
+!/data/planos/
+!/data/planos/**
+/data/planos/files/
 
 # Secretos / entorno local
 includes/config.local.php
+localizacion-predio.config.php
 .env
 .env.*
 !.env.example

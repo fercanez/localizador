@@ -157,13 +157,15 @@ function mxli_users_exec_with_role_retry(PDO $pdo, PDOStatement $stmt, array $pa
 }
 
 $returning =
-    "id, username, full_name, email, role, is_active, can_view_padron, expires_at, created_at, updated_at, last_login_at";
+    "id, username, full_name, email, role, is_active, can_view_padron, expires_at, created_at, updated_at, last_login_at,
+     (session_token IS NOT NULL AND btrim(session_token) <> '') AS has_active_session";
 
 try {
     $pdo = mxli_db();
     mxli_ensure_expires_column($pdo);
     mxli_ensure_padron_user_column($pdo);
     mxli_ensure_users_role_column($pdo);
+    mxli_ensure_session_token_column($pdo);
 
     if ($method === "GET") {
         $q = trim((string)($_GET["q"] ?? $_GET["texto"] ?? $_GET["search"] ?? ""));
@@ -318,6 +320,25 @@ try {
             mxli_json_response(["ok" => false, "error" => "ID inválido"], 400);
         }
 
+        // Cierre forzado de sesión remota (desbloquear usuario atrapado por session_policy=lock)
+        if (!empty($body["clear_session"])) {
+            $stmt = $pdo->prepare("SELECT id FROM app_users WHERE id = :id");
+            $stmt->execute(["id" => $id]);
+            if (!$stmt->fetch()) {
+                mxli_json_response(["ok" => false, "error" => "Usuario no encontrado"], 404);
+            }
+            mxli_clear_user_session_token($id, $pdo);
+            $stmt = $pdo->prepare("SELECT {$returning} FROM app_users WHERE id = :id");
+            $stmt->execute(["id" => $id]);
+            $row = $stmt->fetch();
+            mxli_json_response([
+                "ok" => true,
+                "cleared" => true,
+                "message" => "Sesión remota cerrada. El usuario ya puede iniciar sesión.",
+                "user" => mxli_public_user(is_array($row) ? $row : ["id" => $id]),
+            ]);
+        }
+
         $stmt = $pdo->prepare("SELECT * FROM app_users WHERE id = :id");
         $stmt->execute(["id" => $id]);
         $current = $stmt->fetch();
@@ -384,6 +405,10 @@ try {
                     expires_at = :expires_at,
                     updated_at = NOW()";
 
+        if (!$isActive) {
+            $sql .= ", session_token = NULL, session_last_activity = NULL, session_ip = NULL";
+        }
+
         if (!empty($body["password"])) {
             if (strlen((string)$body["password"]) < 6) {
                 mxli_json_response(["ok" => false, "error" => "La contraseña debe tener al menos 6 caracteres"], 400);
@@ -427,7 +452,7 @@ try {
 
         $stmt = $pdo->prepare(
             "UPDATE app_users
-             SET is_active = FALSE, updated_at = NOW()
+             SET is_active = FALSE, session_token = NULL, session_last_activity = NULL, session_ip = NULL, updated_at = NOW()
              WHERE id = :id
              RETURNING {$returning}"
         );

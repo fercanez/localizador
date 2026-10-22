@@ -62,30 +62,21 @@ try {
         $filterAreas = $allowedAreas;
     }
 
-    // Own rows unless user manages that row's area
-    $manageUrbano = mxli_can_manage_inspection_area("urbano", $user);
-    $manageCatastro = mxli_can_manage_inspection_area("catastro", $user);
-    if (!$manageUrbano || !$manageCatastro) {
-        $ownParts = [];
-        if (in_array("urbano", $filterAreas, true)) {
-            if ($manageUrbano) {
-                $ownParts[] = "p.inspection_area = 'urbano'";
-            } else {
-                $ownParts[] = "(p.inspection_area = 'urbano' AND p.created_by = :uid)";
-                $params["uid"] = (int)$user["id"];
-            }
+    $ownParts = [];
+    foreach ($filterAreas as $areaName) {
+        $areaSql = $areaName === "catastro" || $areaName === "ecologica" || $areaName === "urbano"
+            ? $areaName
+            : "urbano";
+        if (mxli_can_manage_inspection_area($areaSql, $user)) {
+            $ownParts[] = "p.inspection_area = '" . $areaSql . "'";
+            continue;
         }
-        if (in_array("catastro", $filterAreas, true)) {
-            if ($manageCatastro) {
-                $ownParts[] = "p.inspection_area = 'catastro'";
-            } else {
-                $ownParts[] = "(p.inspection_area = 'catastro' AND p.created_by = :uid_cat)";
-                $params["uid_cat"] = (int)$user["id"];
-            }
-        }
-        if ($ownParts !== []) {
-            $where .= " AND (" . implode(" OR ", $ownParts) . ")";
-        }
+        $param = "uid_" . $areaSql;
+        $ownParts[] = "(p.inspection_area = '" . $areaSql . "' AND p.created_by = :" . $param . ")";
+        $params[$param] = (int)$user["id"];
+    }
+    if ($ownParts !== []) {
+        $where .= " AND (" . implode(" OR ", $ownParts) . ")";
     }
 
     $sql =

@@ -480,6 +480,7 @@ safeOn($visibleUploadBtn, "click", () => {
 
 const CAPAS_CONSULTABLES_WMS = [
   "geonode:predios_mexicali_2025",
+  "geonode:red_unificada_de_mexicali",
   "geonode:predios_baldios",
   "geonode:predios_con_uso",
   "geonode:colonias",
@@ -487,7 +488,16 @@ const CAPAS_CONSULTABLES_WMS = [
   "geonode:zonas_homogeneas_2017_2026_prop",
   "geonode:drenes_conagua",
   "geonode:canales_conagua",
+  "geonode:fallas_geologicas",
 ];
+
+const MSG_SIN_CAPA_CONSULTA =
+  "Active Predios, Red Unificada, Predios Baldíos, Usos de Suelo Actual, Colonias o Usos de Suelo 2040 para consultar informacion.";
+
+function esCapaRedUnificada(capa) {
+  const name = capa && capa.wmsParams ? String(capa.wmsParams.layers || "") : "";
+  return name.indexOf("red_unificada_de_mexicali") !== -1;
+}
 
 function esCapaConsultable(capa) {
   if (
@@ -523,8 +533,12 @@ function getCapasConsultablesActivas() {
     }
   });
 
-  // Predios primero (consulta catastral "i"), luego por zIndex
+  // Red Unificada primero: el clic sobre el vértice no debe quedar
+  // tapado por el predio que lo contiene. Luego Predios y el resto.
   return activas.sort(function (a, b) {
+    const aRed = esCapaRedUnificada(a) ? 1 : 0;
+    const bRed = esCapaRedUnificada(b) ? 1 : 0;
+    if (aRed !== bRed) return bRed - aRed;
     const aPred =
       a.wmsParams && a.wmsParams.layers === CAPA_PREDIO_WMS ? 1 : 0;
     const bPred =
@@ -569,7 +583,7 @@ function wrapFeatureInfo(feature, sourceLayer) {
   };
 }
 
-async function fetchFeatureInfoFromApi(capaLayers, version, point, size) {
+async function fetchFeatureInfoFromApi(capaLayers, version, point, size, bufferPx) {
   const params = new URLSearchParams({
     layers: capaLayers,
     version: version || "1.1.1",
@@ -579,6 +593,10 @@ async function fetchFeatureInfoFromApi(capaLayers, version, point, size) {
     x: String(Math.round(point.x)),
     y: String(Math.round(point.y)),
   });
+  const buffer = Number(bufferPx || 0);
+  if (buffer > 0) {
+    params.set("buffer", String(Math.round(buffer)));
+  }
 
   const res = await fetch("api/wms-feature-info.php?" + params.toString());
   let data = null;
@@ -603,9 +621,7 @@ async function fetchFeatureInfoFromApi(capaLayers, version, point, size) {
 async function getFeatureInfo(evt) {
   const capas = getCapasConsultablesActivas();
   if (capas.length === 0) {
-    alert(
-      "Active Predios, Predios Baldíos, Usos de Suelo Actual, Colonias o Usos de Suelo 2040 para consultar informacion."
-    );
+    alert(MSG_SIN_CAPA_CONSULTA);
     return null;
   }
 
@@ -621,7 +637,8 @@ async function getFeatureInfo(evt) {
         capa.wmsParams.layers,
         capa.wmsParams.version || version,
         point,
-        size
+        size,
+        esCapaRedUnificada(capa) ? 10 : 0
       );
       const feature = pickBestFeature(data.features);
       if (feature) {
@@ -987,7 +1004,86 @@ function createZonaHomogeneaPopup(info) {
   return div;
 }
 
+function isRedUnificadaFeatureInfo(info) {
+  if (!info) return false;
+  const source = String(info.sourceLayer || "");
+  if (source.indexOf("red_unificada_de_mexicali") !== -1) return true;
+  const props = info.properties || info;
+  return !!(
+    props &&
+    Object.prototype.hasOwnProperty.call(props, "utm_cord_x") &&
+    (Object.prototype.hasOwnProperty.call(props, "latitud_gr") ||
+      Object.prototype.hasOwnProperty.call(props, "num"))
+  );
+}
+
+function pickRedUnificadaProp(props, keys) {
+  for (let i = 0; i < keys.length; i++) {
+    const value = props[keys[i]];
+    if (value !== null && value !== undefined && value !== "") {
+      return value;
+    }
+  }
+  return "";
+}
+
+function formatRedUnificadaNumero(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  const num = Number(value);
+  if (!isFinite(num)) return escapeHtml(value);
+  return escapeHtml(num.toFixed(10).replace(/\.?0+$/, ""));
+}
+
+const RED_UNIFICADA_FIELDS = [
+  { keys: ["num", "numero", "NUMERO"], label: "NUMERO" },
+  { keys: ["fuente", "FUENTE"], label: "FUENTE" },
+  { keys: ["utm_cord_x"], label: "Este UTM (X)", numeric: true },
+  { keys: ["utm_cord_y"], label: "Norte UTM (Y)", numeric: true },
+  { keys: ["altura_z"], label: "Altura", numeric: true },
+  { keys: ["latitud_gr"], label: "Latitud" },
+  { keys: ["longitud_g"], label: "Longitud" },
+  { keys: ["latitud_de"], label: "Latitud decimal", numeric: true },
+  { keys: ["longitud_d"], label: "Longitud decimal", numeric: true },
+];
+
+function createRedUnificadaPopup(info) {
+  const props = info.properties || {};
+  let body = "";
+
+  RED_UNIFICADA_FIELDS.forEach(function (field) {
+    const raw = pickRedUnificadaProp(props, field.keys);
+    const value = field.numeric
+      ? formatRedUnificadaNumero(raw)
+      : raw === "" || raw === null || raw === undefined
+        ? "—"
+        : escapeHtml(raw);
+    body +=
+      "<tr>" +
+      '<td class="mxli-padron-label">' +
+      field.label +
+      "</td>" +
+      '<td class="mxli-padron-value">' +
+      value +
+      "</td>" +
+      "</tr>";
+  });
+
+  const div = document.createElement("div");
+  div.className = "mxli-feature-popup";
+  div.innerHTML =
+    '<div class="mxli-feature-popup__head">Red Unificada</div>' +
+    '<div class="mxli-feature-popup__body">' +
+    '<table class="mxli-padron-table" role="presentation"><tbody>' +
+    body +
+    "</tbody></table></div>";
+  return div;
+}
+
 function createFeaturePopup(data) {
+  if (isRedUnificadaFeatureInfo(data)) {
+    return createRedUnificadaPopup(data);
+  }
+
   if (isUsoPredioFeatureInfo(data)) {
     return createUsoPredioPopup(data);
   }
@@ -1024,9 +1120,16 @@ function createFeaturePopup(data) {
     body = "<div>Sin atributos disponibles para este punto.</div>";
   }
 
+  var popupHead = "Información";
+  if (String((data && data.sourceLayer) || "").indexOf("fallas_geologicas") !== -1) {
+    popupHead = "Fallas geológicas";
+  }
+
   div.className = "mxli-feature-popup";
   div.innerHTML =
-    '<div class="mxli-feature-popup__head">Información</div>' +
+    '<div class="mxli-feature-popup__head">' +
+    popupHead +
+    "</div>" +
     '<div class="mxli-feature-popup__body">' +
     body +
     "</div>";
@@ -1069,7 +1172,12 @@ let $getFeatureInfoBtn = document.querySelector("#getFeatureInfoBtn");
 
 let $panMapBtn = document.querySelector("#panMapBtn");
 
-safeOn($panMapBtn, "click", () => {
+safeOn($panMapBtn, "click", (ev) => {
+  if (window.mxliInspectMapPickActive) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    return;
+  }
   var state = document
     .querySelector("#getFeatureInfoBtn")
     .classList.contains("btnIsActive");
@@ -1085,6 +1193,7 @@ safeOn($panMapBtn, "click", () => {
 });
 
 function desactivarInformacion(state) {
+  if (window.mxliInspectMapPickActive) return;
   if (state) {
     map2d.off("click");
     map2d.dragging.enable();
@@ -1106,11 +1215,14 @@ function desactivarInformacion(state) {
 }
 
 safeOn($getFeatureInfoBtn, "click", (e) => {
+  if (window.mxliInspectMapPickActive) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
   e.stopPropagation();
   if (getCapasConsultablesActivas().length === 0) {
-    alert(
-      "Active Predios, Predios Baldíos, Usos de Suelo Actual, Colonias o Usos de Suelo 2040 para consultar informacion."
-    );
+    alert(MSG_SIN_CAPA_CONSULTA);
     return false;
   }
 
@@ -1687,7 +1799,9 @@ function activar_carta_urbana() {
 /* Recuperar interacción del mapa después de cargar controles */
 setTimeout(function () {
   if (typeof map2d !== "undefined") {
-    map2d.dragging.enable();
+    if (!window.mxliInspectMapPickActive) {
+      map2d.dragging.enable();
+    }
     map2d.scrollWheelZoom.enable();
     map2d.doubleClickZoom.enable();
     map2d.boxZoom.enable();

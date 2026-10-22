@@ -2,6 +2,11 @@
 include "includes/init.php";
 require_once __DIR__ . "/includes/auth.php";
 require_once __DIR__ . "/includes/inspections.php";
+require_once __DIR__ . "/includes/planos.php";
+mxli_planos_grant_roles();
+mxli_grant_red_unificada_layer();
+mxli_grant_patrulla_ecologica_role();
+mxli_grant_fallas_geologicas_layer();
 mxli_require_login();
 $mxliUser = mxli_current_user();
 ?>
@@ -278,6 +283,13 @@ html, body {
     <?php if (mxli_can("map.inspect.catastro") || mxli_can_inspection_manage_catastro()): ?>
       <a href="admin/inspecciones-catastro.php">Insp. Catastro</a>
     <?php endif; ?>
+    <?php if (mxli_can("map.inspect.ecologica") || mxli_can_inspection_manage_ecologica()): ?>
+      <a href="admin/inspecciones-ecologica.php">Insp. Patrulla</a>
+    <?php endif; ?>
+    <?php if (mxli_can("map.planos")): ?>
+      <button type="button" class="header-planos-btn" id="consultaPlanosHeaderBtn">Planos</button>
+      <button type="button" class="header-planos-btn" id="consultaDeslindesHeaderBtn">Deslindes</button>
+    <?php endif; ?>
   </div>
 </header>
 
@@ -309,27 +321,119 @@ window.mxliCan = function (permission) {
   return perms.indexOf(permission) !== -1;
 };
 window.mxliCanLayer = function (layerKey) {
+  if (layerKey === "fallas_geologicas") {
+    var roleF = String((window.MXLI_USER && window.MXLI_USER.role) || "").toLowerCase();
+    var labelF = String((window.MXLI_USER && window.MXLI_USER.role_label) || "").toLowerCase();
+    if (roleF === "admin") return true;
+    if (roleF === "perito_valuador" || roleF.indexOf("valuad") !== -1) return true;
+    return labelF.indexOf("valuad") !== -1;
+  }
   var layers = (window.MXLI_USER && window.MXLI_USER.allowed_layers) || ["*"];
   if (layers.indexOf("*") !== -1) return true;
   return layers.indexOf(layerKey) !== -1;
 };
+window.MXLI_RED_UNIFICADA_DEFAULT = <?= (static function (array $user): bool {
+  $role = mb_strtolower((string)($user["role"] ?? ""), "UTF-8");
+  $label = mb_strtolower((string)($user["role_label"] ?? ""), "UTF-8");
+  if ($role === "perito_deslindador" || str_contains($role, "deslind")) {
+      return true;
+  }
+  return str_contains($label, "perito") && str_contains($label, "deslind");
+})($mxliUser) ? "true" : "false" ?>;
 </script>
 
-<script src="js/listaCapas.js?v=103"></script>
+<script src="js/listaCapas.js?v=105"></script>
 <script src="js/predialAdeudo.js?v=110"></script>
 <script src="js/padronPredio.js?v=103"></script>
 <script src="js/expedienteBtn.js?v=103"></script>
-<script src="js/leaflet.js?v=103"></script>
-<script src="js/layerControls.js?v=103"></script>
-<script src="js/wmsLayerPanel.js?v=103"></script>
+<script src="js/leaflet.js?v=106"></script>
+<script src="js/layerControls.js?v=104"></script>
+<script src="js/wmsLayerPanel.js?v=104"></script>
 <script src="js/simbologiaPanel.js?v=103"></script>
-<script src="js/buscadorPredios.js?v=108"></script>
+<script src="js/buscadorPredios.js?v=110"></script>
 <script src="js/predialCapa.js?v=110"></script>
-<script src="js/inspeccionFotos.js?v=102"></script>
-<script src="js/inspeccionesCapa.js?v=102"></script>
-<script src="js/mapTopToolbar.js?v=102"></script>
-<script src="js/permissions.js?v=102"></script>
+<script src="js/inspeccionFotos.js?v=111"></script>
+<script src="js/inspeccionesCapa.js?v=107"></script>
+<script src="js/consultaPlanos.js?v=105"></script>
+<script src="js/consultaDeslindes.js?v=3"></script>
+<script src="js/mapTopToolbar.js?v=103"></script>
+<script src="js/permissions.js?v=106"></script>
 <script src="js/sessionGuard.js?v=102"></script>
+<script>
+(function encenderRedUnificadaAlEntrar() {
+  if (!window.MXLI_RED_UNIFICADA_DEFAULT) return;
+
+  function capaVisible() {
+    try {
+      if (typeof group !== "undefined" && group && typeof group.hasLayer === "function") {
+        return group.hasLayer(red_unificada);
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function encender() {
+    if (typeof red_unificada === "undefined" || !red_unificada) return false;
+    if (typeof window.mxliCanLayer === "function" && !window.mxliCanLayer("red_unificada_de_mexicali")) {
+      return false;
+    }
+    var g = typeof group !== "undefined" && group ? group : null;
+    if (!g || typeof g.addLayer !== "function") return false;
+
+    var chk = document.getElementById("red_unificada_chkbox");
+    if (chk) chk.checked = true;
+    if (!capaVisible()) {
+      if (chk && typeof toggleLayer === "function") {
+        toggleLayer("red_unificada_chkbox", red_unificada);
+      } else {
+        g.addLayer(red_unificada);
+      }
+    }
+    if (!capaVisible()) {
+      try { g.addLayer(red_unificada); } catch (e2) {}
+    }
+    if (chk && typeof syncWmsLayerCardState === "function") {
+      syncWmsLayerCardState("red_unificada_chkbox", true);
+    }
+    ponerRedPrimera();
+    return capaVisible();
+  }
+
+  function ponerRedPrimera() {
+    var list = document.getElementById("wms-layer-list");
+    var card = document.querySelector('.wms-layer-card[data-layer-id="red_unificada_chkbox"]');
+    if (list && card && card.parentNode === list && list.firstElementChild !== card) {
+      list.insertBefore(card, list.firstElementChild);
+    }
+    if (typeof red_unificada !== "undefined" && red_unificada) {
+      if (typeof red_unificada.setZIndex === "function") red_unificada.setZIndex(2200);
+      if (typeof red_unificada.bringToFront === "function") red_unificada.bringToFront();
+    }
+  }
+
+  if (typeof window.applyWmsLayerStack === "function" && !window.applyWmsLayerStack._mxliRedPrimera) {
+    var apilarOriginal = window.applyWmsLayerStack;
+    window.applyWmsLayerStack = function () {
+      apilarOriginal();
+      ponerRedPrimera();
+    };
+    window.applyWmsLayerStack._mxliRedPrimera = true;
+  }
+
+  var intentos = 0;
+  function intentar() {
+    if (encender() || intentos++ > 40) return;
+    setTimeout(intentar, 250);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", intentar);
+  } else {
+    intentar();
+  }
+  window.addEventListener("load", intentar);
+})();
+</script>
 
 <script>
 <?php include "js/menuBtn.js"; ?>

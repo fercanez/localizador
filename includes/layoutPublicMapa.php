@@ -12,6 +12,12 @@
       <span class="icon-Subir_1 control-icon" id="visible-uploadBtn">
       </span>
       <input type="file" id="shp-upload" style="display: none;">
+      <span class="control-icon control-icon--camera" id="inspectPhotoBtn" title="Inspección fotográfica" role="button" tabindex="0" aria-label="Inspección fotográfica">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5A2.5 2.5 0 0 1 12 3h0a2.5 2.5 0 0 1 2.5 2.5V4h3A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11A2.5 2.5 0 0 1 6.5 4H9v1.5zm2.5-1a.5.5 0 0 0-.5.5V6H9.5a.5.5 0 0 0-.5.5v.5H6.5a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5H15V5a.5.5 0 0 0-.5-.5zM12 8.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 1.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>
+      </span>
+      <span class="control-icon control-icon--planos" id="consultaPlanosBtn" title="Consulta de planos" role="button" tabindex="0" aria-label="Consulta de planos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm8 1.5V8h4.5L14 3.5zM8 11h8v1.5H8V11zm0 3h8v1.5H8V14zm0 3h5V18.5H8V17z"/></svg>
+      </span>
       <span class="icon-Informacion control-icon" id="getFeatureInfoBtn">
       </span>
       <span class="icon-Mano btnIsActive control-icon" id="panMapBtn">
@@ -25,9 +31,6 @@
         role="button"
         tabindex="0"
       ></span>
-      <span class="control-icon control-icon--camera" id="inspectPhotoBtn" title="Inspección fotográfica" role="button" tabindex="0" aria-label="Inspección fotográfica">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5A2.5 2.5 0 0 1 12 3h0a2.5 2.5 0 0 1 2.5 2.5V4h3A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11A2.5 2.5 0 0 1 6.5 4H9v1.5zm2.5-1a.5.5 0 0 0-.5.5V6H9.5a.5.5 0 0 0-.5.5v.5H6.5a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5H15V5a.5.5 0 0 0-.5-.5zM12 8.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 1.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>
-      </span>
     </div>
     <div id="editToolsContainer" class="displayEditTools">
     </div>

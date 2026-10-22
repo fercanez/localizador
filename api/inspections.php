@@ -36,7 +36,7 @@ try {
 
         $areaParam = strtolower(trim((string)($_GET["area"] ?? "")));
         if ($areaParam === "") {
-            mxli_json_response(["ok" => false, "error" => "Parámetro area requerido (urbano|catastro)"], 400);
+            mxli_json_response(["ok" => false, "error" => "Parámetro area requerido (urbano|catastro|ecologica)"], 400);
         }
         $area = mxli_normalize_inspection_area($areaParam);
         if (!in_array($area, $allowedAreas, true)) {
@@ -110,15 +110,36 @@ try {
             $typesRaw = $_POST["inspection_types"];
         }
         $typesCsv = mxli_normalize_inspection_types($typesRaw);
-        if ($area === "catastro") {
+        if ($area === "catastro" || $area === "ecologica") {
             $typesCsv = "";
         }
 
-        if ($clave === "" || !preg_match('/^[A-Z0-9]{4,32}$/', $clave)) {
+        if ($area === "ecologica") {
+            if ($clave !== "" && !mxli_inspection_clave_is_valid($clave)) {
+                mxli_json_response(["ok" => false, "error" => "Clave catastral inválida"], 400);
+            }
+        } elseif ($clave === "" || !mxli_inspection_clave_is_valid($clave)) {
             mxli_json_response(["ok" => false, "error" => "Clave catastral inválida"], 400);
         }
         if ($area === "urbano" && $typesCsv === "") {
             mxli_json_response(["ok" => false, "error" => "Seleccione al menos un tipo de inspección"], 400);
+        }
+
+        $coordSource = strtolower(trim((string)($_POST["coord_source"] ?? "")));
+        if (!in_array($coordSource, ["gps", "clave", "map"], true)) {
+            $coordSource = $area === "ecologica" ? "gps" : "clave";
+        }
+        [$postedLat, $postedLng] = mxli_parse_inspection_coords($lat, $lng);
+        if ($area === "ecologica") {
+            if ($coordSource !== "gps" && $coordSource !== "map") {
+                $coordSource = "gps";
+            }
+            if ($postedLat === null || $postedLng === null) {
+                mxli_json_response([
+                    "ok" => false,
+                    "error" => "Indique la ubicación con GPS o punteando en el mapa",
+                ], 400);
+            }
         }
 
         if (empty($_FILES["photo"]) || !is_array($_FILES["photo"])) {
@@ -160,31 +181,32 @@ try {
             mxli_json_response(["ok" => false, "error" => "No se pudo almacenar la foto"], 500);
         }
 
-        $coordSource = strtolower(trim((string)($_POST["coord_source"] ?? "")));
-        if ($coordSource !== "gps" && $coordSource !== "clave") {
-            $coordSource = "clave";
-        }
-
-        $latVal = is_numeric($lat) ? (float)$lat : null;
-        $lngVal = is_numeric($lng) ? (float)$lng : null;
-
-        if ($coordSource !== "gps") {
-            $predio = mxli_predio_by_clave($clave);
-            if ($predio !== null && isset($predio["lat"], $predio["lng"])) {
-                $latVal = (float)$predio["lat"];
-                $lngVal = (float)$predio["lng"];
-                $coordSource = "clave";
-            }
+        if ($area === "ecologica") {
+            // GPS o punto del plano. Sin clave no se busca el predio, y tampoco se sustituye el punto.
+            $latVal = $postedLat;
+            $lngVal = $postedLng;
         } else {
-            if ($latVal !== null && ($latVal < -90 || $latVal > 90)) {
-                $latVal = null;
-            }
-            if ($lngVal !== null && ($lngVal < -180 || $lngVal > 180)) {
-                $lngVal = null;
-            }
-            if ($latVal !== null && $lngVal !== null && $latVal == 0.0 && $lngVal == 0.0) {
-                $latVal = null;
-                $lngVal = null;
+            $latVal = is_numeric($lat) ? (float)$lat : null;
+            $lngVal = is_numeric($lng) ? (float)$lng : null;
+
+            if ($coordSource !== "gps") {
+                $predio = mxli_predio_by_clave($clave);
+                if ($predio !== null && isset($predio["lat"], $predio["lng"])) {
+                    $latVal = (float)$predio["lat"];
+                    $lngVal = (float)$predio["lng"];
+                    $coordSource = "clave";
+                }
+            } else {
+                if ($latVal !== null && ($latVal < -90 || $latVal > 90)) {
+                    $latVal = null;
+                }
+                if ($lngVal !== null && ($lngVal < -180 || $lngVal > 180)) {
+                    $lngVal = null;
+                }
+                if ($latVal !== null && $lngVal !== null && $latVal == 0.0 && $lngVal == 0.0) {
+                    $latVal = null;
+                    $lngVal = null;
+                }
             }
         }
 
@@ -244,7 +266,7 @@ try {
             ? mxli_normalize_inspection_notes($body["notes"])
             : mxli_normalize_inspection_notes($current["notes"] ?? "");
 
-        if ($rowArea === "catastro") {
+        if ($rowArea === "catastro" || $rowArea === "ecologica") {
             $typesCsv = "";
         } else {
             $typesCsv = array_key_exists("inspection_types", $body) || array_key_exists("types", $body)
@@ -255,7 +277,11 @@ try {
             }
         }
 
-        if ($clave === "" || !preg_match('/^[A-Z0-9]{4,32}$/', $clave)) {
+        if ($rowArea === "ecologica") {
+            if ($clave !== "" && !mxli_inspection_clave_is_valid($clave)) {
+                mxli_json_response(["ok" => false, "error" => "Clave catastral inválida"], 400);
+            }
+        } elseif ($clave === "" || !mxli_inspection_clave_is_valid($clave)) {
             mxli_json_response(["ok" => false, "error" => "Clave catastral inválida"], 400);
         }
 

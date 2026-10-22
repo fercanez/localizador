@@ -12,6 +12,7 @@
               settings
             </span>
           </a>
+          <button type="button" class="mxli-capas-close" onclick="cerrarPanelCapas(event)">Cerrar</button>
         </div>
         
       </div>

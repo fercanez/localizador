@@ -13,14 +13,15 @@ function mxli_inspection_area_labels(): array
     return [
         "urbano" => "Control Urbano",
         "catastro" => "Catastro",
+        "ecologica" => "Patrulla Ecológica",
     ];
 }
 
 function mxli_normalize_inspection_area(mixed $value): string
 {
     $area = strtolower(trim((string)$value));
-    if ($area === "catastro") {
-        return "catastro";
+    if ($area === "catastro" || $area === "ecologica") {
+        return $area;
     }
     return "urbano";
 }
@@ -31,6 +32,7 @@ function mxli_inspection_type_labels(): array
         "lic_construccion" => "Lic. Construcción",
         "imagen_urbana" => "Imagen Urbana",
         "uso_suelo" => "Uso de Suelo",
+        "casetas_de_fraccs" => "Casetas de Fraccs.",
         "otro" => "Otro",
     ];
 }
@@ -105,6 +107,8 @@ function mxli_ensure_inspections_table(PDO $pdo): void
     $pdo->exec("ALTER TABLE app_inspection_photos ADD COLUMN IF NOT EXISTS inspection_types VARCHAR(120) NOT NULL DEFAULT ''");
     $pdo->exec("ALTER TABLE app_inspection_photos ADD COLUMN IF NOT EXISTS inspection_area VARCHAR(20) NOT NULL DEFAULT 'urbano'");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_inspection_photos_area ON app_inspection_photos (inspection_area)");
+    // Patrulla Ecológica puede guardar sin clave. NOT NULL admite '' ; el default evita un valor inventado.
+    $pdo->exec("ALTER TABLE app_inspection_photos ALTER COLUMN clavecatas SET DEFAULT ''");
 
     $root = mxli_inspections_upload_root();
     if (!is_dir($root)) {
@@ -116,7 +120,31 @@ function mxli_ensure_inspections_table(PDO $pdo): void
 
 function mxli_normalize_inspection_clave(mixed $value): string
 {
-    return strtoupper(preg_replace('/\s+/', '', (string)$value));
+    return strtoupper(preg_replace('/\s+/', '', (string)$value) ?? "");
+}
+
+function mxli_inspection_clave_is_valid(string $clave): bool
+{
+    return preg_match('/^[A-Z0-9]{4,32}$/', $clave) === 1;
+}
+
+/**
+ * @return array{0: ?float, 1: ?float}
+ */
+function mxli_parse_inspection_coords(mixed $lat, mixed $lng): array
+{
+    if (!is_numeric($lat) || !is_numeric($lng)) {
+        return [null, null];
+    }
+    $latVal = (float)$lat;
+    $lngVal = (float)$lng;
+    if ($latVal < -90 || $latVal > 90 || $lngVal < -180 || $lngVal > 180) {
+        return [null, null];
+    }
+    if ($latVal == 0.0 && $lngVal == 0.0) {
+        return [null, null];
+    }
+    return [$latVal, $lngVal];
 }
 
 function mxli_normalize_inspection_notes(mixed $value): string
@@ -138,6 +166,11 @@ function mxli_can_inspection_manage_catastro(?array $user = null): bool
     return mxli_can("inspections.catastro.manage", $user) || mxli_can("users.manage", $user);
 }
 
+function mxli_can_inspection_manage_ecologica(?array $user = null): bool
+{
+    return mxli_can("inspections.ecologica.manage", $user);
+}
+
 /** Compat: manage Control Urbano (histórico). */
 function mxli_can_inspection_manage(?array $user = null): bool
 {
@@ -150,15 +183,22 @@ function mxli_can_capture_inspection_area(string $area, ?array $user = null): bo
     if ($area === "catastro") {
         return mxli_can("map.inspect.catastro", $user) || mxli_can_inspection_manage_catastro($user);
     }
+    if ($area === "ecologica") {
+        return mxli_can("map.inspect.ecologica", $user) || mxli_can_inspection_manage_ecologica($user);
+    }
     return mxli_can("map.inspect", $user) || mxli_can_inspection_manage_urbano($user);
 }
 
 function mxli_can_manage_inspection_area(string $area, ?array $user = null): bool
 {
     $area = mxli_normalize_inspection_area($area);
-    return $area === "catastro"
-        ? mxli_can_inspection_manage_catastro($user)
-        : mxli_can_inspection_manage_urbano($user);
+    if ($area === "catastro") {
+        return mxli_can_inspection_manage_catastro($user);
+    }
+    if ($area === "ecologica") {
+        return mxli_can_inspection_manage_ecologica($user);
+    }
+    return mxli_can_inspection_manage_urbano($user);
 }
 
 /** Áreas que el usuario puede ver/capturar. */
@@ -170,6 +210,9 @@ function mxli_inspection_areas_for_user(?array $user = null): array
     }
     if (mxli_can("map.inspect.catastro", $user) || mxli_can_inspection_manage_catastro($user)) {
         $areas[] = "catastro";
+    }
+    if (mxli_can("map.inspect.ecologica", $user) || mxli_can_inspection_manage_ecologica($user)) {
+        $areas[] = "ecologica";
     }
     return $areas;
 }
@@ -310,7 +353,7 @@ function mxli_kml_color_from_hex(string $hex, string $alpha = "ff"): string
 }
 
 /**
- * PNG 32×32: círculo (urbano) o triángulo (catastro), con borde blanco.
+ * PNG 32×32: círculo (urbano), triángulo (catastro) o estrella (patrulla ecológica), con borde blanco.
  * Requiere extensión GD.
  */
 function mxli_inspection_marker_png(string $hex, string $shape = "circle"): string
@@ -338,7 +381,23 @@ function mxli_inspection_marker_png(string $hex, string $shape = "circle"): stri
     $fill = imagecolorallocate($im, $r, $g, $b);
     $stroke = imagecolorallocate($im, 255, 255, 255);
 
-    if ($shape === "triangle") {
+    if ($shape === "star") {
+        $cx = $size / 2;
+        $cy = $size / 2;
+        $outer = 13;
+        $inner = 5.4;
+        $points = [];
+        for ($i = 0; $i < 10; $i++) {
+            $ang = deg2rad(-90 + ($i * 36));
+            $rad = ($i % 2 === 0) ? $outer : $inner;
+            $points[] = (int)round($cx + cos($ang) * $rad);
+            $points[] = (int)round($cy + sin($ang) * $rad);
+        }
+        imagefilledpolygon($im, $points, $fill);
+        imagesetthickness($im, 2);
+        imagepolygon($im, $points, $stroke);
+        imagesetthickness($im, 1);
+    } elseif ($shape === "triangle") {
         // Triángulo punta arriba (como en el mapa)
         $points = [
             (int)($size / 2), 3,

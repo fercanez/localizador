@@ -22,20 +22,10 @@ try {
     $inspectorTools = [
         "map.view",
         "map.search",
-        "map.info",
         "map.locate",
         "map.inspect",
     ];
     $inspectorLayers = ["predios_mexicali_2025", "colonias"];
-    $supervisorTools = [
-        "map.view",
-        "map.search",
-        "map.info",
-        "map.locate",
-        "map.inspect",
-        "inspections.manage",
-    ];
-    $supervisorLayers = ["predios_mexicali_2025", "colonias"];
 
     $ins = $pdo->prepare(
         "INSERT INTO app_roles (slug, name, description, is_system, permissions, allowed_layers)
@@ -50,29 +40,6 @@ try {
         "layers" => json_encode($inspectorLayers, JSON_UNESCAPED_UNICODE),
     ]);
     echo "  seed: inspector (si no existía)\n";
-
-    $ins->execute([
-        "slug" => "supervisor",
-        "name" => "Supervisor",
-        "description" => "Supervisión de inspecciones fotográficas",
-        "permissions" => json_encode($supervisorTools, JSON_UNESCAPED_UNICODE),
-        "layers" => json_encode($supervisorLayers, JSON_UNESCAPED_UNICODE),
-    ]);
-    echo "  seed: supervisor (si no existía)\n";
-
-    $updRole = $pdo->prepare(
-        "UPDATE app_roles
-         SET permissions = CAST(:permissions AS jsonb),
-             allowed_layers = CAST(:layers AS jsonb),
-             updated_at = NOW()
-         WHERE slug = :slug"
-    );
-    $updRole->execute([
-        "slug" => "inspector",
-        "permissions" => json_encode($inspectorTools, JSON_UNESCAPED_UNICODE),
-        "layers" => json_encode($inspectorLayers, JSON_UNESCAPED_UNICODE),
-    ]);
-    echo "  update: inspector permisos\n";
 
     foreach (mxli_default_role_seeds() as $seed) {
         if ($seed["slug"] !== "admin") {

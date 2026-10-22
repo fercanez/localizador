@@ -168,21 +168,30 @@ try {
     $exportArea = mxli_normalize_inspection_area($items[0]["inspection_area"] ?? ($areaParam ?: "urbano"));
     $areaLabels = mxli_inspection_area_labels();
     $areaLabel = $areaLabels[$exportArea] ?? $exportArea;
-    $folderName = $exportArea === "catastro" ? "Inspecciones Catastro" : "Inspecciones Control Urbano";
+    $folderName = "Inspecciones Control Urbano";
+    if ($exportArea === "catastro") {
+        $folderName = "Inspecciones Catastro";
+    } elseif ($exportArea === "ecologica") {
+        $folderName = "Inspecciones Patrulla Ecológica";
+    }
 
     $photoEntries = []; // relative path inside archive => abs path OR binary string
     $iconBinaries = []; // icons/circle_9b2f55.png => png bytes
     $styleXml = [];
     $placemarks = [];
-    $shape = $exportArea === "catastro" ? "triangle" : "circle";
-    $shapeLabel = $exportArea === "catastro" ? "triángulo" : "círculo";
+    $shape = "circle";
+    $shapeLabel = "círculo";
+    $remoteIcon = "http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png";
     $canMakePng = function_exists("imagecreatetruecolor") && function_exists("imagepng");
-
-    // Iconos públicos de Google Earth (fallback para KML sin embebidos / sin GD)
-    $remoteIcon =
-        $exportArea === "catastro"
-            ? "http://maps.google.com/mapfiles/kml/shapes/triangle.png"
-            : "http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png";
+    if ($exportArea === "catastro") {
+        $shape = "triangle";
+        $shapeLabel = "triángulo";
+        $remoteIcon = "http://maps.google.com/mapfiles/kml/shapes/triangle.png";
+    } elseif ($exportArea === "ecologica") {
+        $shape = "star";
+        $shapeLabel = "estrella";
+        $remoteIcon = "http://maps.google.com/mapfiles/kml/shapes/star.png";
+    }
 
     foreach ($items as $row) {
         $public = mxli_public_inspection_row($row, $user);

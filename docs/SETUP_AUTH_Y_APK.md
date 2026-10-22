@@ -77,6 +77,35 @@ php scripts/migrate_user_expiry.php
 
 Si un usuario vencido intenta entrar, verá: “Su acceso venció…”.
 
+## Sesión única por usuario
+
+Por defecto (`session_policy` = `lock`): si el usuario ya tiene `session_token` en BD, un segundo login se **rechaza** con:
+
+> Ya hay una sesión activa para este usuario. Cierre la otra sesión o contacte al administrador.
+
+Excepciones:
+- **Administrador** (`role = admin`): siempre puede entrar; el login reemplaza el token anterior.
+- **Idle timeout**: si `last_login_at` tiene más de **8 horas** (`session_idle_hours`), se permite un nuevo login aunque quede token (caso típico: cerró el navegador sin logout).
+- **Logout** limpia el token.
+- En **Usuarios**, el admin puede pulsar **Cerrar sesión remota** (limpia `session_token`).
+
+```bash
+cd /var/www/html/localizacion
+php scripts/migrate_session_token.php
+# o: psql -U canez -d NOMBRE_BD -f sql/migrate_session_token.sql
+```
+
+Configuración en `includes/config.local.php` (u `config.php`):
+
+```php
+"session_policy" => "lock",       // o "invalidate" para expulsar la sesión anterior
+"session_idle_hours" => 8,        // horas para auto-desbloquear sin logout
+```
+
+Modo alternativo `invalidate`: cada login genera token nuevo y la sesión anterior queda inválida (“Su sesión fue cerrada porque se inició en otro dispositivo.”).
+
+Desbloqueo manual por SQL: `UPDATE app_users SET session_token = NULL WHERE username = 'usuario';`
+
 ## 2) Probar en web
 
 1. Abra `https://localizacion.geomexicali.info/login.php`

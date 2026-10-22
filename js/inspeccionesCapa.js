@@ -54,8 +54,14 @@
     return color;
   }
 
+  function normalizeInspectArea(value) {
+    var area = String(value || "urbano").toLowerCase();
+    if (area === "catastro" || area === "ecologica") return area;
+    return "urbano";
+  }
+
   window.mxliInspectColorForUser = function (props) {
-    var area = (props && props.inspection_area) === "catastro" ? "catastro" : "urbano";
+    var area = normalizeInspectArea(props && props.inspection_area);
     var state = LAYERS[area];
     return colorForUser(props || {}, state || { userColorMap: {} });
   };
@@ -82,6 +88,12 @@
     ) {
       areas.push("catastro");
     }
+    if (
+      window.mxliCan("map.inspect.ecologica") ||
+      window.mxliCan("inspections.ecologica.manage")
+    ) {
+      areas.push("ecologica");
+    }
     return areas;
   }
 
@@ -94,13 +106,15 @@
   }
 
   function adminBoardHref(area) {
-    return area === "catastro"
-      ? "admin/inspecciones-catastro.php"
-      : "admin/inspecciones.php";
+    if (area === "catastro") return "admin/inspecciones-catastro.php";
+    if (area === "ecologica") return "admin/inspecciones-ecologica.php";
+    return "admin/inspecciones.php";
   }
 
   function layerIdForArea(area) {
-    return area === "catastro" ? "inspecciones_catastro" : "inspecciones_fotos";
+    if (area === "catastro") return "inspecciones_catastro";
+    if (area === "ecologica") return "inspecciones_ecologica";
+    return "inspecciones_fotos";
   }
 
   function escapeHtml(v) {
@@ -178,6 +192,12 @@
     "inspecciones_catastro_chkbox",
     "inspect-users-legend-catastro"
   );
+  defineLayer(
+    "ecologica",
+    "Inspecciones Patrulla Ecológica",
+    "inspecciones_ecologica_chkbox",
+    "inspect-users-legend-ecologica"
+  );
 
   function attachPaneToLayers() {
     Object.keys(LAYERS).forEach(function (area) {
@@ -204,6 +224,20 @@
         "</svg></span>"
       );
     }
+    if (area === "ecologica") {
+      var starSize = extraClass && extraClass.indexOf("mxli-inspect-shape--map") >= 0 ? 28 : 16;
+      return (
+        '<span class="mxli-inspect-shape mxli-inspect-shape--star' +
+        cls +
+        '" style="display:inline-block;width:' +
+        starSize +
+        "px;height:" +
+        starSize +
+        "px;background:" +
+        escapeHtml(color) +
+        ';clip-path:polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);-webkit-clip-path:polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff) drop-shadow(0 1px 1px rgba(0,0,0,.45));vertical-align:middle;" aria-hidden="true"></span>'
+      );
+    }
     return (
       '<span class="mxli-inspect-shape mxli-inspect-shape--circle' +
       cls +
@@ -220,6 +254,16 @@
       iconSize: [26, 26],
       iconAnchor: [13, 18],
       popupAnchor: [0, -14],
+    });
+  }
+
+  function starDivIcon(color) {
+    return L.divIcon({
+      className: "mxli-inspect-marker-wrap",
+      html: shapeSwatchHtml(color, "ecologica", "mxli-inspect-shape--map"),
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -16],
     });
   }
 
@@ -280,7 +324,7 @@
     var clave = "—";
     var fecha = "—";
     var inspector = "—";
-    var area = (props.inspection_area || "urbano") === "catastro" ? "catastro" : "urbano";
+    var area = normalizeInspectArea(props.inspection_area);
     var state = LAYERS[area];
     var dotColor = "#9b2f55";
     try {
@@ -308,16 +352,36 @@
       : "";
 
     var typesRow =
-      area === "catastro"
-        ? ""
-        : '<tr><td class="mxli-padron-label">Tipos</td><td class="mxli-padron-value"><b>' +
+      area === "urbano"
+        ? '<tr><td class="mxli-padron-label">Tipos</td><td class="mxli-padron-value"><b>' +
           escapeHtml((types || "—").toUpperCase()) +
-          "</b></td></tr>";
+          "</b></td></tr>"
+        : "";
+
+    var gpsRow = "";
+    if (area === "ecologica") {
+      var gpsText = "—";
+      var plat = Number(props.lat);
+      var plng = Number(props.lng);
+      if (isFinite(plat) && isFinite(plng) && !(plat === 0 && plng === 0)) {
+        gpsText = plat.toFixed(5) + ", " + plng.toFixed(5);
+      }
+      gpsRow =
+        '<tr><td class="mxli-padron-label">GPS</td><td class="mxli-padron-value"><b>' +
+        escapeHtml(gpsText) +
+        "</b></td></tr>";
+    }
 
     return (
       '<div class="mxli-feature-popup mxli-inspect-popup">' +
       '<div class="mxli-feature-popup__head">' +
-      escapeHtml(area === "catastro" ? "Inspección Catastro" : "Inspección fotográfica") +
+      escapeHtml(
+        area === "catastro"
+          ? "Inspección Catastro"
+          : area === "ecologica"
+            ? "Inspección Patrulla Ecológica"
+            : "Inspección fotográfica"
+      ) +
       "</div>" +
       '<div class="mxli-feature-popup__body mxli-inspect-popup__body">' +
       photoHtml +
@@ -325,6 +389,7 @@
       '<tr><td class="mxli-padron-label">Clave</td><td class="mxli-padron-value"><b>' +
       escapeHtml(clave) +
       "</b></td></tr>" +
+      gpsRow +
       '<tr><td class="mxli-padron-label">Fecha</td><td class="mxli-padron-value"><b>' +
       escapeHtml(fecha) +
       "</b></td></tr>" +
@@ -338,7 +403,7 @@
       escapeHtml((notes || "—").toUpperCase()) +
       "</b></td></tr>" +
       '<tr><td class="mxli-padron-label">Área</td><td class="mxli-padron-value"><b>' +
-      escapeHtml(String(props.area_label || (area === "catastro" ? "Catastro" : "Control Urbano")).toUpperCase()) +
+      escapeHtml(String(props.area_label || (area === "catastro" ? "Catastro" : area === "ecologica" ? "Patrulla Ecológica" : "Control Urbano")).toUpperCase()) +
       "</b></td></tr>" +
       '<tr><td colspan="2" class="mxli-padron-value"><a href="' +
       escapeHtml(adminBoardHref(area)) +
@@ -367,7 +432,7 @@
     var props = marker.mxliInspection;
     props.isInspection = true;
     props.layer_type = props.layer_type || "inspeccion_foto";
-    var area = (props.inspection_area || "urbano") === "catastro" ? "catastro" : "urbano";
+    var area = normalizeInspectArea(props.inspection_area);
     props.sourceLayer = layerIdForArea(area);
     var html = buildInspectPopupHtml(props);
     if (!marker.getPopup()) {
@@ -403,9 +468,9 @@
     } catch (e) {}
 
     var marker;
-    if (state.area === "catastro") {
+    if (state.area === "catastro" || state.area === "ecologica") {
       marker = L.marker([lat, lng], {
-        icon: triangleDivIcon(color),
+        icon: state.area === "ecologica" ? starDivIcon(color) : triangleDivIcon(color),
         interactive: true,
         bubblingMouseEvents: true,
         keyboard: true,
@@ -477,13 +542,9 @@
         clearLayerMarkers(state);
         var items = [];
         (data.features || []).forEach(function (feature) {
-          var props = feature.properties || {};
-          var featArea =
-            (props.inspection_area || area) === "catastro" ? "catastro" : "urbano";
-          if (featArea !== area) return;
-          if (!canViewArea(featArea)) return;
+          if (!feature) return;
           addFeature(state, feature);
-          items.push(props);
+          items.push(feature.properties || {});
         });
         state.loaded = true;
         renderUserLegend(state, items);
@@ -510,7 +571,7 @@
   }
 
   function anyInspectLayerOnMap() {
-    return isAreaLayerOnMap("urbano") || isAreaLayerOnMap("catastro");
+    return isAreaLayerOnMap("urbano") || isAreaLayerOnMap("catastro") || isAreaLayerOnMap("ecologica");
   }
 
   window.isInspeccionesCapaActive = function () {
@@ -519,7 +580,7 @@
 
   function bringInspectionsToTop() {
     var list = document.getElementById("wms-layer-list");
-    var order = ["inspecciones_fotos_chkbox", "inspecciones_catastro_chkbox"];
+    var order = ["inspecciones_fotos_chkbox", "inspecciones_catastro_chkbox", "inspecciones_ecologica_chkbox"];
     // Keep inspection cards at the top of Capas (urbano first, then catastro)
     for (var i = order.length - 1; i >= 0; i--) {
       var card = document.querySelector(
@@ -538,7 +599,7 @@
       ensureInspeccionesPane();
     } catch (e) {}
 
-    ["urbano", "catastro"].forEach(function (area) {
+    ["urbano", "catastro", "ecologica"].forEach(function (area) {
       var state = LAYERS[area];
       if (!state || !isAreaLayerOnMap(area)) return;
       if (typeof state.layer.bringToFront === "function") {
@@ -551,7 +612,7 @@
 
   function allActiveMarkers() {
     var list = [];
-    ["urbano", "catastro"].forEach(function (area) {
+    ["urbano", "catastro", "ecologica"].forEach(function (area) {
       if (!isAreaLayerOnMap(area)) return;
       var state = LAYERS[area];
       if (!state) return;
@@ -618,7 +679,8 @@
     if (info.isInspection) return true;
     if (
       info.sourceLayer === "inspecciones_fotos" ||
-      info.sourceLayer === "inspecciones_catastro"
+      info.sourceLayer === "inspecciones_catastro" ||
+      info.sourceLayer === "inspecciones_ecologica"
     ) {
       return true;
     }

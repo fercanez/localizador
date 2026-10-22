@@ -18,9 +18,7 @@
             </div>
             <input type="submit" class="boton boton-primario btn-entrar" value="Entrar">
         </form>
-        <p class="auth-hint" style="margin-top:0.75rem;font-size:0.9rem;opacity:0.85">
-          El alta de usuarios solo la realiza un administrador.
-        </p>
+        <a href="#" onclick="toggleModal('modalRegistro')" class="linkUnderline-1 registrarse-link">Registrarse</a>
     </div>
 </div>
 

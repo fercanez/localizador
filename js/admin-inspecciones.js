@@ -5,6 +5,7 @@
   var INSPECT_AREA =
     (document.body && document.body.dataset && document.body.dataset.area) || "urbano";
   var IS_CATASTRO = INSPECT_AREA === "catastro";
+  var SHOW_TYPES_COLUMN = INSPECT_AREA === "urbano";
   var tbody = document.getElementById("inspect-grid");
   var listMsg = document.getElementById("inspect-list-msg");
   var filterInput = document.getElementById("filter-clave");
@@ -18,6 +19,7 @@
     lic_construccion: "Lic. Construcción",
     imagen_urbana: "Imagen Urbana",
     uso_suelo: "Uso de Suelo",
+    casetas_de_fraccs: "Casetas de Fraccs.",
     otro: "Otro",
   };
 
@@ -73,6 +75,16 @@
   function formatGps(item) {
     if (item.lat == null || item.lng == null) return "—";
     return Number(item.lat).toFixed(5) + ", " + Number(item.lng).toFixed(5);
+  }
+
+  function displayClave(value) {
+    var text = String(value || "").replace(/\s+/g, "").trim();
+    return text ? text.toUpperCase() : "—";
+  }
+
+  function fileClave(item) {
+    var text = String((item && item.clavecatas) || "").replace(/\s+/g, "").trim();
+    return text ? text.toUpperCase() : "id" + (item && item.id ? item.id : "foto");
   }
 
   function selectedFilterTypes() {
@@ -177,15 +189,15 @@
 
     if (!filteredCache.length) {
       tbody.innerHTML =
-        '<tr><td colspan="' + (IS_CATASTRO ? "8" : "9") + '" class="inspect-empty">No hay registros de inspección.</td></tr>';
+        '<tr><td colspan="' + (SHOW_TYPES_COLUMN ? "9" : "8") + '" class="inspect-empty">No hay registros de inspección.</td></tr>';
       return;
     }
 
     filteredCache.forEach(function (item, index) {
       var tr = document.createElement("tr");
-      var typesCell = IS_CATASTRO
-        ? ""
-        : '<td class="inspect-table__types">' + typesChipsHtml(item) + "</td>";
+      var typesCell = SHOW_TYPES_COLUMN
+        ? '<td class="inspect-table__types">' + typesChipsHtml(item) + "</td>"
+        : "";
       tr.innerHTML =
         '<td class="inspect-table__num">' +
         (index + 1) +
@@ -193,12 +205,12 @@
         '<td><img class="inspect-table__thumb" src="' +
         escapeHtml(photoSrc(item.photo_url)) +
         '" alt="Foto ' +
-        escapeHtml(item.clavecatas) +
+        escapeHtml(displayClave(item.clavecatas)) +
         '" data-zoom="' +
         item.id +
         '" title="Ver foto ampliada"></td>' +
         '<td class="inspect-table__clave">' +
-        escapeHtml(String(item.clavecatas || "").toUpperCase()) +
+        escapeHtml(displayClave(item.clavecatas)) +
         "</td>" +
         typesCell +
         "<td>" +
@@ -219,7 +231,7 @@
         '<a class="inspect-download" href="' +
         escapeHtml(downloadSrc(item.photo_url)) +
         '" download="inspeccion-' +
-        escapeHtml(item.clavecatas) +
+        escapeHtml(fileClave(item)) +
         '.jpg">Foto</a>' +
         (item.lat != null && item.lng != null
           ? '<a class="inspect-download" href="' +
@@ -243,7 +255,7 @@
     var typeKeys = selectedFilterTypes();
     var url = API + "?limit=2000&area=" + encodeURIComponent(INSPECT_AREA);
     if (clave) url += "&clave=" + encodeURIComponent(clave);
-    if (!IS_CATASTRO && typeKeys.length === 1) url += "&tipo=" + encodeURIComponent(typeKeys[0]);
+    if (SHOW_TYPES_COLUMN && typeKeys.length === 1) url += "&tipo=" + encodeURIComponent(typeKeys[0]);
     return api(url)
       .then(function (data) {
         itemsCache = data.items || [];
@@ -269,16 +281,17 @@
       return;
     }
 
-    var header = IS_CATASTRO
-      ? ["#", "Clave", "Fecha", "Inspector", "Notas", "Latitud", "Longitud", "URL foto"]
-      : ["#", "Clave", "Tipos", "Fecha", "Inspector", "Notas", "Latitud", "Longitud", "URL foto"];
+    var header = SHOW_TYPES_COLUMN
+      ? ["#", "Clave", "Tipos", "Fecha", "Inspector", "Notas", "Latitud", "Longitud", "URL foto"]
+      : ["#", "Clave", "Fecha", "Inspector", "Notas", "Latitud", "Longitud", "URL foto"];
     var rows = [header.join(",")];
 
     filteredCache.forEach(function (item, index) {
-      var cols = IS_CATASTRO
+      var cols = SHOW_TYPES_COLUMN
         ? [
             index + 1,
-            item.clavecatas,
+            displayClave(item.clavecatas),
+            item.types_label || item.inspection_types || "",
             formatDate(item.captured_at),
             item.created_by_name || "",
             item.notes || "",
@@ -288,8 +301,7 @@
           ]
         : [
             index + 1,
-            item.clavecatas,
-            item.types_label || item.inspection_types || "",
+            displayClave(item.clavecatas),
             formatDate(item.captured_at),
             item.created_by_name || "",
             item.notes || "",
@@ -401,7 +413,7 @@
         return Number(x.id) === zoomId;
       });
       if (!zoomItem) return;
-      openLightbox(photoSrc(zoomItem.photo_url), zoomItem.clavecatas);
+      openLightbox(photoSrc(zoomItem.photo_url), displayClave(zoomItem.clavecatas));
       return;
     }
 
@@ -440,9 +452,23 @@
     if (submitter && submitter.value === "cancel") return;
     event.preventDefault();
 
-    var typesCsv = IS_CATASTRO ? "" : selectedEditTypes();
-    if (!IS_CATASTRO && !typesCsv) {
+    var typesCsv = SHOW_TYPES_COLUMN ? selectedEditTypes() : "";
+    if (SHOW_TYPES_COLUMN && !typesCsv) {
       showMsg(listMsg, "Seleccione al menos un tipo de inspección.", false);
+      return;
+    }
+
+    var clave = String(document.getElementById("edit-inspect-clave").value || "")
+      .trim()
+      .replace(/\s+/g, "")
+      .toUpperCase();
+    if (INSPECT_AREA === "ecologica") {
+      if (clave !== "" && !/^[A-Z0-9]{4,32}$/.test(clave)) {
+        showMsg(listMsg, "Si anota clave, use de 4 a 32 letras o números.", false);
+        return;
+      }
+    } else if (!/^[A-Z0-9]{4,32}$/.test(clave)) {
+      showMsg(listMsg, "Capture una clave catastral válida.", false);
       return;
     }
 
@@ -451,7 +477,7 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: Number(document.getElementById("edit-inspect-id").value),
-        clavecatas: document.getElementById("edit-inspect-clave").value.trim(),
+        clavecatas: clave,
         notes: String(document.getElementById("edit-inspect-notes").value || "")
           .trim()
           .toUpperCase(),
@@ -507,7 +533,7 @@
   if (editPreview) {
     editPreview.addEventListener("click", function () {
       var clave = document.getElementById("edit-inspect-clave");
-      openLightbox(editPreview.src, clave ? clave.value : "");
+      openLightbox(editPreview.src, displayClave(clave ? clave.value : ""));
     });
   }
 

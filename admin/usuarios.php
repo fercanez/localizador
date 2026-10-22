@@ -26,14 +26,16 @@ $layerCatalog = mxli_layer_catalog();
     <div>
       <a class="admin-back" href="../index.php">← Volver al mapa</a>
       <h1>Usuarios y roles</h1>
-      <p>Administrador: <strong><?= htmlspecialchars($me["username"], ENT_QUOTES, "UTF-8") ?></strong></p>
+      <p class="admin-user-line">Administrador: <strong><?= htmlspecialchars($me["username"], ENT_QUOTES, "UTF-8") ?></strong>
+        <a class="admin-logout" href="../logout.php">Salir</a>
+      </p>
     </div>
-    <a class="admin-logout" href="../logout.php">Cerrar sesión</a>
   </header>
 
   <nav class="admin-tabs" role="tablist">
     <button type="button" class="admin-tab is-active" data-tab="users">Usuarios</button>
     <button type="button" class="admin-tab" data-tab="roles">Roles y permisos</button>
+    <button type="button" class="admin-tab" data-tab="bitacora">Bitácora padrón</button>
   </nav>
 
   <main class="admin-main">
@@ -186,6 +188,72 @@ $layerCatalog = mxli_layer_catalog();
         <p id="roles-msg" class="admin-msg" hidden></p>
       </section>
     </div>
+
+    <div class="admin-tab-panel" id="tab-bitacora" data-panel="bitacora" hidden>
+      <section class="admin-panel admin-panel--wide">
+        <div class="admin-panel__head">
+          <h2>Bitácora de consultas al padrón</h2>
+          <div class="admin-users-toolbar">
+            <button type="button" id="bitacora-export" class="admin-secondary">Exportar CSV</button>
+            <button type="button" id="bitacora-refresh" class="admin-secondary">Actualizar</button>
+          </div>
+        </div>
+        <p class="admin-hint">
+          Registro de quién consultó el padrón: usuario, clave catastral (o búsqueda por nombre), fecha y hora (hora de Mexicali).
+        </p>
+        <form class="admin-users-filters" id="bitacora-filters">
+          <label class="admin-filter">
+            <span>Usuario</span>
+            <input type="search" id="bitacora-usuario" placeholder="Usuario o nombre…" autocomplete="off">
+          </label>
+          <label class="admin-filter">
+            <span>Clave</span>
+            <input type="search" id="bitacora-clave" placeholder="Ej. SP001001" autocomplete="off">
+          </label>
+          <label class="admin-filter">
+            <span>Tipo</span>
+            <select id="bitacora-tipo">
+              <option value="">Todos</option>
+              <option value="clave">Por clave</option>
+              <option value="nombre">Por nombre</option>
+            </select>
+          </label>
+          <label class="admin-filter">
+            <span>Desde</span>
+            <input type="date" id="bitacora-desde">
+          </label>
+          <label class="admin-filter">
+            <span>Hasta</span>
+            <input type="date" id="bitacora-hasta">
+          </label>
+          <div class="admin-filter admin-filter-actions">
+            <button type="submit" class="auth-btn">Filtrar</button>
+          </div>
+          <p class="admin-filter-count" id="bitacora-count" aria-live="polite"></p>
+        </form>
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="bitacora-table">
+            <thead>
+              <tr>
+                <th>Fecha y hora</th>
+                <th>Usuario</th>
+                <th>Nombre</th>
+                <th>Clave / búsqueda</th>
+                <th>Resultado</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="admin-pager" id="bitacora-pager" hidden>
+          <button type="button" class="admin-secondary" id="bitacora-prev">Anterior</button>
+          <span id="bitacora-page-label"></span>
+          <button type="button" class="admin-secondary" id="bitacora-next">Siguiente</button>
+        </div>
+        <p id="bitacora-msg" class="admin-msg" hidden></p>
+      </section>
+    </div>
   </main>
 
   <dialog id="edit-dialog" class="admin-dialog">
@@ -248,9 +316,13 @@ $layerCatalog = mxli_layer_catalog();
 
       <fieldset class="admin-fieldset">
         <legend>Herramientas</legend>
+        <p class="admin-hint">Descarga e impresión de planos se marcan aparte. Si no están activas, el perito solo previsualiza con marca de agua.</p>
         <div class="admin-check-grid" id="role-tools">
           <?php foreach ($toolDefs as $perm => $label): ?>
-            <label class="admin-check">
+            <?php
+            $isSub = strpos($perm, "map.planos.") === 0 || strpos($perm, "map.expediente.") === 0;
+            ?>
+            <label class="admin-check<?= $isSub ? " admin-check--sub" : "" ?>">
               <input type="checkbox"
                 class="role-tool"
                 value="<?= htmlspecialchars($perm, ENT_QUOTES, "UTF-8") ?>"
@@ -282,13 +354,15 @@ $layerCatalog = mxli_layer_catalog();
       </fieldset>
 
       <div class="admin-dialog-actions">
-        <button type="submit" value="cancel" class="admin-secondary">Cancelar</button>
-        <button type="submit" value="save" class="auth-btn">Guardar rol</button>
+        <button type="button" class="admin-secondary" id="role-cancel">Cancelar</button>
+        <button type="button" class="auth-btn" id="role-save">Guardar rol</button>
       </div>
     </form>
   </dialog>
 
-  <script src="../js/admin-users.js"></script>
-  <script src="../js/admin-roles.js"></script>
+  <script src="../js/admin-users.js?v=104"></script>
+  <script src="../js/admin-roles.js?v=104"></script>
+  <script src="../js/admin-padron-bitacora.js?v=1"></script>
+  <script src="../js/sessionGuard.js?v=99"></script>
 </body>
 </html>

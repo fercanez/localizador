@@ -14,6 +14,9 @@ if ($next === "" || str_contains($next, "://") || str_starts_with($next, "//")) 
     $next = "index.php";
 }
 $expiredNotice = isset($_GET["expired"]);
+$replacedNotice = isset($_GET["replaced"]) || mxli_auth_fail_reason() === "session_replaced";
+$idleNotice = isset($_GET["idle"]);
+$disconnectNotice = isset($_GET["disconnect"]);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -39,6 +42,15 @@ $expiredNotice = isset($_GET["expired"]);
       <p class="auth-hint">Ingrese con su usuario asignado por el administrador.</p>
       <?php if ($expiredNotice): ?>
         <p class="auth-error" style="display:block">Su acceso ha vencido. Contacte al administrador.</p>
+      <?php endif; ?>
+      <?php if ($replacedNotice): ?>
+        <p class="auth-error" style="display:block">Su sesión fue cerrada porque se inició en otro dispositivo.</p>
+      <?php endif; ?>
+      <?php if ($idleNotice): ?>
+        <p class="auth-error" style="display:block">Su sesión se cerró por inactividad (5 minutos sin uso).</p>
+      <?php endif; ?>
+      <?php if ($disconnectNotice): ?>
+        <p class="auth-error" style="display:block">Su sesión se cerró porque se interrumpió la comunicación con el servidor (red o cambio de conexión).</p>
       <?php endif; ?>
 
       <label>

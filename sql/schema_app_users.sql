@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS app_users (
                     CHECK (role IN ('admin', 'consulta', 'campo')),
     is_active       BOOLEAN      NOT NULL DEFAULT TRUE,
     expires_at      DATE         NULL,
+    session_token   VARCHAR(64)  NULL,
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     last_login_at   TIMESTAMPTZ  NULL
@@ -26,3 +27,5 @@ COMMENT ON COLUMN app_users.role IS
   'admin=todo; consulta=mapa/buscar/imprimir; campo=consulta+subir archivos';
 COMMENT ON COLUMN app_users.expires_at IS
   'Último día de acceso (inclusive). NULL = sin vencimiento.';
+COMMENT ON COLUMN app_users.session_token IS
+  'Token de sesión activa (política lock). NULL = libre. Admin limpia desde Usuarios.';

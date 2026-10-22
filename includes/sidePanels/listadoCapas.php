@@ -5,7 +5,8 @@ $layerMetadata = require dirname(__DIR__) . "/layer-metadata.php";
 $inspectAreas = mxli_inspection_areas_for_user();
 $showInspeccionesUrbano = in_array("urbano", $inspectAreas, true);
 $showInspeccionesCatastro = in_array("catastro", $inspectAreas, true);
-$showInspeccionesCapa = $showInspeccionesUrbano || $showInspeccionesCatastro;
+$showInspeccionesEcologica = in_array("ecologica", $inspectAreas, true);
+$showInspeccionesCapa = $showInspeccionesUrbano || $showInspeccionesCatastro || $showInspeccionesEcologica;
 
 $wmsCapasGeoservidor = [
     [
@@ -16,6 +17,16 @@ $wmsCapasGeoservidor = [
         "datastore" => "geonode",
         "title" => "Predios",
         "color" => "#e67e22",
+    ],
+    [
+        "id" => "red_unificada_chkbox",
+        "var" => "red_unificada",
+        "layer" => "red_unificada_de_mexicali",
+        "workspace" => "geonode",
+        "datastore" => "geonode",
+        "title" => "Red Unificada",
+        "color" => "#b91c1c",
+        "default_on" => function_exists("mxli_user_is_perito_deslindador") && mxli_user_is_perito_deslindador(),
     ],
     [
         "id" => "predios_baldios_chkbox",
@@ -117,6 +128,15 @@ $wmsCapasGeoservidor = [
         "title" => "Canales CONAGUA",
         "color" => "#1565c0",
     ],
+    [
+        "id" => "fallas_geologicas_chkbox",
+        "var" => "fallas_geologicas",
+        "layer" => "fallas_geologicas",
+        "workspace" => "geonode",
+        "datastore" => "geonode",
+        "title" => "Fallas geológicas",
+        "color" => "#7a1f1f",
+    ],
 ];
 
 foreach ($wmsCapasGeoservidor as &$capa) {
@@ -136,6 +156,19 @@ $wmsCapasGeoservidor = array_values(array_filter(
         return mxli_can_layer((string)($capa["layer"] ?? ""));
     }
 ));
+
+if (function_exists("mxli_user_is_perito_deslindador") && mxli_user_is_perito_deslindador()) {
+    $redPrimero = [];
+    $restoCapas = [];
+    foreach ($wmsCapasGeoservidor as $capa) {
+        if (($capa["layer"] ?? "") === "red_unificada_de_mexicali") {
+            $redPrimero[] = $capa;
+        } else {
+            $restoCapas[] = $capa;
+        }
+    }
+    $wmsCapasGeoservidor = array_merge($redPrimero, $restoCapas);
+}
 ?>
 
 <ul class="cd-accordion cd-accordion--animated margin-top-lg margin-bottom-lg">
@@ -202,6 +235,29 @@ $wmsCapasGeoservidor = array_values(array_filter(
                                     </div>
                                     <p class="wms-layer-card__hint">Catastro: triángulos con color por inspector. Toque un punto o use la herramienta <strong>i</strong> para ver la ficha.</p>
                                     <div id="inspect-users-legend-catastro" class="inspect-users-legend" hidden></div>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($showInspeccionesEcologica): ?>
+                                <div class="wms-layer-card wms-layer-card--inspect wms-layer-card--inspect-ecologica"
+                                    data-layer-id="inspecciones_ecologica_chkbox"
+                                    data-layer-var="inspecciones_ecologica"
+                                    data-title="Inspecciones Patrulla Ecológica"
+                                    data-opacity="100">
+                                    <div class="wms-layer-card__header">
+                                        <label class="wms-layer-card__check" for="inspecciones_ecologica_chkbox">
+                                            <input type="checkbox"
+                                                id="inspecciones_ecologica_chkbox"
+                                                name="inspecciones_ecologica_chkbox"
+                                                onchange="toggleLayer('inspecciones_ecologica_chkbox', inspecciones_ecologica)">
+                                        </label>
+                                        <span class="wms-layer-card__shape mxli-inspect-shape mxli-inspect-shape--star"
+                                            style="display:inline-block;width:18px;height:18px;background:#1e7a46;clip-path:polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);-webkit-clip-path:polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"
+                                            aria-hidden="true"></span>
+                                        <span class="wms-layer-card__title">Inspecciones Patrulla Ecológica</span>
+                                    </div>
+                                    <p class="wms-layer-card__hint">Patrulla Ecológica: estrellas con color por inspector. Solo la ve este rol. Toque un punto o use la herramienta <strong>i</strong> para ver la ficha.</p>
+                                    <div id="inspect-users-legend-ecologica" class="inspect-users-legend" hidden></div>
                                 </div>
                             <?php endif; ?>
 

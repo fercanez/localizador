@@ -67,6 +67,9 @@
   }
 
   function enableMapDrag() {
+    if (window.mxliInspectMapPickActive) return;
+    var infoBtn = document.getElementById("getFeatureInfoBtn");
+    if (infoBtn && infoBtn.classList.contains("btnIsActive")) return;
     if (typeof map2d !== "undefined" && map2d.dragging) {
       map2d.dragging.enable();
     }

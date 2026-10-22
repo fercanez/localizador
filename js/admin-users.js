@@ -415,6 +415,11 @@
         "<button type=\"button\" data-edit=\"" +
         user.id +
         "\">Editar</button>" +
+        (user.has_active_session
+          ? "<button type=\"button\" data-clear-session=\"" +
+            user.id +
+            "\" title=\"Libera el bloqueo de sesión única\">Cerrar sesión remota</button>"
+          : "") +
         "<button type=\"button\" data-toggle=\"" +
         user.id +
         "\">" +
@@ -451,7 +456,7 @@
       });
   }
 
-  // Tabs Usuarios / Roles
+  // Tabs Usuarios / Roles / Padrón
   document.querySelectorAll(".admin-tab").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var tab = btn.getAttribute("data-tab");
@@ -468,6 +473,12 @@
       }
       if (tab === "users") {
         ensureBulkRoleFilled();
+      }
+      if (tab === "padron") {
+        document.dispatchEvent(new Event("mxli:padron-tab-shown"));
+      }
+      if (tab === "bitacora") {
+        document.dispatchEvent(new Event("mxli:bitacora-tab-shown"));
       }
     });
   });
@@ -727,8 +738,40 @@
       document.getElementById("edit-active").checked = !!user.is_active;
       var editPadron = document.getElementById("edit-padron");
       if (editPadron) editPadron.checked = !!user.can_view_padron;
+      var sessionBox = document.getElementById("edit-session-box");
+      if (sessionBox) {
+        sessionBox.hidden = !user.has_active_session;
+      }
       showMsg(editMsg, "", true);
       dialog.showModal();
+      return;
+    }
+
+    if (target.dataset.clearSession) {
+      var clearId = Number(target.dataset.clearSession);
+      if (
+        !window.confirm(
+          "¿Cerrar la sesión remota de este usuario? Podrá volver a iniciar sesión."
+        )
+      ) {
+        return;
+      }
+      api("../api/admin/users.php", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: clearId, clear_session: true }),
+      })
+        .then(function (data) {
+          showMsg(
+            listMsg,
+            (data && data.message) || "Sesión remota cerrada",
+            true
+          );
+          return loadUsers();
+        })
+        .catch(function (err) {
+          showMsg(listMsg, err.message, false);
+        });
       return;
     }
 
@@ -758,6 +801,39 @@
   if (editCancel) {
     editCancel.addEventListener("click", function () {
       dialog.close();
+    });
+  }
+
+  var editClearSession = document.getElementById("edit-clear-session");
+  if (editClearSession) {
+    editClearSession.addEventListener("click", function () {
+      var clearId = Number(document.getElementById("edit-id").value);
+      if (!clearId) return;
+      if (
+        !window.confirm(
+          "¿Cerrar la sesión remota de este usuario? Podrá volver a iniciar sesión."
+        )
+      ) {
+        return;
+      }
+      api("../api/admin/users.php", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: clearId, clear_session: true }),
+      })
+        .then(function (data) {
+          showMsg(
+            editMsg,
+            (data && data.message) || "Sesión remota cerrada",
+            true
+          );
+          var box = document.getElementById("edit-session-box");
+          if (box) box.hidden = true;
+          return loadUsers();
+        })
+        .catch(function (err) {
+          showMsg(editMsg, err.message, false);
+        });
     });
   }
 

@@ -453,19 +453,76 @@ function mxli_padron_lookup_by_clave(string $clave): ?array
     $map = mxli_padron_field_map($pdo);
     $claveCol = mxli_padron_quote_ident($map["clave"]);
     $qualified = mxli_padron_qualified();
+    $normExpr = "replace(replace(upper(trim({$claveCol}::text)), ' ', ''), '-', '')";
 
-    // SELECT * + remap: más tolerante a mayúsculas/truncados que un SELECT con AS fijo.
+    // SELECT * + remap: más tolerante a mayúsculas/espacios/guiones.
     $sql = "SELECT * FROM {$qualified}
-            WHERE replace(upper(trim({$claveCol}::text)), ' ', '') = :clave
+            WHERE {$normExpr} = :clave
             LIMIT 1";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(["clave" => $clave]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!is_array($row)) {
-        return null;
+        // Fallback: prefijo exacto (por si el padrón trae sufijos)
+        $sql2 = "SELECT * FROM {$qualified}
+                 WHERE {$normExpr} LIKE :clave_like
+                 ORDER BY length({$normExpr}) ASC
+                 LIMIT 1";
+        $stmt2 = $pdo->prepare($sql2);
+        $stmt2->execute(["clave_like" => $clave . "%"]);
+        $row = $stmt2->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($row)) {
+            return null;
+        }
     }
 
     return mxli_padron_public_row($row, $map);
+}
+
+/**
+ * Longitud de string compatible sin mbstring.
+ */
+function mxli_padron_strlen(string $s): int
+{
+    return function_exists("mb_strlen") ? (int)mb_strlen($s, "UTF-8") : strlen($s);
+}
+
+/**
+ * Mayúsculas compatible sin mbstring.
+ */
+function mxli_padron_upper(string $s): string
+{
+    if (function_exists("mb_strtoupper")) {
+        return mb_strtoupper($s, "UTF-8");
+    }
+    return strtoupper($s);
+}
+
+/**
+ * Fila pública para búsquedas (omite propietario si $includeOwner = false).
+ *
+ * @return array<string,string>
+ */
+function mxli_padron_public_row_search(array $row, array $map, bool $includeOwner = false): array
+{
+    $full = mxli_padron_public_row($row, $map);
+    $out = [
+        "clave" => (string)($full["clave"] ?? ""),
+        "calle" => (string)($full["calle"] ?? ""),
+        "numero_oficial" => (string)($full["numero_oficial"] ?? ""),
+        "letra" => (string)($full["letra"] ?? ""),
+        "numero_interior" => (string)($full["numero_interior"] ?? ""),
+        "colonia" => (string)($full["colonia"] ?? ""),
+        "domicilio" => (string)($full["domicilio"] ?? ""),
+        "delegacion" => (string)($full["delegacion"] ?? ""),
+    ];
+    if ($includeOwner) {
+        $out["propietario"] = (string)($full["propietario"] ?? "");
+        $out["nombre_completo"] = (string)($full["nombre_completo"] ?? "");
+        $out["nombredespliegue"] = (string)($full["nombredespliegue"] ?? "");
+        $out["razon_social"] = (string)($full["razon_social"] ?? "");
+    }
+    return $out;
 }
 
 /**
@@ -511,7 +568,6 @@ function mxli_padron_search_by_nombre(string $nombre, int $limit = 40): array
         return [];
     }
 
-    // Campo combinado para buscar en nombre y razón social
     $haystack = "upper(trim(concat_ws(' ', " . implode(", ", $nameCols) . ")))";
 
     $whereParts = [];
@@ -527,10 +583,19 @@ function mxli_padron_search_by_nombre(string $nombre, int $limit = 40): array
         ? mxli_padron_quote_ident($map["nombre"])
         : mxli_padron_quote_ident($map["razon_social"]);
 
+    // Ranking: coincidencia más corta / al inicio primero
+    $first = $params["n0"] ?? ("%");
     $sql = "SELECT * FROM {$qualified}
             WHERE {$where}
-            ORDER BY {$orderCol}
+            ORDER BY
+              CASE WHEN {$haystack} LIKE :rank_prefix THEN 0 ELSE 1 END,
+              length(trim({$orderCol}::text)) ASC,
+              {$orderCol}
             LIMIT {$limit}";
+    $params["rank_prefix"] = ltrim($first, "%");
+    if (!str_ends_with((string)$params["rank_prefix"], "%")) {
+        $params["rank_prefix"] .= "%";
+    }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 
@@ -552,52 +617,6 @@ function mxli_padron_search_by_nombre(string $nombre, int $limit = 40): array
 }
 
 /**
- * Fila pública para búsquedas (omite propietario si $includeOwner = false).
- *
- * @return array<string,string>
- */
-function mxli_padron_public_row_search(array $row, array $map, bool $includeOwner = false): array
-{
-    $full = mxli_padron_public_row($row, $map);
-    $out = [
-        "clave" => (string)($full["clave"] ?? ""),
-        "calle" => (string)($full["calle"] ?? ""),
-        "numero_oficial" => (string)($full["numero_oficial"] ?? ""),
-        "letra" => (string)($full["letra"] ?? ""),
-        "numero_interior" => (string)($full["numero_interior"] ?? ""),
-        "colonia" => (string)($full["colonia"] ?? ""),
-        "domicilio" => (string)($full["domicilio"] ?? ""),
-        "delegacion" => (string)($full["delegacion"] ?? ""),
-    ];
-    if ($includeOwner) {
-        $out["propietario"] = (string)($full["propietario"] ?? "");
-        $out["nombre_completo"] = (string)($full["nombre_completo"] ?? "");
-        $out["nombredespliegue"] = (string)($full["nombredespliegue"] ?? "");
-        $out["razon_social"] = (string)($full["razon_social"] ?? "");
-    }
-    return $out;
-}
-
-/**
- * Longitud de string compatible sin mbstring.
- */
-function mxli_padron_strlen(string $s): int
-{
-    return function_exists("mb_strlen") ? (int)mb_strlen($s, "UTF-8") : strlen($s);
-}
-
-/**
- * Mayúsculas compatible sin mbstring.
- */
-function mxli_padron_upper(string $s): string
-{
-    if (function_exists("mb_strtoupper")) {
-        return mb_strtoupper($s, "UTF-8");
-    }
-    return strtoupper($s);
-}
-
-/**
  * Prefijos / ruido vial que no deben exigir coincidencia exacta.
  *
  * @return list<string>
@@ -605,43 +624,12 @@ function mxli_padron_upper(string $s): string
 function mxli_padron_calle_stopwords(): array
 {
     return [
-        "GRAL",
-        "GENERAL",
-        "AV",
-        "AVENIDA",
-        "CALLE",
-        "C",
-        "BLVD",
-        "BOULEVARD",
-        "PRIV",
-        "PRIVADA",
-        "ANDADOR",
-        "CERRADA",
-        "CIRCUITO",
-        "CALZ",
-        "CALZADA",
-        "CARR",
-        "CARRETERA",
-        "PROL",
-        "PROLONGACION",
-        "PROLONGACIÓN",
-        "DR",
-        "DRA",
-        "ING",
-        "LIC",
-        "PROF",
-        "DEL",
-        "DE",
-        "LA",
-        "LAS",
-        "LOS",
-        "EL",
-        "Y",
-        "AL",
-        "SAN",
-        "SANTA",
-        "STO",
-        "STA",
+        "GRAL", "GENERAL", "AV", "AVENIDA", "CALLE", "C", "BLVD", "BOULEVARD",
+        "PRIV", "PRIVADA", "ANDADOR", "CERRADA", "CIRCUITO", "CALZ", "CALZADA",
+        "CARR", "CARRETERA", "PROL", "PROLONGACION", "PROLONGACIÓN",
+        "DR", "DRA", "ING", "LIC", "PROF",
+        "DEL", "DE", "LA", "LAS", "LOS", "EL", "Y", "AL",
+        "SAN", "SANTA", "STO", "STA", "COLONIA", "COL",
     ];
 }
 
@@ -653,7 +641,6 @@ function mxli_padron_calle_stopwords(): array
 function mxli_padron_calle_tokens(string $calle): array
 {
     $s = mxli_padron_upper($calle);
-    // Quitar puntuación (GRAL. → GRAL)
     $s = preg_replace("/[^\p{L}\p{N}\s]/u", " ", $s) ?? $s;
     $s = trim(preg_replace("/\s+/u", " ", $s) ?? "");
     if ($s === "") {
@@ -693,7 +680,6 @@ function mxli_padron_parse_direccion(string $query): array
     $calle = $q;
     $numero = "";
 
-    // "CALLE X # 123" / "CALLE X NO. 123" / "CALLE X NUM 123"
     if (preg_match('/^(.+?)\s+(?:#|NO\.?|NUM\.?|NÚM\.?|NUMERO|NÚMERO)\s*([0-9]+[A-Z]?)$/u', $q, $m)) {
         $calle = trim($m[1]);
         $numero = trim($m[2]);
@@ -706,7 +692,6 @@ function mxli_padron_parse_direccion(string $query): array
     }
 
     $tokens = mxli_padron_calle_tokens($calle);
-    // Si al quitar prefijos no quedó nada, usar palabras crudas sin stopwords estrictas
     if ($tokens === []) {
         $raw = preg_replace("/[^\p{L}\p{N}\s]/u", " ", mxli_padron_upper($calle)) ?? $calle;
         foreach (preg_split("/\s+/u", trim($raw)) ?: [] as $t) {
@@ -721,8 +706,8 @@ function mxli_padron_parse_direccion(string $query): array
 }
 
 /**
- * Búsqueda por calle + número oficial.
- * Tolera prefijos (GRAL./AV./CALLE) y puntuación: "JOAQUIN AMARO" ≈ "GRAL. JOAQUIN AMARO".
+ * Búsqueda por calle + número oficial (y/o colonia).
+ * Tolera prefijos (GRAL./AV./CALLE) y puntuación.
  *
  * @return list<array<string,string>>
  */
@@ -745,22 +730,40 @@ function mxli_padron_search_by_direccion(string $query, int $limit = 40, bool $i
 
     $pdo = mxli_geonode_db();
     $map = mxli_padron_field_map($pdo);
-    if ($map["calle"] === null) {
+    if ($map["calle"] === null && $map["colonia"] === null) {
         return [];
     }
 
-    $calleCol = mxli_padron_quote_ident($map["calle"]);
-    // Texto de calle normalizado en SQL (sin puntuación)
-    $calleNorm = "regexp_replace(upper(trim({$calleCol}::text)), '[^A-Z0-9ÁÉÍÓÚÑÜ ]', ' ', 'g')";
     $qualified = mxli_padron_qualified();
     $limit = min(80, max(1, $limit));
+
+    $calleNorm = null;
+    if ($map["calle"] !== null) {
+        $calleCol = mxli_padron_quote_ident($map["calle"]);
+        $calleNorm = "regexp_replace(upper(trim({$calleCol}::text)), '[^A-Z0-9ÁÉÍÓÚÑÜ ]', ' ', 'g')";
+    }
+    $coloniaNorm = null;
+    if ($map["colonia"] !== null) {
+        $coloniaCol = mxli_padron_quote_ident($map["colonia"]);
+        $coloniaNorm = "regexp_replace(upper(trim({$coloniaCol}::text)), '[^A-Z0-9ÁÉÍÓÚÑÜ ]', ' ', 'g')";
+    }
 
     $whereParts = [];
     $params = [];
     foreach ($tokens as $i => $tok) {
         $key = "t" . $i;
-        // Cada token significativo debe aparecer (JOAQUIN y AMARO), con o sin GRAL.
-        $whereParts[] = "{$calleNorm} LIKE :" . $key;
+        $ors = [];
+        if ($calleNorm !== null) {
+            $ors[] = "{$calleNorm} LIKE :" . $key;
+        }
+        if ($coloniaNorm !== null) {
+            $ors[] = "{$coloniaNorm} LIKE :" . $key . "c";
+            $params[$key . "c"] = "%" . mxli_padron_upper($tok) . "%";
+        }
+        if ($ors === []) {
+            continue;
+        }
+        $whereParts[] = "(" . implode(" OR ", $ors) . ")";
         $params[$key] = "%" . mxli_padron_upper($tok) . "%";
     }
 
@@ -770,13 +773,20 @@ function mxli_padron_search_by_direccion(string $query, int $limit = 40, bool $i
         $params["numero"] = $numero . "%";
     }
 
+    if ($whereParts === []) {
+        return [];
+    }
+
     $where = implode(" AND ", $whereParts);
 
-    // Preferir coincidencia "más corta" de calle (menos prefijos) y número cercano
-    $order = "length(trim({$calleCol}::text)) ASC, {$calleCol}";
-    if ($numero !== "" && $map["numero"] !== null) {
-        $numCol = mxli_padron_quote_ident($map["numero"]);
-        $order = "{$numCol}, length(trim({$calleCol}::text)) ASC, {$calleCol}";
+    $order = "1";
+    if ($map["calle"] !== null) {
+        $calleCol = mxli_padron_quote_ident($map["calle"]);
+        $order = "length(trim({$calleCol}::text)) ASC, {$calleCol}";
+        if ($numero !== "" && $map["numero"] !== null) {
+            $numCol = mxli_padron_quote_ident($map["numero"]);
+            $order = "{$numCol}, length(trim({$calleCol}::text)) ASC, {$calleCol}";
+        }
     }
 
     $sql = "SELECT * FROM {$qualified}

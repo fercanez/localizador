@@ -9,7 +9,22 @@
     return perms.indexOf(permission) !== -1;
   }
 
+  function isAdminUser() {
+    var role = String((window.MXLI_USER && window.MXLI_USER.role) || "").toLowerCase();
+    return role === "admin";
+  }
+
+  function isValuadorUser() {
+    var role = String((window.MXLI_USER && window.MXLI_USER.role) || "").toLowerCase();
+    var label = String((window.MXLI_USER && window.MXLI_USER.role_label) || "").toLowerCase();
+    if (role === "perito_valuador" || role.indexOf("valuad") !== -1) return true;
+    return label.indexOf("valuad") !== -1;
+  }
+
   function canLayer(layerKey) {
+    if (layerKey === "fallas_geologicas") {
+      return isAdminUser() || isValuadorUser();
+    }
     var layers = (window.MXLI_USER && window.MXLI_USER.allowed_layers) || ["*"];
     if (layers.indexOf("*") !== -1) return true;
     return layers.indexOf(layerKey) !== -1;
@@ -28,7 +43,15 @@
       hide(document.getElementById("shp-upload"));
     }
 
-    if (!can("map.inspect")) {
+    if (
+      !can("map.inspect") &&
+      !can("map.inspect.catastro") &&
+      !can("map.inspect.ecologica") &&
+      !can("inspections.manage") &&
+      !can("inspections.catastro.manage") &&
+      !can("inspections.ecologica.manage") &&
+      !can("users.manage")
+    ) {
       hide(document.getElementById("inspectPhotoBtn"));
     }
 
@@ -58,6 +81,20 @@
 
     if (!can("map.inspect") && !can("inspections.manage")) {
       document.querySelectorAll('a[href="admin/inspecciones.php"]').forEach(hide);
+    }
+
+    if (!can("map.inspect.catastro") && !can("inspections.catastro.manage")) {
+      document.querySelectorAll('a[href="admin/inspecciones-catastro.php"]').forEach(hide);
+    }
+
+    if (!can("map.inspect.ecologica") && !can("inspections.ecologica.manage")) {
+      document.querySelectorAll('a[href="admin/inspecciones-ecologica.php"]').forEach(hide);
+    }
+
+    if (!can("map.planos")) {
+      hide(document.getElementById("consultaPlanosBtn"));
+      hide(document.getElementById("consultaPlanosHeaderBtn"));
+      hide(document.getElementById("consultaDeslindesHeaderBtn"));
     }
 
     document.querySelectorAll("[data-gs-layer]").forEach(function (card) {

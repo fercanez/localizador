@@ -46,12 +46,24 @@
       "map.search": "Buscar",
       "map.info": "Info",
       "map.padron": "Padrón",
+      "map.expediente": "Expediente",
+      "map.expediente.download": "Descargar exp.",
+      "map.expediente.print": "Imprimir exp.",
+      "map.expediente.nowatermark": "Sin marca agua",
+      "map.planos": "Planos PDF/DWG",
+      "map.planos.download": "Descargar planos",
+      "map.planos.print": "Imprimir planos",
+      "map.planos.nowatermark": "Planos sin marca agua",
       "map.print": "Imprimir",
       "map.locate": "GPS",
       "map.measure": "Medir",
       "map.upload": "Subir",
-      "map.inspect": "Inspeccionar",
-      "inspections.manage": "Gestionar inspecciones",
+      "map.inspect": "Inspección Control Urbano",
+      "map.inspect.catastro": "Inspección Catastro",
+      "map.inspect.ecologica": "Inspección Patrulla Ecológica",
+      "inspections.manage": "Gestionar insp. Control Urbano",
+      "inspections.catastro.manage": "Gestionar insp. Catastro",
+      "inspections.ecologica.manage": "Gestionar insp. Patrulla Ecológica",
       "users.manage": "Usuarios",
     };
     return (list || [])
@@ -127,6 +139,7 @@
       el.disabled = false;
       el.checked = !!set[perm];
     });
+    syncDependentTools();
   }
 
   function setLayerChecks(layers, isAdmin) {
@@ -146,18 +159,6 @@
     });
   }
 
-  function collectPermissions(isAdmin) {
-    var list = ["map.view"];
-    document.querySelectorAll(".role-tool").forEach(function (el) {
-      if (el.value === "map.view") return;
-      if (el.checked) list.push(el.value);
-    });
-    if (isAdmin && list.indexOf("users.manage") === -1) {
-      list.push("users.manage");
-    }
-    return list;
-  }
-
   function collectLayers(isAdmin) {
     if (isAdmin) return ["*"];
     var allBox = document.getElementById("role-layers-all");
@@ -167,6 +168,44 @@
       list.push(el.value);
     });
     return list.length ? list : ["*"];
+  }
+
+  function toolEl(perm) {
+    return document.querySelector('.role-tool[value="' + perm + '"]');
+  }
+
+  function syncDependentTools() {
+    var groups = {
+      "map.planos": ["map.planos.download", "map.planos.print", "map.planos.nowatermark"],
+      "map.expediente": ["map.expediente.download", "map.expediente.print", "map.expediente.nowatermark"],
+    };
+    Object.keys(groups).forEach(function (parent) {
+      var parentEl = toolEl(parent);
+      var on = !!(parentEl && parentEl.checked);
+      groups[parent].forEach(function (child) {
+        var el = toolEl(child);
+        if (!el) return;
+        if (!on) {
+          el.checked = false;
+          el.disabled = true;
+        } else {
+          el.disabled = false;
+        }
+      });
+    });
+  }
+
+  function collectPermissions(isAdmin) {
+    var list = ["map.view"];
+    document.querySelectorAll(".role-tool").forEach(function (el) {
+      if (el.value === "map.view") return;
+      if (el.disabled && el.getAttribute("data-admin-only") !== "1") return;
+      if (el.checked) list.push(el.value);
+    });
+    if (isAdmin && list.indexOf("users.manage") === -1) {
+      list.push("users.manage");
+    }
+    return list;
   }
 
   function setSlugDisplay(slug, isCreate) {
@@ -309,11 +348,14 @@
   }
 
   if (form) {
-    form.addEventListener("submit", function (event) {
-      var submitter = event.submitter;
-      if (submitter && submitter.value === "cancel") return;
-
-      event.preventDefault();
+    var saveBtn = document.getElementById("role-save");
+    var cancelBtn = document.getElementById("role-cancel");
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", function () {
+        dialog.close();
+      });
+    }
+    function saveRole() {
       var mode = document.getElementById("role-mode").value;
       var slug = document.getElementById("role-slug").value.trim();
       var name = document.getElementById("role-name").value.trim();
@@ -353,7 +395,17 @@
       }
 
       req
-        .then(function () {
+        .then(function (data) {
+          if (data && data.role) {
+            var next = [];
+            (rolesCache || []).forEach(function (r) {
+              next.push(r.slug === data.role.slug ? data.role : r);
+            });
+            if (!next.some(function (r) { return r.slug === data.role.slug; })) {
+              next.push(data.role);
+            }
+            renderRoles(next);
+          }
           dialog.close();
           showMsg(rolesMsg, "Rol guardado", true);
           return loadRoles();
@@ -361,10 +413,25 @@
         .catch(function (err) {
           showMsg(rolesMsg, err.message, false);
         });
+    }
+    if (saveBtn) saveBtn.addEventListener("click", saveRole);
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      saveRole();
     });
   }
 
   document.addEventListener("mxli:roles-tab-shown", loadRoles);
+  var toolsBox = document.getElementById("role-tools");
+  if (toolsBox) {
+    toolsBox.addEventListener("change", function (ev) {
+      var t = ev.target;
+      if (!t || !t.classList || !t.classList.contains("role-tool")) return;
+      if (t.value === "map.planos" || t.value === "map.expediente") {
+        syncDependentTools();
+      }
+    });
+  }
   loadRoles();
 })();
 
